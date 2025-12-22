@@ -1,0 +1,49 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Tests",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build-tests",
+            "program": "${workspaceFolder}/ZeroAlloc.Tests/bin/Debug/net10.0/ZeroAlloc.Tests.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/ZeroAlloc.Tests",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": "Run Benchmarks",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build-benchmarks",
+            "program": "${workspaceFolder}/ZeroAlloc.Benchmarks/bin/Release/net10.0/ZeroAlloc.Benchmarks.dll",
+            "args": [
+                "--filter",
+                "*"
+            ],
+            "cwd": "${workspaceFolder}/ZeroAlloc.Benchmarks",
+            "console": "integratedTerminal",
+            "stopAtEntry": false,
+            "justMyCode": false
+        },
+        {
+            "name": "Debug Library",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build-library",
+            "program": "${workspaceFolder}/ZeroAlloc.Tests/bin/Debug/net10.0/ZeroAlloc.Tests.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/ZeroAlloc.Tests",
+            "console": "internalConsole",
+            "stopAtEntry": false,
+            "justMyCode": true
+        },
+        {
+            "name": "Attach to Source Generator",
+            "type": "coreclr",
+            "request": "attach",
+            "processName": "dotnet"
+        }
+    ]
+}

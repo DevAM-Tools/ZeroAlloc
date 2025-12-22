@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="ZeroAlloc/ZeroAlloc.csproj" />
+  <Project Path="ZeroAlloc.Generator/ZeroAlloc.Generator.csproj" />
+  <Project Path="ZeroAlloc.Tests/ZeroAlloc.Tests.csproj" />
+  <Project Path="ZeroAlloc.Benchmarks/ZeroAlloc.Benchmarks.csproj" />
+</Solution>

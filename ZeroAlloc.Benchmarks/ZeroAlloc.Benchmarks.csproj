@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>ZeroAlloc.Benchmarks</RootNamespace>
+    <LangVersion>preview</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+    <PackageReference Include="ZString" Version="2.6.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ZeroAlloc\ZeroAlloc.csproj" />
+    <ProjectReference Include="..\ZeroAlloc.Generator\ZeroAlloc.Generator.csproj" 
+                      OutputItemType="Analyzer" 
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+</Project>

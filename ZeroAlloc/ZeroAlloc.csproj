@@ -1,0 +1,60 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Import generator build properties -->
+  <Import Project="..\ZeroAlloc.Generator\build\ZeroAlloc.Generator.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>ZeroAlloc</RootNamespace>
+    <LangVersion>preview</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    
+    <!-- NuGet Package Metadata -->
+    <PackageId>ZeroAlloc</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>ZeroAlloc Contributors</Authors>
+    <Company>ZeroAlloc Contributors</Company>
+    <Copyright>Copyright © ZeroAlloc Contributors</Copyright>
+    <Description>Zero-allocation string formatting and binary serialization library with Roslyn source generators. Features: compile-time optimized ZA.String() and ZA.Bytes() APIs, endian-aware wrappers (U16BE, I32LE, etc.), VarInt encoding, length-prefixed string encodings, and generated binary parsers. Perfect for network protocols, CAN/FlexRay, embedded systems, and high-performance logging. Requires .NET 10+.</Description>
+    <PackageTags>serialization;binary;zero-allocation;source-generator;performance;span;byte-array;bit-level;can;flexray</PackageTags>
+    <PackageProjectUrl>https://github.com/DevAM-Tools/ZeroAlloc</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/DevAM-Tools/ZeroAlloc</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <!-- Automatic NuGet Package creation for Release builds -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageOutputPath>$(MSBuildThisFileDirectory)..\Release</PackageOutputPath>
+    
+    <!-- CI/CD Build Settings - Deterministic builds with anonymized paths -->
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    <Deterministic>true</Deterministic>
+    <DeterministicSourcePaths>true</DeterministicSourcePaths>
+    <PathMap>$(MSBuildThisFileDirectory)=/</PathMap>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\\README.md" Pack="true" PackagePath="README.md" />
+    <None Include="..\\icon.png" Pack="true" PackagePath="icon.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference 
+      Include="..\ZeroAlloc.Generator\ZeroAlloc.Generator.csproj" 
+      OutputItemType="Analyzer" 
+      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+</Project>
