@@ -13,7 +13,7 @@
     
     <!-- NuGet Package Metadata -->
     <PackageId>ZeroAlloc</PackageId>
-    <Version>0.1.1</Version>
+    <Version>0.1.2</Version>
     <Authors>ZeroAlloc Contributors</Authors>
     <Company>ZeroAlloc Contributors</Company>
     <Copyright>Copyright © ZeroAlloc Contributors</Copyright>
@@ -55,6 +55,10 @@
       Include="..\ZeroAlloc.Generator\ZeroAlloc.Generator.csproj" 
       OutputItemType="Analyzer" 
       ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup Condition="Exists('..\ZeroAlloc.Generator\bin\$(Configuration)\netstandard2.0\ZeroAlloc.Generator.dll')">
+    <None Include="..\ZeroAlloc.Generator\bin\$(Configuration)\netstandard2.0\ZeroAlloc.Generator.dll" Pack="true" PackagePath="analyzers/dotnet/cs/netstandard2.0" Visible="false" />
   </ItemGroup>
 
 </Project>
