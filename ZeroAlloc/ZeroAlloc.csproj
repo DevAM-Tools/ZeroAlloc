@@ -13,7 +13,7 @@
     
     <!-- NuGet Package Metadata -->
     <PackageId>ZeroAlloc</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Authors>ZeroAlloc Contributors</Authors>
     <Company>ZeroAlloc Contributors</Company>
     <Copyright>Copyright © ZeroAlloc Contributors</Copyright>
