@@ -158,21 +158,21 @@ public readonly struct Utf8Formatted<T> : IUtf8SpanFormattable where T : IUtf8Sp
         Span<byte> buffer = stackalloc byte[256];
         if (_value.TryFormat(buffer, out int written, _format, _provider))
         {
-            return System.Text.Encoding.UTF8.GetString(buffer.Slice(0, written));
+            return Encoding.UTF8.GetString(buffer.Slice(0, written));
         }
 
         // Fallback to larger buffer
         byte[] largeBuffer = new byte[4096];
         if (_value.TryFormat(largeBuffer, out written, _format, _provider))
         {
-            return System.Text.Encoding.UTF8.GetString(largeBuffer, 0, written);
+            return Encoding.UTF8.GetString(largeBuffer, 0, written);
         }
 
         // Final fallback - try even larger buffer
         byte[] hugeBuffer = new byte[65536];
         if (_value.TryFormat(hugeBuffer, out written, _format, _provider))
         {
-            return System.Text.Encoding.UTF8.GetString(hugeBuffer, 0, written);
+            return Encoding.UTF8.GetString(hugeBuffer, 0, written);
         }
 
         return _value.ToString() ?? "";

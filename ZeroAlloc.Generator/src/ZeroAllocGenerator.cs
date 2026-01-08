@@ -564,7 +564,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         INamedTypeSymbol? spanFormattable = compilation.GetTypeByMetadataName("System.ISpanFormattable");
         if (spanFormattable is not null && type.AllInterfaces.Contains(spanFormattable, SymbolEqualityComparer.Default))
         {
-            bool mayUseZeroAlloc = MayUseZeroAllocInternally(type);
+            bool mayUseZeroAlloc = MayUseZeroAllocInternally(type, compilation);
             return new ArgumentTypeInfo(fullTypeName, shortName, TypeCategory.SpanFormattable, isRefStruct, isValueType,
                 MayUseZeroAllocInternally: mayUseZeroAlloc, KnownSize: knownSize, MinimumSize: minSize,
                 ImplementsIStringSize: implementsIStringSize, ImplementsIUtf8Size: implementsIUtf8Size);
@@ -574,7 +574,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         INamedTypeSymbol? utf8SpanFormattable = compilation.GetTypeByMetadataName("System.IUtf8SpanFormattable");
         if (utf8SpanFormattable is not null && type.AllInterfaces.Contains(utf8SpanFormattable, SymbolEqualityComparer.Default))
         {
-            bool mayUseZeroAlloc = MayUseZeroAllocInternally(type);
+            bool mayUseZeroAlloc = MayUseZeroAllocInternally(type, compilation);
             return new ArgumentTypeInfo(fullTypeName, shortName, TypeCategory.Utf8SpanFormattable, isRefStruct, isValueType,
                 MayUseZeroAllocInternally: mayUseZeroAlloc, KnownSize: knownSize, MinimumSize: minSize,
                 ImplementsIStringSize: implementsIStringSize, ImplementsIUtf8Size: implementsIUtf8Size);
@@ -653,20 +653,22 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     /// cause the inner call to fall back to heap allocation.
     /// </summary>
     /// <remarks>
-    /// A type is considered potentially recursive if:
+    /// A type is considered potentially recursive only if we can prove it uses ZeroAlloc APIs:
     /// <list type="bullet">
-    /// <item>It is not from the System namespace (user-defined)</item>
-    /// <item>Its containing assembly references ZeroAlloc</item>
+    ///   <item>For types with source available: Analyze TryFormat method body for ZeroAlloc calls</item>
+    ///   <item>For types without source: Only warn if they inherit from ZeroAllocBase</item>
+    ///   <item>System/Microsoft types: Never use ZeroAlloc internally</item>
     /// </list>
-    /// We cannot analyze the actual TryFormat implementation at generator time,
-    /// so we issue a warning for user review.
+    /// This provides precise detection instead of the overly broad "assembly references ZeroAlloc" check.
     /// </remarks>
-    private static bool MayUseZeroAllocInternally(ITypeSymbol type)
+    private static bool MayUseZeroAllocInternally(ITypeSymbol type, Compilation compilation)
     {
         // Built-in types and System types cannot use ZeroAlloc internally
         string? containingNamespace = type.ContainingNamespace?.ToDisplayString();
         if (containingNamespace is null)
+        {
             return false;
+        }
 
         if (containingNamespace.StartsWith("System", StringComparison.Ordinal) ||
             containingNamespace.StartsWith("Microsoft", StringComparison.Ordinal))
@@ -674,24 +676,153 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
             return false;
         }
 
-        // Check if the containing assembly references ZeroAlloc
-        IAssemblySymbol? assembly = type.ContainingAssembly;
-        if (assembly is null)
-            return true; // If we can't determine, assume worst case
-
-        // Check module references for ZeroAlloc
-        foreach (IModuleSymbol module in assembly.Modules)
+        // Check if the type inherits from ZeroAllocBase (definite ZeroAlloc user)
+        INamedTypeSymbol? zeroAllocBase = compilation.GetTypeByMetadataName("ZeroAlloc.ZeroAllocBase");
+        if (zeroAllocBase is not null && InheritsFrom(type, zeroAllocBase))
         {
-            foreach (IAssemblySymbol referencedAssembly in module.ReferencedAssemblySymbols)
+            return true;
+        }
+
+        // If the type has source available, analyze the TryFormat method body
+        if (type is INamedTypeSymbol namedType)
+        {
+            IMethodSymbol? tryFormatMethod = FindTryFormatMethod(namedType);
+            if (tryFormatMethod is not null)
             {
-                if (referencedAssembly.Name == "ZeroAlloc")
+                // Check if we have access to the source code
+                foreach (SyntaxReference syntaxRef in tryFormatMethod.DeclaringSyntaxReferences)
                 {
-                    return true;
+                    SyntaxNode syntaxNode = syntaxRef.GetSyntax();
+                    if (ContainsZeroAllocApiCalls(syntaxNode))
+                    {
+                        return true;
+                    }
                 }
             }
         }
 
-        // The type's assembly doesn't reference ZeroAlloc, so it can't use our APIs
+        // No evidence of ZeroAlloc usage found
+        return false;
+    }
+
+    /// <summary>
+    /// Checks if a type inherits from a specified base type.
+    /// </summary>
+    private static bool InheritsFrom(ITypeSymbol type, INamedTypeSymbol baseType)
+    {
+        INamedTypeSymbol? current = type.BaseType;
+        while (current is not null)
+        {
+            if (SymbolEqualityComparer.Default.Equals(current, baseType))
+            {
+                return true;
+            }
+            current = current.BaseType;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Finds the TryFormat method on a type (ISpanFormattable or IUtf8SpanFormattable implementation).
+    /// </summary>
+    private static IMethodSymbol? FindTryFormatMethod(INamedTypeSymbol type)
+    {
+        // Look for TryFormat method with typical signatures
+        foreach (ISymbol member in type.GetMembers("TryFormat"))
+        {
+            if (member is IMethodSymbol method && !method.IsStatic)
+            {
+                // ISpanFormattable.TryFormat has Span<char> first param
+                // IUtf8SpanFormattable.TryFormat has Span<byte> first param
+                if (method.Parameters.Length >= 2)
+                {
+                    ITypeSymbol firstParamType = method.Parameters[0].Type;
+                    if (firstParamType is INamedTypeSymbol namedParamType &&
+                        namedParamType.OriginalDefinition.ToDisplayString() == "System.Span<T>")
+                    {
+                        return method;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Analyzes a syntax node to determine if it contains ZeroAlloc API calls.
+    /// </summary>
+    /// <remarks>
+    /// Searches for invocations of known ZeroAlloc methods:
+    /// <list type="bullet">
+    ///   <item>ZA.String(), ZA.Utf8(), ZA.Bytes() and their Try* variants</item>
+    ///   <item>TempString, TempBytes, TempStringBuilder usage</item>
+    ///   <item>ZeroStringBuilder, ZeroBytesBuilder methods</item>
+    /// </list>
+    /// </remarks>
+    private static bool ContainsZeroAllocApiCalls(SyntaxNode node)
+    {
+        // Known ZeroAlloc API method names that could cause recursion
+        HashSet<string> zeroAllocMethods =
+        [
+            "String", "TryString",
+            "Utf8", "TryUtf8",
+            "Bytes", "TryBytes",
+            "Acquire", "Release"
+        ];
+
+        // Known ZeroAlloc type names
+        HashSet<string> zeroAllocTypes =
+        [
+            "TempString", "TempBytes",
+            "TempStringBuilder", "TempBytesBuilder",
+            "ZeroStringBuilder", "ZeroBytesBuilder",
+            "StackStringBuilder", "StackBytesBuilder"
+        ];
+
+        foreach (SyntaxNode descendant in node.DescendantNodes())
+        {
+            // Check for method invocations
+            if (descendant is InvocationExpressionSyntax invocation)
+            {
+                string invocationText = invocation.Expression.ToString();
+
+                // Check for ZeroAlloc method calls like "ZA.String()", "Fmt.Utf8()"
+                foreach (string method in zeroAllocMethods)
+                {
+                    if (invocationText.EndsWith("." + method, StringComparison.Ordinal))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            // Check for object creation of ZeroAlloc types
+            if (descendant is ObjectCreationExpressionSyntax creation)
+            {
+                string typeName = creation.Type.ToString();
+                foreach (string zeroAllocType in zeroAllocTypes)
+                {
+                    if (typeName.Contains(zeroAllocType, StringComparison.Ordinal))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            // Check for identifier usage (variable declarations, etc.)
+            if (descendant is IdentifierNameSyntax identifier)
+            {
+                string name = identifier.Identifier.Text;
+                foreach (string zeroAllocType in zeroAllocTypes)
+                {
+                    if (name == zeroAllocType)
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+
         return false;
     }
 
