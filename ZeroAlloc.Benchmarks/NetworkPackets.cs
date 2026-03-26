@@ -25,10 +25,6 @@ SOFTWARE.
 
 namespace ZeroAlloc.Benchmarks;
 
-using System.Buffers.Binary;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-
 /// <summary>
 /// Ethernet II frame header (14 bytes).
 /// </summary>

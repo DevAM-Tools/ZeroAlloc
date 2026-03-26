@@ -75,22 +75,22 @@ public ref struct TempStringBuilder : IDisposable
     /// <summary>
     /// The array buffer.
     /// </summary>
-    private char[]? _array;
+    private char[]? _Array;
 
     /// <summary>
     /// The working span that we write to.
     /// </summary>
-    private Span<char> _span;
+    private Span<char> _Span;
 
     /// <summary>
     /// Current write position in the buffer.
     /// </summary>
-    private int _position;
+    private int _Position;
 
     /// <summary>
     /// True if using the ThreadStatic buffer (needs release on Dispose).
     /// </summary>
-    private readonly bool _isThreadStatic;
+    private readonly bool _IsThreadStatic;
 
     // ========================================================================
     // CONSTRUCTORS
@@ -102,10 +102,10 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private TempStringBuilder(char[] array, bool isThreadStatic)
     {
-        _array = array;
-        _span = array.AsSpan();
-        _position = 0;
-        _isThreadStatic = isThreadStatic;
+        _Array = array;
+        _Span = array.AsSpan();
+        _Position = 0;
+        _IsThreadStatic = isThreadStatic;
     }
 
     // ========================================================================
@@ -147,28 +147,28 @@ public ref struct TempStringBuilder : IDisposable
     /// <summary>
     /// Gets the current number of characters written to the buffer.
     /// </summary>
-    public readonly int Length => _position;
+    public readonly int Length => _Position;
 
     /// <summary>
     /// Gets the current capacity of the buffer.
     /// </summary>
-    public readonly int Capacity => _span.Length;
+    public readonly int Capacity => _Span.Length;
 
     /// <summary>
     /// Gets the remaining capacity in the buffer.
     /// </summary>
-    public readonly int Remaining => _span.Length - _position;
+    public readonly int Remaining => _Span.Length - _Position;
 
     /// <summary>
     /// Gets a value indicating whether the content is empty.
     /// </summary>
-    public readonly bool IsEmpty => _position == 0;
+    public readonly bool IsEmpty => _Position == 0;
 
     /// <summary>
     /// Gets a value indicating whether this instance is using a heap-allocated buffer
     /// (fallback mode due to nested call) rather than the ThreadStatic buffer.
     /// </summary>
-    public readonly bool IsHeapAllocated => !_isThreadStatic && _array is not null;
+    public readonly bool IsHeapAllocated => !_IsThreadStatic && _Array is not null;
 
     // ========================================================================
     // SPAN ACCESS
@@ -179,13 +179,13 @@ public ref struct TempStringBuilder : IDisposable
     /// </summary>
     /// <returns>A read-only span containing the written characters.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly ReadOnlySpan<char> AsSpan() => _span.Slice(0, _position);
+    public readonly ReadOnlySpan<char> AsSpan() => _Span.Slice(0, _Position);
 
     /// <summary>
     /// Clears the builder, resetting the position to zero.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Clear() => _position = 0;
+    public void Clear() => _Position = 0;
 
     /// <summary>
     /// Moves the write position back by the specified number of characters.
@@ -201,13 +201,13 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void SeekBack(int count)
     {
-        if ((uint)count > (uint)_position)
+        if ((uint)count > (uint)_Position)
         {
             throw new ArgumentOutOfRangeException(nameof(count),
-                $"Cannot seek back {count} characters when only {_position} characters have been written.");
+                $"Cannot seek back {count} characters when only {_Position} characters have been written.");
         }
 
-        _position -= count;
+        _Position -= count;
     }
 
     /// <summary>
@@ -218,12 +218,12 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TrySeekBack(int count)
     {
-        if ((uint)count > (uint)_position)
+        if ((uint)count > (uint)_Position)
         {
             return false;
         }
 
-        _position -= count;
+        _Position -= count;
         return true;
     }
 
@@ -239,14 +239,14 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void EnsureCapacity(int requiredCapacity)
     {
-        if (requiredCapacity <= _span.Length)
+        if (requiredCapacity <= _Span.Length)
         {
             return;
         }
 
         // Grow the buffer via ZeroAllocHelper (behavior depends on configuration)
-        _array = ZeroAllocHelper.GrowCharBuffer(requiredCapacity);
-        _span = _array.AsSpan();
+        _Array = ZeroAllocHelper.GrowCharBuffer(requiredCapacity);
+        _Span = _Array.AsSpan();
     }
 
     /// <summary>
@@ -257,7 +257,7 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool TryEnsureCapacity(int requiredCapacity)
     {
-        if (requiredCapacity <= _span.Length)
+        if (requiredCapacity <= _Span.Length)
         {
             return true;
         }
@@ -269,8 +269,8 @@ public ref struct TempStringBuilder : IDisposable
             return false;
         }
 
-        _array = newBuffer;
-        _span = _array.AsSpan();
+        _Array = newBuffer;
+        _Span = _Array.AsSpan();
         return true;
     }
 
@@ -285,11 +285,15 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(string? value)
     {
-        if (value is null) return;
-        int requiredCapacity = _position + value.Length;
+        if (value is null)
+        {
+            return;
+        }
+
+        int requiredCapacity = _Position + value.Length;
         EnsureCapacity(requiredCapacity);
-        value.AsSpan().CopyTo(_span.Slice(_position));
-        _position += value.Length;
+        value.AsSpan().CopyTo(_Span.Slice(_Position));
+        _Position += value.Length;
     }
 
     /// <summary>
@@ -299,10 +303,10 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(ReadOnlySpan<char> value)
     {
-        int requiredCapacity = _position + value.Length;
+        int requiredCapacity = _Position + value.Length;
         EnsureCapacity(requiredCapacity);
-        value.CopyTo(_span.Slice(_position));
-        _position += value.Length;
+        value.CopyTo(_Span.Slice(_Position));
+        _Position += value.Length;
     }
 
     /// <summary>
@@ -312,8 +316,8 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(char value)
     {
-        EnsureCapacity(_position + 1);
-        _span[_position++] = value;
+        EnsureCapacity(_Position + 1);
+        _Span[_Position++] = value;
     }
 
     // ========================================================================
@@ -358,15 +362,15 @@ public ref struct TempStringBuilder : IDisposable
     {
         if (value)
         {
-            EnsureCapacity(_position + 4);
-            "True".AsSpan().CopyTo(_span.Slice(_position));
-            _position += 4;
+            EnsureCapacity(_Position + 4);
+            "True".AsSpan().CopyTo(_Span.Slice(_Position));
+            _Position += 4;
         }
         else
         {
-            EnsureCapacity(_position + 5);
-            "False".AsSpan().CopyTo(_span.Slice(_position));
-            _position += 5;
+            EnsureCapacity(_Position + 5);
+            "False".AsSpan().CopyTo(_Span.Slice(_Position));
+            _Position += 5;
         }
     }
 
@@ -500,15 +504,22 @@ public ref struct TempStringBuilder : IDisposable
     {
         int charsWritten;
         // Try to format in the remaining space
-        while (!value.TryFormat(_span.Slice(_position), out charsWritten, format, provider))
+        while (!value.TryFormat(_Span.Slice(_Position), out charsWritten, format, provider))
         {
             // Need more space - grow via ZeroAllocHelper (may throw depending on configuration)
-            int newSize = ZeroAllocHelper.CalculateGrowth(_span.Length, _span.Length + 64);
-            _array = ZeroAllocHelper.GrowCharBuffer(newSize);
-            _span = _array.AsSpan();
+            int previousLength = _Span.Length;
+            int newSize = ZeroAllocHelper.CalculateGrowth(_Span.Length, _Span.Length + 64);
+            _Array = ZeroAllocHelper.GrowCharBuffer(newSize);
+            _Span = _Array.AsSpan();
+
+            // Safety guard: if the buffer didn't actually grow, TryFormat will never succeed
+            if (_Span.Length <= previousLength)
+            {
+                throw new InvalidOperationException("Buffer failed to grow during formatting.");
+            }
         }
 
-        _position += charsWritten;
+        _Position += charsWritten;
     }
 
     /// <summary>
@@ -521,21 +532,28 @@ public ref struct TempStringBuilder : IDisposable
     {
         int charsWritten;
         // Try to format in the remaining space
-        while (!value.TryFormat(_span.Slice(_position), out charsWritten, format, provider))
+        while (!value.TryFormat(_Span.Slice(_Position), out charsWritten, format, provider))
         {
             // Need more space - try to grow
-            int newSize = ZeroAllocHelper.CalculateGrowth(_span.Length, _span.Length + 64);
+            int previousLength = _Span.Length;
+            int newSize = ZeroAllocHelper.CalculateGrowth(_Span.Length, _Span.Length + 64);
             char[]? newBuffer = ZeroAllocHelper.TryGrowCharBuffer(newSize);
             if (newBuffer is null)
             {
                 return false;
             }
 
-            _array = newBuffer;
-            _span = _array.AsSpan();
+            _Array = newBuffer;
+            _Span = _Array.AsSpan();
+
+            // Safety guard: if the buffer didn't actually grow, TryFormat will never succeed
+            if (_Span.Length <= previousLength)
+            {
+                return false;
+            }
         }
 
-        _position += charsWritten;
+        _Position += charsWritten;
         return true;
     }
 
@@ -572,14 +590,14 @@ public ref struct TempStringBuilder : IDisposable
             return true;
         }
 
-        int requiredCapacity = _position + value.Length;
+        int requiredCapacity = _Position + value.Length;
         if (!TryEnsureCapacity(requiredCapacity))
         {
             return false;
         }
 
-        value.AsSpan().CopyTo(_span.Slice(_position));
-        _position += value.Length;
+        value.AsSpan().CopyTo(_Span.Slice(_Position));
+        _Position += value.Length;
         return true;
     }
 
@@ -591,14 +609,14 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppend(ReadOnlySpan<char> value)
     {
-        int requiredCapacity = _position + value.Length;
+        int requiredCapacity = _Position + value.Length;
         if (!TryEnsureCapacity(requiredCapacity))
         {
             return false;
         }
 
-        value.CopyTo(_span.Slice(_position));
-        _position += value.Length;
+        value.CopyTo(_Span.Slice(_Position));
+        _Position += value.Length;
         return true;
     }
 
@@ -610,12 +628,12 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppend(char value)
     {
-        if (!TryEnsureCapacity(_position + 1))
+        if (!TryEnsureCapacity(_Position + 1))
         {
             return false;
         }
 
-        _span[_position++] = value;
+        _Span[_Position++] = value;
         return true;
     }
 
@@ -657,23 +675,23 @@ public ref struct TempStringBuilder : IDisposable
     {
         if (value)
         {
-            if (!TryEnsureCapacity(_position + 4))
+            if (!TryEnsureCapacity(_Position + 4))
             {
                 return false;
             }
 
-            "True".AsSpan().CopyTo(_span.Slice(_position));
-            _position += 4;
+            "True".AsSpan().CopyTo(_Span.Slice(_Position));
+            _Position += 4;
         }
         else
         {
-            if (!TryEnsureCapacity(_position + 5))
+            if (!TryEnsureCapacity(_Position + 5))
             {
                 return false;
             }
 
-            "False".AsSpan().CopyTo(_span.Slice(_position));
-            _position += 5;
+            "False".AsSpan().CopyTo(_Span.Slice(_Position));
+            _Position += 5;
         }
         return true;
     }
@@ -757,20 +775,20 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendHex2(byte value)
     {
-        EnsureCapacity(_position + 2);
-        _span[_position++] = HexChars[value >> 4];
-        _span[_position++] = HexChars[value & 0xF];
+        EnsureCapacity(_Position + 2);
+        _Span[_Position++] = HexChars[value >> 4];
+        _Span[_Position++] = HexChars[value & 0xF];
     }
 
     /// <summary>Appends a ushort as 4 hexadecimal characters to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendHex4(ushort value)
     {
-        EnsureCapacity(_position + 4);
-        _span[_position++] = HexChars[(value >> 12) & 0xF];
-        _span[_position++] = HexChars[(value >> 8) & 0xF];
-        _span[_position++] = HexChars[(value >> 4) & 0xF];
-        _span[_position++] = HexChars[value & 0xF];
+        EnsureCapacity(_Position + 4);
+        _Span[_Position++] = HexChars[(value >> 12) & 0xF];
+        _Span[_Position++] = HexChars[(value >> 8) & 0xF];
+        _Span[_Position++] = HexChars[(value >> 4) & 0xF];
+        _Span[_Position++] = HexChars[value & 0xF];
     }
 
     /// <summary>Appends a uint as 8 hexadecimal characters to the buffer.</summary>
@@ -793,36 +811,44 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendBinary8(byte value)
     {
-        EnsureCapacity(_position + 8);
+        EnsureCapacity(_Position + 8);
         for (int i = 7; i >= 0; i--)
-            _span[_position++] = (char)('0' + ((value >> i) & 1));
+        {
+            _Span[_Position++] = (char)('0' + ((value >> i) & 1));
+        }
     }
 
     /// <summary>Appends a ushort as 16 binary characters to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendBinary16(ushort value)
     {
-        EnsureCapacity(_position + 16);
+        EnsureCapacity(_Position + 16);
         for (int i = 15; i >= 0; i--)
-            _span[_position++] = (char)('0' + ((value >> i) & 1));
+        {
+            _Span[_Position++] = (char)('0' + ((value >> i) & 1));
+        }
     }
 
     /// <summary>Appends a uint as 32 binary characters to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendBinary32(uint value)
     {
-        EnsureCapacity(_position + 32);
+        EnsureCapacity(_Position + 32);
         for (int i = 31; i >= 0; i--)
-            _span[_position++] = (char)('0' + ((value >> i) & 1));
+        {
+            _Span[_Position++] = (char)('0' + ((value >> i) & 1));
+        }
     }
 
     /// <summary>Appends a ulong as 64 binary characters to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendBinary64(ulong value)
     {
-        EnsureCapacity(_position + 64);
+        EnsureCapacity(_Position + 64);
         for (int i = 63; i >= 0; i--)
-            _span[_position++] = (char)('0' + (int)((value >> i) & 1));
+        {
+            _Span[_Position++] = (char)('0' + (int)((value >> i) & 1));
+        }
     }
 
     /// <summary>Tries to append a byte as 2 hexadecimal characters without throwing.</summary>
@@ -831,13 +857,13 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendHex2(byte value)
     {
-        if (!TryEnsureCapacity(_position + 2))
+        if (!TryEnsureCapacity(_Position + 2))
         {
             return false;
         }
 
-        _span[_position++] = HexChars[value >> 4];
-        _span[_position++] = HexChars[value & 0xF];
+        _Span[_Position++] = HexChars[value >> 4];
+        _Span[_Position++] = HexChars[value & 0xF];
         return true;
     }
 
@@ -847,15 +873,15 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendHex4(ushort value)
     {
-        if (!TryEnsureCapacity(_position + 4))
+        if (!TryEnsureCapacity(_Position + 4))
         {
             return false;
         }
 
-        _span[_position++] = HexChars[(value >> 12) & 0xF];
-        _span[_position++] = HexChars[(value >> 8) & 0xF];
-        _span[_position++] = HexChars[(value >> 4) & 0xF];
-        _span[_position++] = HexChars[value & 0xF];
+        _Span[_Position++] = HexChars[(value >> 12) & 0xF];
+        _Span[_Position++] = HexChars[(value >> 8) & 0xF];
+        _Span[_Position++] = HexChars[(value >> 4) & 0xF];
+        _Span[_Position++] = HexChars[value & 0xF];
         return true;
     }
 
@@ -865,7 +891,7 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendHex8(uint value)
     {
-        if (!TryEnsureCapacity(_position + 8))
+        if (!TryEnsureCapacity(_Position + 8))
         {
             return false;
         }
@@ -881,7 +907,7 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendHex16(ulong value)
     {
-        if (!TryEnsureCapacity(_position + 16))
+        if (!TryEnsureCapacity(_Position + 16))
         {
             return false;
         }
@@ -897,14 +923,14 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendBinary8(byte value)
     {
-        if (!TryEnsureCapacity(_position + 8))
+        if (!TryEnsureCapacity(_Position + 8))
         {
             return false;
         }
 
         for (int i = 7; i >= 0; i--)
         {
-            _span[_position++] = (char)('0' + ((value >> i) & 1));
+            _Span[_Position++] = (char)('0' + ((value >> i) & 1));
         }
         return true;
     }
@@ -915,14 +941,14 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendBinary16(ushort value)
     {
-        if (!TryEnsureCapacity(_position + 16))
+        if (!TryEnsureCapacity(_Position + 16))
         {
             return false;
         }
 
         for (int i = 15; i >= 0; i--)
         {
-            _span[_position++] = (char)('0' + ((value >> i) & 1));
+            _Span[_Position++] = (char)('0' + ((value >> i) & 1));
         }
         return true;
     }
@@ -933,14 +959,14 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendBinary32(uint value)
     {
-        if (!TryEnsureCapacity(_position + 32))
+        if (!TryEnsureCapacity(_Position + 32))
         {
             return false;
         }
 
         for (int i = 31; i >= 0; i--)
         {
-            _span[_position++] = (char)('0' + ((value >> i) & 1));
+            _Span[_Position++] = (char)('0' + ((value >> i) & 1));
         }
         return true;
     }
@@ -951,14 +977,14 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendBinary64(ulong value)
     {
-        if (!TryEnsureCapacity(_position + 64))
+        if (!TryEnsureCapacity(_Position + 64))
         {
             return false;
         }
 
         for (int i = 63; i >= 0; i--)
         {
-            _span[_position++] = (char)('0' + (int)((value >> i) & 1));
+            _Span[_Position++] = (char)('0' + (int)((value >> i) & 1));
         }
         return true;
     }
@@ -974,10 +1000,12 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly override string ToString()
     {
-        if (_position == 0)
+        if (_Position == 0)
+        {
             return string.Empty;
+        }
 
-        return new string(_span.Slice(0, _position));
+        return new string(_Span.Slice(0, _Position));
     }
 
     // ========================================================================
@@ -993,7 +1021,7 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
-        if (_isThreadStatic)
+        if (_IsThreadStatic)
         {
             ZeroAllocHelper.ReleaseCharBuffer();
         }
@@ -1007,8 +1035,5 @@ public ref struct TempStringBuilder : IDisposable
     /// Implicitly converts a <see cref="TempStringBuilder"/> to <see cref="ReadOnlySpan{Char}"/>.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static implicit operator ReadOnlySpan<char>(TempStringBuilder builder)
-    {
-        return builder.AsSpan();
-    }
+    public static implicit operator ReadOnlySpan<char>(TempStringBuilder builder) => builder.AsSpan();
 }

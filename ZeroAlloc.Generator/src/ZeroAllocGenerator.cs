@@ -220,7 +220,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
             .Where(static info => info is not null);
 
         // Step 4: Combine everything and generate
-        var combined = userClasses.Collect()
+        IncrementalValueProvider<(((ImmutableArray<UserClassInfo?> Left, ImmutableArray<MethodCallInfo?> Right) Left, Compilation Right) Left, GeneratorOptions Right)> combined = userClasses.Collect()
             .Combine(methodCalls.Collect())
             .Combine(context.CompilationProvider)
             .Combine(options);
@@ -276,10 +276,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     /// </remarks>
     /// <param name="node">The syntax node to check.</param>
     /// <returns><c>true</c> if the node is a class declaration; otherwise <c>false</c>.</returns>
-    private static bool IsPotentialUserClass(SyntaxNode node)
-    {
-        return node is ClassDeclarationSyntax;
-    }
+    private static bool IsPotentialUserClass(SyntaxNode node) => node is ClassDeclarationSyntax;
 
     /// <summary>
     /// Performs semantic analysis to verify if a class inherits from <c>ZeroAllocBase</c>.
@@ -357,10 +354,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     /// </remarks>
     /// <param name="node">The syntax node to check.</param>
     /// <returns><c>true</c> if the node is an invocation expression; otherwise <c>false</c>.</returns>
-    private static bool IsPotentialApiCall(SyntaxNode node)
-    {
-        return node is InvocationExpressionSyntax;
-    }
+    private static bool IsPotentialApiCall(SyntaxNode node) => node is InvocationExpressionSyntax;
 
     /// <summary>
     /// Performs semantic analysis to verify if an invocation is a ZeroAlloc API call.
@@ -442,7 +436,8 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     private static bool IsApiMethodName(string name)
     {
         return name is "String" or "TryString" or "Utf8" or "TryUtf8" or "Bytes" or "TryBytes"
-            or "LocalizedString" or "TryLocalizedString" or "LocalizedUtf8" or "TryLocalizedUtf8";
+            or "LocalizedString" or "TryLocalizedString" or "LocalizedUtf8" or "TryLocalizedUtf8"
+            or "Lazy" or "LazyInterpolated";
     }
 
     // ========================================================================
@@ -1062,6 +1057,8 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         HashSet<ImmutableArray<ArgumentTypeInfo>> bytesSignatures = new HashSet<ImmutableArray<ArgumentTypeInfo>>(new ArgumentListComparer());
         HashSet<ImmutableArray<ArgumentTypeInfo>> localizedStringSignatures = new HashSet<ImmutableArray<ArgumentTypeInfo>>(new ArgumentListComparer());
         HashSet<ImmutableArray<ArgumentTypeInfo>> localizedUtf8Signatures = new HashSet<ImmutableArray<ArgumentTypeInfo>>(new ArgumentListComparer());
+        HashSet<ImmutableArray<ArgumentTypeInfo>> lazySignatures = new HashSet<ImmutableArray<ArgumentTypeInfo>>(new ArgumentListComparer());
+        HashSet<ImmutableArray<ArgumentTypeInfo>> lazyInterpolatedSignatures = new HashSet<ImmutableArray<ArgumentTypeInfo>>(new ArgumentListComparer());
 
         // Collect all signatures
         foreach (MethodCallInfo call in calls)
@@ -1087,6 +1084,14 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
                 case "LocalizedUtf8":
                 case "TryLocalizedUtf8":
                     localizedUtf8Signatures.Add(call.Arguments);
+                    break;
+                case "Lazy":
+                    lazySignatures.Add(call.Arguments);
+                    // Also generate corresponding String() method for the same signature
+                    stringSignatures.Add(call.Arguments);
+                    break;
+                case "LazyInterpolated":
+                    lazyInterpolatedSignatures.Add(call.Arguments);
                     break;
             }
         }
@@ -1178,6 +1183,28 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
             {
                 generatedSignatures.Add(signatureKey);
                 GenerateTryLocalizedUtf8Method(sb, args, options);
+            }
+        }
+
+        // Generate Lazy() for all lazy signatures
+        foreach (ImmutableArray<ArgumentTypeInfo> args in lazySignatures)
+        {
+            string signatureKey = $"Lazy({string.Join(",", args.Select(a => a.FullTypeName))})";
+            if (!generatedSignatures.Contains(signatureKey))
+            {
+                generatedSignatures.Add(signatureKey);
+                GenerateLazyMethod(sb, args);
+            }
+        }
+
+        // Generate LazyInterpolated() for all lazy interpolated signatures
+        foreach (ImmutableArray<ArgumentTypeInfo> args in lazyInterpolatedSignatures)
+        {
+            string signatureKey = $"LazyInterpolated({string.Join(",", args.Select(a => a.FullTypeName))})";
+            if (!generatedSignatures.Contains(signatureKey))
+            {
+                generatedSignatures.Add(signatureKey);
+                GenerateLazyInterpolatedMethod(sb, args);
             }
         }
 
@@ -2745,6 +2772,155 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         sb.AppendLine();
         sb.AppendLine("        result = new TempBytes(buffer, position, isThreadStatic);");
         sb.AppendLine("        return true;");
+        sb.AppendLine("    }");
+        sb.AppendLine();
+    }
+
+    // ========================================================================
+    // METHOD GENERATION - Lazy
+    // ========================================================================
+    // Generates Lazy() methods that return LazyString. These defer evaluation
+    // by capturing arguments in a tuple and calling the generated String()
+    // method when the LazyString is first accessed.
+    //
+    // Benefits over manual LazyString.FormatLazy:
+    // - Eliminates verbose tuple + lambda boilerplate at call sites
+    // - Automatically selects optimal state capture (direct vs tuple)
+    // - Generated String() method provides zero-allocation formatting
+    // ========================================================================
+
+    /// <summary>
+    /// Generates a <c>Lazy()</c> method that returns a <see cref="LazyString"/>.
+    /// The method defers evaluation by capturing arguments and calling the corresponding
+    /// <c>String()</c> method on first access.
+    /// </summary>
+    /// <param name="sb">The string builder to append generated code to.</param>
+    /// <param name="args">The argument types for this overload.</param>
+    private static void GenerateLazyMethod(
+        StringBuilder sb,
+        ImmutableArray<ArgumentTypeInfo> args)
+    {
+        // Build parameter list
+        List<string> parameters = [];
+        List<string> paramNames = [];
+        for (int i = 0; i < args.Length; i++)
+        {
+            string paramName = $"{args[i].ShortName}{i}";
+            parameters.Add($"{args[i].FullTypeName} {paramName}");
+            paramNames.Add(paramName);
+        }
+
+        // Method documentation
+        sb.AppendLine("    // ========================================================================");
+        sb.AppendLine("    // Lazy() - Deferred zero-allocation string formatting");
+        sb.AppendLine("    // ========================================================================");
+        sb.AppendLine();
+        sb.AppendLine("    /// <summary>");
+        sb.AppendLine("    /// Creates a <see cref=\"LazyString\"/> that defers formatting until first access.");
+        sb.AppendLine("    /// On evaluation, uses the generated <c>String()</c> method for zero-allocation formatting.");
+        sb.AppendLine("    /// </summary>");
+        for (int i = 0; i < args.Length; i++)
+        {
+            sb.AppendLine($"    /// <param name=\"{paramNames[i]}\">Value of type <see cref=\"{args[i].FullTypeName}\"/>.</param>");
+        }
+        sb.AppendLine("    /// <returns>A <see cref=\"LazyString\"/> that evaluates lazily on first access.</returns>");
+        sb.AppendLine("    [MethodImpl(MethodImplOptions.AggressiveInlining)]");
+        sb.AppendLine($"    internal static LazyString Lazy({string.Join(", ", parameters)})");
+        sb.AppendLine("    {");
+
+        if (args.Length == 1)
+        {
+            // Single argument: capture directly without tuple wrapping
+            sb.AppendLine($"        return LazyString.FormatLazy(");
+            sb.AppendLine($"            {paramNames[0]},");
+            sb.AppendLine($"            static s => String(s));");
+        }
+        else
+        {
+            // Multiple arguments: capture as value tuple
+            string tupleArgs = string.Join(", ", paramNames);
+            string tupleAccess = string.Join(", ", Enumerable.Range(1, args.Length).Select(i => $"s.Item{i}"));
+            sb.AppendLine($"        return LazyString.FormatLazy(");
+            sb.AppendLine($"            ({tupleArgs}),");
+            sb.AppendLine($"            static s => String({tupleAccess}));");
+        }
+
+        sb.AppendLine("    }");
+        sb.AppendLine();
+    }
+
+    // ========================================================================
+    // METHOD GENERATION - LazyInterpolated
+    // ========================================================================
+    // Generates LazyInterpolated() methods that return LazyString. These defer
+    // evaluation by capturing arguments in a tuple and using string interpolation
+    // when the LazyString is first accessed.
+    //
+    // Use LazyInterpolated when:
+    // - The call site is inside another String() scope (ThreadStatic contention)
+    // - The formatting pattern is simple concatenation
+    //
+    // Note: LazyInterpolated allocates a string on evaluation via interpolation,
+    // while Lazy() uses the zero-allocation String() pipeline.
+    // ========================================================================
+
+    /// <summary>
+    /// Generates a <c>LazyInterpolated()</c> method that returns a <see cref="LazyString"/>.
+    /// The method defers evaluation by capturing arguments and using string interpolation
+    /// when evaluated, avoiding ThreadStatic buffer contention.
+    /// </summary>
+    /// <param name="sb">The string builder to append generated code to.</param>
+    /// <param name="args">The argument types for this overload.</param>
+    private static void GenerateLazyInterpolatedMethod(
+        StringBuilder sb,
+        ImmutableArray<ArgumentTypeInfo> args)
+    {
+        // Build parameter list
+        List<string> parameters = [];
+        List<string> paramNames = [];
+        for (int i = 0; i < args.Length; i++)
+        {
+            string paramName = $"{args[i].ShortName}{i}";
+            parameters.Add($"{args[i].FullTypeName} {paramName}");
+            paramNames.Add(paramName);
+        }
+
+        // Method documentation
+        sb.AppendLine("    // ========================================================================");
+        sb.AppendLine("    // LazyInterpolated() - Deferred string formatting via interpolation");
+        sb.AppendLine("    // ========================================================================");
+        sb.AppendLine();
+        sb.AppendLine("    /// <summary>");
+        sb.AppendLine("    /// Creates a <see cref=\"LazyString\"/> that defers formatting until first access.");
+        sb.AppendLine("    /// On evaluation, uses string interpolation (allocates on eval but avoids");
+        sb.AppendLine("    /// ThreadStatic buffer contention with nested <c>String()</c> calls).");
+        sb.AppendLine("    /// </summary>");
+        for (int i = 0; i < args.Length; i++)
+        {
+            sb.AppendLine($"    /// <param name=\"{paramNames[i]}\">Value of type <see cref=\"{args[i].FullTypeName}\"/>.</param>");
+        }
+        sb.AppendLine("    /// <returns>A <see cref=\"LazyString\"/> that evaluates lazily on first access.</returns>");
+        sb.AppendLine("    [MethodImpl(MethodImplOptions.AggressiveInlining)]");
+        sb.AppendLine($"    internal static LazyString LazyInterpolated({string.Join(", ", parameters)})");
+        sb.AppendLine("    {");
+
+        if (args.Length == 1)
+        {
+            // Single argument: use ToString() directly
+            sb.AppendLine($"        return LazyString.FormatLazy(");
+            sb.AppendLine($"            {paramNames[0]},");
+            sb.AppendLine($"            static s => s.ToString()!);");
+        }
+        else
+        {
+            // Multiple arguments: capture as value tuple, use string interpolation
+            string tupleArgs = string.Join(", ", paramNames);
+            string interpolationParts = string.Join("", Enumerable.Range(1, args.Length).Select(i => $"{{s.Item{i}}}"));
+            sb.AppendLine($"        return LazyString.FormatLazy(");
+            sb.AppendLine($"            ({tupleArgs}),");
+            sb.AppendLine($"            static s => $\"{interpolationParts}\");");
+        }
+
         sb.AppendLine("    }");
         sb.AppendLine();
     }

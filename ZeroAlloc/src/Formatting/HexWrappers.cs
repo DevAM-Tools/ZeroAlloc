@@ -295,7 +295,10 @@ public readonly struct Hex3 : ISpanFormattable, IUtf8SpanFormattable
     /// <summary>Creates a new Hex3 formatter for the specified value.</summary>
     /// <param name="value">The value to format as hex (only lower 12 bits used).</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Hex3(ushort value) => _Value = (ushort)(value & 0xFFF);
+    public Hex3(ushort value)
+    {
+        _Value = (ushort)(value & 0xFFF);
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -367,7 +370,10 @@ public readonly struct Hex4 : ISpanFormattable, IUtf8SpanFormattable
     /// <summary>Creates a new Hex4 formatter for the specified value.</summary>
     /// <param name="value">The ushort value to format as hex.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Hex4(ushort value) => _Value = value;
+    public Hex4(ushort value)
+    {
+        _Value = value;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -443,7 +449,10 @@ public readonly struct Hex5 : ISpanFormattable, IUtf8SpanFormattable
     /// <summary>Creates a new Hex5 formatter for the specified value.</summary>
     /// <param name="value">The value to format as hex (only lower 20 bits used).</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Hex5(uint value) => _Value = value & 0xFFFFF;
+    public Hex5(uint value)
+    {
+        _Value = value & 0xFFFFF;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -522,7 +531,10 @@ public readonly struct Hex6 : ISpanFormattable, IUtf8SpanFormattable
     /// <summary>Creates a new Hex6 formatter for the specified value.</summary>
     /// <param name="value">The value to format as hex (only lower 24 bits used).</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Hex6(uint value) => _Value = value & 0xFFFFFF;
+    public Hex6(uint value)
+    {
+        _Value = value & 0xFFFFFF;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -604,7 +616,10 @@ public readonly struct Hex7 : ISpanFormattable, IUtf8SpanFormattable
     /// <summary>Creates a new Hex7 formatter for the specified value.</summary>
     /// <param name="value">The value to format as hex (only lower 28 bits used).</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Hex7(uint value) => _Value = value & 0xFFFFFFF;
+    public Hex7(uint value)
+    {
+        _Value = value & 0xFFFFFFF;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -688,7 +703,10 @@ public readonly struct Hex8 : ISpanFormattable, IUtf8SpanFormattable
     /// <summary>Creates a new Hex8 formatter for the specified value.</summary>
     /// <param name="value">The uint value to format as hex.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Hex8(uint value) => _Value = value;
+    public Hex8(uint value)
+    {
+        _Value = value;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -763,7 +781,10 @@ public readonly struct Hex16 : ISpanFormattable, IUtf8SpanFormattable
     /// <summary>Creates a new Hex16 formatter for the specified value.</summary>
     /// <param name="value">The ulong value to format as hex.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Hex16(ulong value) => _Value = value;
+    public Hex16(ulong value)
+    {
+        _Value = value;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

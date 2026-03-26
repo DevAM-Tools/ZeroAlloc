@@ -25,8 +25,6 @@ SOFTWARE.
 
 namespace ZeroAlloc.Benchmarks;
 
-using System.Globalization;
-
 /// <summary>
 /// Benchmarks comparing ZeroAlloc.LocalizedString vs standard interpolation.
 /// 

@@ -9,9 +9,9 @@
 
 **Zero-allocation serialization library with source generators for .NET 10+**
 
-High-performance, zero-allocation serialization library for binary data and strings. Uses Roslyn source generators to create optimized, type-specific formatting code at compile time - no reflection, no boxing, no runtime code generation. Perfect for network protocols, CAN/FlexRay communication, embedded systems, logging, and any scenario where performance and memory efficiency are critical.
+High-performance, zero-allocation serialization library for binary data and strings. Uses Roslyn source generators to create optimized, type-specific formatting code at compile time - no reflection, no boxing, no runtime code generation. Includes `LazyString` for deferred string evaluation — build display text lazily, evaluate only when needed, cache the result atomically. Perfect for network protocols, CAN/FlexRay communication, embedded systems, logging, UI trees, and any scenario where performance and memory efficiency are critical.
 
-> **💡 Main Idea:** ZeroAlloc provides an **interpolated-string-like API** that feels natural and readable, while eliminating heap allocations in 99% of use cases. Focus on writing clean code - let the source generator handle the performance optimizations.
+> **Main Idea:** ZeroAlloc provides an **interpolated-string-like API** that feels natural and readable, while eliminating heap allocations in 99% of use cases. With `LazyString`, you can defer formatting entirely — strings are only built when someone actually reads them. Focus on writing clean code - let the source generator handle the performance optimizations.
 
 ---
 
@@ -23,24 +23,29 @@ High-performance, zero-allocation serialization library for binary data and stri
    - [ZA.String()](#zastring---generated-string-concatenation)
    - [TempStringBuilder](#tempstringbuilder---manual-string-building)
    - [SpanStringBuilder](#spanstringbuilder---span-based-building)
-4. [UTF-8 Generation](#utf-8-generation)
+4. [Deferred / Lazy Strings](#deferred--lazy-strings)
+   - [LazyString](#lazystring---deferred-string-evaluation)
+   - [ZA.Lazy()](#zalazy---generated-deferred-formatting)
+   - [ZA.LazyInterpolated()](#zalazyinterpolated---deferred-interpolation)
+   - [LazyString.FormatLazy&lt;TState&gt;()](#lazystringformatlazytstate---manual-deferred-formatting)
+5. [UTF-8 Generation](#utf-8-generation)
    - [ZA.Utf8()](#zautf8---generated-utf-8-bytes)
-5. [Localized Formatting](#localized-formatting)
+6. [Localized Formatting](#localized-formatting)
    - [ZA.LocalizedString()](#zalocalizedstring---culture-sensitive-strings)
    - [ZA.LocalizedUtf8()](#zalocalizedutf8---culture-sensitive-utf-8)
-6. [Binary Serialization](#binary-serialization)
+7. [Binary Serialization](#binary-serialization)
    - [ZA.Bytes()](#zabytes---generated-binary-serialization)
    - [TempBytesBuilder](#tempbytesbuilder---manual-byte-building)
    - [SpanBytesBuilder](#spanbytesbuilder---span-based-building)
-7. [Binary Parsing](#binary-parsing)
+8. [Binary Parsing](#binary-parsing)
    - [ZA.ParseBytes()](#zaparsebytes---generated-parsing)
    - [[BinaryParsable] Attribute](#binaryparsable-attribute)
    - [BinaryParser](#binaryparser---manual-parsing)
    - [BitReader](#bitreader---bit-level-parsing)
-8. [Type Wrappers](#type-wrappers)
-9. [Custom Types](#custom-types)
-10. [Configuration](#configuration)
-11. [Installation](#installation)
+9. [Type Wrappers](#type-wrappers)
+10. [Custom Types](#custom-types)
+11. [Configuration](#configuration)
+12. [Installation](#installation)
 
 ---
 
@@ -61,11 +66,16 @@ byte[] binary = ZA.Bytes(new U16BE(0x1234), new Utf8("Hello"));
 using TempString temp = ZA.String("User ", userId, " logged in");
 ReadOnlySpan<char> span = temp.AsSpan();
 
-// Step 4: Use culture-sensitive formatting
+// Step 4: Defer string formatting until actually needed (lazy evaluation)
+LazyString displayText = ZA.Lazy("User ", userId, " logged in at ", timestamp);
+// String is NOT built yet — zero work done. Only evaluated on first access:
+string text = displayText;  // implicitly converted → string is built and cached.
+
+// Step 5: Use culture-sensitive formatting
 string localized = ZA.LocalizedString(CultureInfo.GetCultureInfo("de-DE"), "Price: ", amount, " €");
 byte[] localizedUtf8 = ZA.LocalizedUtf8(culture, "Date: ", DateTime.Now);
 
-// Step 5: Parse binary data
+// Step 6: Parse binary data
 if (PacketHeader.TryParse(data, out var header, out int consumed))
 {
     Console.WriteLine($"Version: {header.Version.Value}");
@@ -366,6 +376,222 @@ ReadOnlySpan<char> result = builder.AsSpan();
 > **Note:** `SpanStringBuilder` throws if the buffer is too small. Use `TempStringBuilder` for auto-growing buffers.
 
 **Supported types:** Same as `TempStringBuilder`
+
+---
+
+## Deferred / Lazy Strings
+
+### LazyString - Deferred String Evaluation
+
+`LazyString` is an 8-byte readonly struct that wraps a string value which may be evaluated immediately or deferred until first access. Once evaluated, the result is atomically cached so subsequent reads are a single pointer dereference.
+
+**Use cases:**
+- Protocol dissectors that build display text for thousands of fields per packet, but only a few are ever shown to the user
+- Logging frameworks where most log messages are filtered before rendering
+- UI trees where only visible nodes need their text materialized
+- Any scenario where you build many strings but consume only a fraction
+
+#### Direct / Immediate Values
+
+```csharp
+// From a string literal or variable
+LazyString name = new LazyString("Hello");
+
+// Implicit conversion from string
+LazyString name2 = "Hello";
+
+// Empty and null
+LazyString empty = LazyString.Empty;       // "", not null
+LazyString absent = default;                // null / absent
+```
+
+#### Deferred with ZA.Lazy() (Recommended)
+
+The source generator creates optimized `Lazy()` overloads that capture arguments in a value tuple and defer to the generated `String()` method on first access. This is the **recommended** way to create deferred strings because it combines zero-allocation formatting with lazy evaluation:
+
+```csharp
+// Deferred: no string is built here — arguments are captured in a tuple
+LazyString text = ZA.Lazy("User ", userId, " logged in at ", timestamp);
+
+// The string is built on first access and then cached forever:
+string result = text;            // implicit conversion → builds and caches
+string again  = text.ToString(); // same cached string, no re-evaluation
+```
+
+See [ZA.Lazy()](#zalazy---generated-deferred-formatting) for details.
+
+#### Deferred with LazyString.FormatLazy&lt;TState&gt;()
+
+For advanced scenarios where you need full control over the formatting logic:
+
+```csharp
+// Capture state in a value tuple, use a static lambda to avoid closure allocation
+LazyString text = LazyString.FormatLazy(
+    (srcPort, dstPort),
+    static s => $"Src: {s.Item1}, Dst: {s.Item2}");
+```
+
+See [LazyString.FormatLazy&lt;TState&gt;()](#lazystringformatlazytstate---manual-deferred-formatting) for details.
+
+#### Deferred with Func&lt;string&gt;
+
+For simple one-off deferred evaluation without captured state:
+
+```csharp
+LazyString text = LazyString.Lazy(() => ExpensiveComputation());
+```
+
+#### Properties and Methods
+
+| Member | Description |
+|--------|-------------|
+| `ToString()` | Evaluates and returns the string (caches result). Returns `""` if absent. Standard .NET method. |
+| `AsString` | Same as `ToString()`. Property alternative for expression contexts. |
+| `TryGetString(out string)` | Safe evaluation: returns `false` if the factory threw an exception. |
+| `IsNull` | `true` if no value is set (`default` struct). |
+| `IsEmpty` | `true` if absent or the evaluated string is zero-length. |
+| `IsLazy` | `true` if wrapping an unevaluated deferred factory. |
+| `IsEvaluated` | `true` if already resolved to a string (direct, cached, or null). |
+| `Length` | Length of the evaluated string (triggers evaluation). |
+| `AsSpan` | `ReadOnlySpan<char>` of the evaluated string. |
+| `Append(LazyString)` | Eager concatenation—both sides are evaluated immediately. |
+| `Prepend(LazyString)` | Eager prepend. |
+| `TryWriteTo(Span<char>)` | Writes the evaluated string into a destination span. Returns chars written or -1. |
+
+#### Implicit Conversions
+
+```csharp
+// string → LazyString (wraps directly, no copy)
+LazyString a = "Hello";
+
+// LazyString → string (evaluates if lazy, returns cached result)
+string b = a;              // implicit conversion
+string c = a.ToString();   // explicit call — same result
+```
+
+#### Equality and Comparison
+
+`LazyString` implements `IEquatable<LazyString>` and `IComparable<LazyString>`. Comparison is ordinal and triggers evaluation of lazy values:
+
+```csharp
+LazyString a = "Hello";
+LazyString b = ZA.Lazy("Hel", "lo");
+
+bool equal = a == b;               // true (ordinal comparison)
+int order  = a.CompareTo(b);       // 0
+```
+
+#### Thread Safety
+
+`LazyString` uses `Interlocked.CompareExchange` for lock-free atomic caching. Multiple threads can safely read the same `LazyString`. If two threads race to evaluate, the factory may run twice but only one result is stored—the other is discarded. Subsequent reads on all threads see the cached string.
+
+#### Advanced: RawValue / FromRawValue
+
+For storage in union-style containers (e.g., a field value that can be int, bool, or LazyString), `RawValue` exposes the inner `object?` and `FromRawValue` reconstructs the struct:
+
+```csharp
+// Store the inner object in a union field
+object? raw = myLazyString.RawValue;
+
+// Reconstruct later
+LazyString restored = LazyString.FromRawValue(raw);
+```
+
+---
+
+### ZA.Lazy() - Generated Deferred Formatting
+
+`ZA.Lazy()` is the **recommended** way to create deferred strings. The source generator creates a unique overload for each call site's argument types. Internally, it captures all arguments in a `ValueTuple`, wraps it in a `DeferredFormat<T>`, and calls the generated `ZA.String()` method on first evaluation.
+
+**Cost model:**
+- **At call site:** 1 heap allocation (the `DeferredFormat<ValueTuple<...>>` object)
+- **On first access:** Uses the zero-allocation `String()` pipeline, allocates the result `string`
+- **On subsequent access:** Returns the cached `string` (single pointer dereference)
+
+**Supports the same types as [ZA.String()](#zastring---generated-string-concatenation).**
+
+#### Examples
+
+```csharp
+// Simple concatenation (deferred)
+LazyString greeting = ZA.Lazy("Hello, ", name, "!");
+
+// Numeric formatting
+LazyString portInfo = ZA.Lazy("Src: ", srcPort, " → Dst: ", dstPort);
+
+// Single argument
+LazyString label = ZA.Lazy(protocolName);
+
+// Use in a data structure — only materialized when displayed
+record FieldNode(string Name, LazyString DisplayText);
+List<FieldNode> fields =
+[
+    new("src_port", ZA.Lazy("Source Port: ", srcPort)),
+    new("dst_port", ZA.Lazy("Destination Port: ", dstPort)),
+    new("length",   ZA.Lazy("Length: ", length, " bytes")),
+];
+
+// Only the field the user clicks on gets its string materialized:
+Console.WriteLine(fields[0].DisplayText.ToString());
+```
+
+#### Conditional / Ternary Pattern
+
+When the display text depends on a condition, evaluate the condition eagerly and choose between an immediate `LazyString` and a deferred one:
+
+```csharp
+// ✅ Correct: condition is cheap, string building is deferred
+LazyString lifetime = (seconds == 0xFFFFFFFF)
+    ? new LazyString("Infinity")
+    : ZA.Lazy(seconds, " seconds");
+```
+
+---
+
+### ZA.LazyInterpolated() - Deferred Interpolation
+
+`ZA.LazyInterpolated()` works like `ZA.Lazy()` but uses C# string interpolation instead of the `String()` pipeline for evaluation. Use it when `ZA.Lazy()` would cause ThreadStatic buffer contention (e.g., inside another `String()` scope).
+
+```csharp
+// Uses interpolation on evaluation (not the zero-alloc pipeline)
+LazyString text = ZA.LazyInterpolated("Port: ", port, " (", protocolName, ")");
+```
+
+**When to use `LazyInterpolated` vs `Lazy`:**
+
+| Scenario | Use |
+|----------|-----|
+| Normal deferred formatting | `ZA.Lazy()` |
+| Inside an existing `ZA.String()` scope | `ZA.LazyInterpolated()` |
+| Maximum formatting performance | `ZA.Lazy()` |
+
+---
+
+### LazyString.FormatLazy&lt;TState&gt;() - Manual Deferred Formatting
+
+For scenarios where `ZA.Lazy()` doesn't fit—custom formatting logic, conditional branches, complex transformations—use the static `FormatLazy<TState>()` method directly:
+
+```csharp
+// Capture state as a value tuple, use a static lambda to avoid closure allocation
+LazyString text = LazyString.FormatLazy(
+    (srcPort, dstPort, protocol),
+    static s => ZA.String(s.protocol, ": ", s.srcPort, " → ", s.dstPort));
+```
+
+**Rules:**
+1. **Always use a `static` lambda** — prevents a closure object allocation, keeping total allocations at 1 (the `DeferredFormat<T>` box)
+2. **Capture as value tuple** — tuples are value types, so they're boxed once inside `DeferredFormat<T>`
+3. **Named tuple elements work** — `(srcPort, dstPort)` gives you `s.srcPort`, `s.dstPort`
+
+#### Allocation Comparison
+
+| Pattern | Allocations per call |
+|---------|---------------------|
+| `ZA.Lazy("A: ", value)` | 1 (`DeferredFormat<ValueTuple<string, int>>`) |
+| `LazyString.FormatLazy((a, b), static s => ...)` | 1 (`DeferredFormat<ValueTuple<...>>`) |
+| `LazyString.FormatLazy(x, static s => s.ToString())` | 1 (`DeferredFormat<T>`) |
+| `new LazyString("literal")` | 0 (direct string wrap) |
+| `LazyString.Lazy(() => Compute())` | 1 (`Func<string>` delegate, unless cached) |
 
 ---
 

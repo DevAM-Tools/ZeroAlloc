@@ -26,11 +26,11 @@ SOFTWARE.
 namespace ZeroAlloc;
 
 // ============================================================================
-// Binary Parsing Attributes
+// Binary Parsing & Writing Attributes
 // ============================================================================
-// These attributes enable automatic source generation of TryParse methods
-// for structs and records. The generator creates efficient, zero-allocation
-// parsing code based on the type's members.
+// These attributes enable automatic source generation of TryParse and TryWrite
+// methods for structs and records. The generators create efficient,
+// zero-allocation parsing and serialization code based on the type's members.
 // ============================================================================
 
 /// <summary>
@@ -79,6 +79,61 @@ namespace ZeroAlloc;
 /// </example>
 [AttributeUsage(AttributeTargets.Struct, Inherited = false)]
 public sealed class BinaryParsableAttribute : Attribute
+{
+    /// <summary>
+    /// Default endianness for primitive integer fields without explicit endian wrapper.
+    /// </summary>
+    /// <remarks>
+    /// <para>This applies to <c>ushort</c>, <c>uint</c>, <c>ulong</c>, etc. when used directly.</para>
+    /// <para>Endian wrapper types (<c>U16BE</c>, <c>U32LE</c>) ignore this setting.</para>
+    /// </remarks>
+    public Endianness DefaultEndianness { get; set; } = Endianness.BigEndian;
+}
+
+/// <summary>
+/// Marks a struct or record for automatic binary serialization via source generator.
+/// </summary>
+/// <remarks>
+/// <para>The generator will implement <see cref="IBinarySerializable"/> with
+/// <c>TryWrite</c> and <c>TryGetSerializedSize</c> methods that write
+/// members in declaration order (or explicit order if <see cref="BinaryOrderAttribute"/> is used).</para>
+/// <para><b>Generated method signatures:</b></para>
+/// <code>
+/// public bool TryWrite(Span&lt;byte&gt; destination, out int bytesWritten)
+/// public bool TryGetSerializedSize(out int size)
+/// </code>
+/// <para><b>Supported member types:</b></para>
+/// <list type="bullet">
+/// <item><description>Endian wrappers: <c>U16BE</c>, <c>U32LE</c>, <c>I64BE</c>, etc.</description></item>
+/// <item><description>Variable-length: <c>VarInt</c>, <c>VarIntZigZag</c></description></item>
+/// <item><description>Nested <c>[BinaryWritable]</c> or <c>IBinarySerializable</c> types</description></item>
+/// <item><description>Fixed-size byte arrays with <c>[BinaryFixedLength(n)]</c></description></item>
+/// <item><description>Strings with length encoding attributes</description></item>
+/// </list>
+/// <para><b>Requirements:</b></para>
+/// <list type="bullet">
+/// <item><description>Type must be a <c>struct</c> or <c>record struct</c></description></item>
+/// <item><description>All non-ignored members must be writable types</description></item>
+/// <item><description>If any member uses <c>[BinaryOrder]</c>, ALL members must specify order</description></item>
+/// </list>
+/// </remarks>
+/// <example>
+/// <code>
+/// [BinaryWritable]
+/// public readonly partial struct PacketHeader : IBinarySerializable
+/// {
+///     public U16BE Version { get; init; }
+///     public U32BE MessageType { get; init; }
+///     public U16BE PayloadLength { get; init; }
+/// }
+/// 
+/// // Usage with ZA.Bytes():
+/// var header = new PacketHeader { Version = new(1), MessageType = new(42), PayloadLength = new(100) };
+/// using var bytes = ZA.Bytes(header);
+/// </code>
+/// </example>
+[AttributeUsage(AttributeTargets.Struct, Inherited = false)]
+public sealed class BinaryWritableAttribute : Attribute
 {
     /// <summary>
     /// Default endianness for primitive integer fields without explicit endian wrapper.
@@ -364,7 +419,10 @@ public sealed class StringLengthBEAttribute : Attribute
 
     /// <summary>Creates a new attribute for big-endian length-prefixed strings.</summary>
     /// <param name="lengthBytes">Number of bytes for the length prefix (1, 2, or 4). Default is 4.</param>
-    public StringLengthBEAttribute(int lengthBytes = 4) => LengthBytes = lengthBytes;
+    public StringLengthBEAttribute(int lengthBytes = 4)
+    {
+        LengthBytes = lengthBytes;
+    }
 }
 
 /// <summary>
@@ -378,7 +436,10 @@ public sealed class StringLengthLEAttribute : Attribute
 
     /// <summary>Creates a new attribute for little-endian length-prefixed strings.</summary>
     /// <param name="lengthBytes">Number of bytes for the length prefix (1, 2, or 4). Default is 4.</param>
-    public StringLengthLEAttribute(int lengthBytes = 4) => LengthBytes = lengthBytes;
+    public StringLengthLEAttribute(int lengthBytes = 4)
+    {
+        LengthBytes = lengthBytes;
+    }
 }
 
 /// <summary>
@@ -398,7 +459,10 @@ public sealed class StringFixedLengthAttribute : Attribute
 
     /// <summary>Creates a new attribute for fixed-length strings.</summary>
     /// <param name="length">The exact number of bytes to read.</param>
-    public StringFixedLengthAttribute(int length) => Length = length;
+    public StringFixedLengthAttribute(int length)
+    {
+        Length = length;
+    }
 }
 
 /// <summary>
@@ -427,7 +491,10 @@ public sealed class StringLengthFromFieldAttribute : Attribute
 
     /// <summary>Creates a new attribute for strings whose length comes from another field.</summary>
     /// <param name="lengthFieldName">The name of the field containing the length.</param>
-    public StringLengthFromFieldAttribute(string lengthFieldName) => LengthFieldName = lengthFieldName;
+    public StringLengthFromFieldAttribute(string lengthFieldName)
+    {
+        LengthFieldName = lengthFieldName;
+    }
 }
 
 // ============================================================================
@@ -451,7 +518,10 @@ public sealed class BytesLengthBEAttribute : Attribute
 
     /// <summary>Creates a new attribute for big-endian length-prefixed byte arrays/memory.</summary>
     /// <param name="lengthBytes">Number of bytes for the length prefix (1, 2, or 4). Default is 4.</param>
-    public BytesLengthBEAttribute(int lengthBytes = 4) => LengthBytes = lengthBytes;
+    public BytesLengthBEAttribute(int lengthBytes = 4)
+    {
+        LengthBytes = lengthBytes;
+    }
 }
 
 /// <summary>
@@ -465,7 +535,10 @@ public sealed class BytesLengthLEAttribute : Attribute
 
     /// <summary>Creates a new attribute for little-endian length-prefixed byte arrays/memory.</summary>
     /// <param name="lengthBytes">Number of bytes for the length prefix (1, 2, or 4). Default is 4.</param>
-    public BytesLengthLEAttribute(int lengthBytes = 4) => LengthBytes = lengthBytes;
+    public BytesLengthLEAttribute(int lengthBytes = 4)
+    {
+        LengthBytes = lengthBytes;
+    }
 }
 
 /// <summary>
@@ -494,5 +567,8 @@ public sealed class BytesLengthFromFieldAttribute : Attribute
 
     /// <summary>Creates a new attribute for byte arrays/memory whose length comes from another field.</summary>
     /// <param name="lengthFieldName">The name of the field containing the length.</param>
-    public BytesLengthFromFieldAttribute(string lengthFieldName) => LengthFieldName = lengthFieldName;
+    public BytesLengthFromFieldAttribute(string lengthFieldName)
+    {
+        LengthFieldName = lengthFieldName;
+    }
 }

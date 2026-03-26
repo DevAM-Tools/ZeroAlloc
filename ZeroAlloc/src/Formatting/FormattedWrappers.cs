@@ -47,9 +47,9 @@ namespace ZeroAlloc;
 /// </remarks>
 public readonly struct Formatted<T> : ISpanFormattable where T : ISpanFormattable
 {
-    private readonly T _value;
-    private readonly string? _format;
-    private readonly IFormatProvider? _provider;
+    private readonly T _Value;
+    private readonly string? _Format;
+    private readonly IFormatProvider? _Provider;
 
     /// <summary>
     /// Initializes a new formatted wrapper.
@@ -60,20 +60,18 @@ public readonly struct Formatted<T> : ISpanFormattable where T : ISpanFormattabl
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Formatted(T value, string? format = null, IFormatProvider? provider = null)
     {
-        _value = value;
-        _format = format;
-        _provider = provider;
+        _Value = value;
+        _Format = format;
+        _Provider = provider;
     }
 
     /// <summary>
     /// Tries to format the value into the destination span.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
-    {
+    public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) =>
         // Use our stored format/provider, ignore passed ones
-        return _value.TryFormat(destination, out charsWritten, _format, _provider ?? provider);
-    }
+        _Value.TryFormat(destination, out charsWritten, _Format, _Provider ?? provider);
 
     /// <summary>
     /// Returns the formatted string.
@@ -82,20 +80,12 @@ public readonly struct Formatted<T> : ISpanFormattable where T : ISpanFormattabl
     {
         // First try with a reasonable stack buffer
         Span<char> buffer = stackalloc char[256];
-        if (_value.TryFormat(buffer, out int written, _format, _provider))
+        if (_Value.TryFormat(buffer, out int written, _Format, _Provider))
         {
             return new string(buffer.Slice(0, written));
         }
 
-        // Fallback to larger buffer
-        char[] largeBuffer = new char[4096];
-        if (_value.TryFormat(largeBuffer, out written, _format, _provider))
-        {
-            return new string(largeBuffer, 0, written);
-        }
-
-        // Final fallback
-        return _value.ToString(_format, _provider) ?? "";
+        return _Value.ToString(_Format, _Provider) ?? "";
     }
 
     /// <summary>
@@ -121,9 +111,9 @@ public readonly struct Formatted<T> : ISpanFormattable where T : ISpanFormattabl
 /// <typeparam name="T">The type implementing IUtf8SpanFormattable.</typeparam>
 public readonly struct Utf8Formatted<T> : IUtf8SpanFormattable where T : IUtf8SpanFormattable
 {
-    private readonly T _value;
-    private readonly string? _format;
-    private readonly IFormatProvider? _provider;
+    private readonly T _Value;
+    private readonly string? _Format;
+    private readonly IFormatProvider? _Provider;
 
     /// <summary>
     /// Initializes a new UTF-8 formatted wrapper.
@@ -134,20 +124,18 @@ public readonly struct Utf8Formatted<T> : IUtf8SpanFormattable where T : IUtf8Sp
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Utf8Formatted(T value, string? format = null, IFormatProvider? provider = null)
     {
-        _value = value;
-        _format = format;
-        _provider = provider;
+        _Value = value;
+        _Format = format;
+        _Provider = provider;
     }
 
     /// <summary>
     /// Tries to format the value as UTF-8 into the destination span.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
-    {
+    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider) =>
         // Use our stored format/provider, ignore passed ones
-        return _value.TryFormat(destination, out bytesWritten, _format, _provider ?? provider);
-    }
+        _Value.TryFormat(destination, out bytesWritten, _Format, _Provider ?? provider);
 
     /// <summary>
     /// Returns the formatted string (converts UTF-8 to string).
@@ -156,26 +144,12 @@ public readonly struct Utf8Formatted<T> : IUtf8SpanFormattable where T : IUtf8Sp
     {
         // First try with a reasonable stack buffer
         Span<byte> buffer = stackalloc byte[256];
-        if (_value.TryFormat(buffer, out int written, _format, _provider))
+        if (_Value.TryFormat(buffer, out int written, _Format, _Provider))
         {
             return Encoding.UTF8.GetString(buffer.Slice(0, written));
         }
 
-        // Fallback to larger buffer
-        byte[] largeBuffer = new byte[4096];
-        if (_value.TryFormat(largeBuffer, out written, _format, _provider))
-        {
-            return Encoding.UTF8.GetString(largeBuffer, 0, written);
-        }
-
-        // Final fallback - try even larger buffer
-        byte[] hugeBuffer = new byte[65536];
-        if (_value.TryFormat(hugeBuffer, out written, _format, _provider))
-        {
-            return Encoding.UTF8.GetString(hugeBuffer, 0, written);
-        }
-
-        return _value.ToString() ?? "";
+        return _Value.ToString() ?? "";
     }
 
     /// <summary>

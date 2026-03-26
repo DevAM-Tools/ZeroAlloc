@@ -51,18 +51,25 @@ public readonly struct U16BE : IUtf8SpanFormattable, IBinaryParsable<U16BE>
     /// <summary>Initializes a new instance with the specified value.</summary>
     /// <param name="value">The value to wrap.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public U16BE(ushort value) => Value = value;
+    public U16BE(ushort value)
+    {
+        Value = value;
+    }
 
     /// <summary>Initializes a new instance with a signed 16-bit value.</summary>
     /// <param name="value">The value to wrap.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public U16BE(short value) => Value = unchecked((ushort)value);
+    public U16BE(short value)
+    {
+        Value = unchecked((ushort)value);
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size) { bytesWritten = 0; return false; }
+        if (destination.Length < Size)
+        { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteUInt16BigEndian(destination, Value);
         bytesWritten = Size;
         return true;
@@ -75,14 +82,22 @@ public readonly struct U16BE : IUtf8SpanFormattable, IBinaryParsable<U16BE>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryParse(ReadOnlySpan<byte> source, out U16BE value, out int bytesConsumed)
     {
-        if (source.Length < Size) { value = default; bytesConsumed = 0; return false; }
+        if (source.Length < Size)
+        { value = default; bytesConsumed = 0; return false; }
         value = new U16BE(BinaryPrimitives.ReadUInt16BigEndian(source));
         bytesConsumed = Size;
         return true;
     }
 
     /// <inheritdoc/>
-    public override string ToString() => Value.ToString("X4");
+    public override string ToString() => string.Create(4, Value, static (chars, v) =>
+    {
+        ReadOnlySpan<char> hex = "0123456789ABCDEF";
+        chars[0] = hex[(v >> 12) & 0xF];
+        chars[1] = hex[(v >> 8) & 0xF];
+        chars[2] = hex[(v >> 4) & 0xF];
+        chars[3] = hex[v & 0xF];
+    });
 
     /// <inheritdoc/>
     public string ToString(string? format, IFormatProvider? formatProvider) => Value.ToString(format, formatProvider);
@@ -110,18 +125,25 @@ public readonly struct U32BE : IUtf8SpanFormattable, IBinaryParsable<U32BE>
     /// <summary>Initializes a new instance with the specified value.</summary>
     /// <param name="value">The value to wrap.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public U32BE(uint value) => Value = value;
+    public U32BE(uint value)
+    {
+        Value = value;
+    }
 
     /// <summary>Initializes a new instance with a signed 32-bit value.</summary>
     /// <param name="value">The value to wrap.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public U32BE(int value) => Value = unchecked((uint)value);
+    public U32BE(int value)
+    {
+        Value = unchecked((uint)value);
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size) { bytesWritten = 0; return false; }
+        if (destination.Length < Size)
+        { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteUInt32BigEndian(destination, Value);
         bytesWritten = Size;
         return true;
@@ -134,14 +156,22 @@ public readonly struct U32BE : IUtf8SpanFormattable, IBinaryParsable<U32BE>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryParse(ReadOnlySpan<byte> source, out U32BE value, out int bytesConsumed)
     {
-        if (source.Length < Size) { value = default; bytesConsumed = 0; return false; }
+        if (source.Length < Size)
+        { value = default; bytesConsumed = 0; return false; }
         value = new U32BE(BinaryPrimitives.ReadUInt32BigEndian(source));
         bytesConsumed = Size;
         return true;
     }
 
     /// <inheritdoc/>
-    public override string ToString() => Value.ToString("X8");
+    public override string ToString() => string.Create(8, Value, static (chars, v) =>
+    {
+        ReadOnlySpan<char> hex = "0123456789ABCDEF";
+        for (int i = 0; i < 8; i++)
+        {
+            chars[i] = hex[(int)(v >> (28 - i * 4)) & 0xF];
+        }
+    });
 
     /// <inheritdoc/>
     public string ToString(string? format, IFormatProvider? formatProvider) => Value.ToString(format, formatProvider);
@@ -169,18 +199,25 @@ public readonly struct U64BE : IUtf8SpanFormattable, IBinaryParsable<U64BE>
     /// <summary>Initializes a new instance with the specified value.</summary>
     /// <param name="value">The value to wrap.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public U64BE(ulong value) => Value = value;
+    public U64BE(ulong value)
+    {
+        Value = value;
+    }
 
     /// <summary>Initializes a new instance with a signed 64-bit value.</summary>
     /// <param name="value">The value to wrap.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public U64BE(long value) => Value = unchecked((ulong)value);
+    public U64BE(long value)
+    {
+        Value = unchecked((ulong)value);
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size) { bytesWritten = 0; return false; }
+        if (destination.Length < Size)
+        { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteUInt64BigEndian(destination, Value);
         bytesWritten = Size;
         return true;
@@ -193,14 +230,22 @@ public readonly struct U64BE : IUtf8SpanFormattable, IBinaryParsable<U64BE>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryParse(ReadOnlySpan<byte> source, out U64BE value, out int bytesConsumed)
     {
-        if (source.Length < Size) { value = default; bytesConsumed = 0; return false; }
+        if (source.Length < Size)
+        { value = default; bytesConsumed = 0; return false; }
         value = new U64BE(BinaryPrimitives.ReadUInt64BigEndian(source));
         bytesConsumed = Size;
         return true;
     }
 
     /// <inheritdoc/>
-    public override string ToString() => Value.ToString("X16");
+    public override string ToString() => string.Create(16, Value, static (chars, v) =>
+    {
+        ReadOnlySpan<char> hex = "0123456789ABCDEF";
+        for (int i = 0; i < 16; i++)
+        {
+            chars[i] = hex[(int)(v >> (60 - i * 4)) & 0xF];
+        }
+    });
 
     /// <inheritdoc/>
     public string ToString(string? format, IFormatProvider? formatProvider) => Value.ToString(format, formatProvider);
@@ -228,13 +273,17 @@ public readonly struct U128BE : IUtf8SpanFormattable, IBinaryParsable<U128BE>
     /// <summary>Initializes a new instance with the specified value.</summary>
     /// <param name="value">The value to wrap.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public U128BE(UInt128 value) => Value = value;
+    public U128BE(UInt128 value)
+    {
+        Value = value;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size) { bytesWritten = 0; return false; }
+        if (destination.Length < Size)
+        { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteUInt128BigEndian(destination, Value);
         bytesWritten = Size;
         return true;
@@ -247,14 +296,28 @@ public readonly struct U128BE : IUtf8SpanFormattable, IBinaryParsable<U128BE>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryParse(ReadOnlySpan<byte> source, out U128BE value, out int bytesConsumed)
     {
-        if (source.Length < Size) { value = default; bytesConsumed = 0; return false; }
+        if (source.Length < Size)
+        { value = default; bytesConsumed = 0; return false; }
         value = new U128BE(BinaryPrimitives.ReadUInt128BigEndian(source));
         bytesConsumed = Size;
         return true;
     }
 
     /// <inheritdoc/>
-    public override string ToString() => Value.ToString("X32");
+    public override string ToString() => string.Create(32, Value, static (chars, v) =>
+    {
+        ReadOnlySpan<char> hex = "0123456789ABCDEF";
+        ulong hi = (ulong)(v >> 64);
+        ulong lo = (ulong)v;
+        for (int i = 0; i < 16; i++)
+        {
+            chars[i] = hex[(int)(hi >> (60 - i * 4)) & 0xF];
+        }
+        for (int i = 0; i < 16; i++)
+        {
+            chars[16 + i] = hex[(int)(lo >> (60 - i * 4)) & 0xF];
+        }
+    });
 
     /// <inheritdoc/>
     public string ToString(string? format, IFormatProvider? formatProvider) => Value.ToString(format, formatProvider);
@@ -281,13 +344,17 @@ public readonly struct I16BE : IUtf8SpanFormattable, IBinaryParsable<I16BE>
     /// <summary>Initializes a new instance with the specified value.</summary>
     /// <param name="value">The value to wrap.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public I16BE(short value) => Value = value;
+    public I16BE(short value)
+    {
+        Value = value;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size) { bytesWritten = 0; return false; }
+        if (destination.Length < Size)
+        { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteInt16BigEndian(destination, Value);
         bytesWritten = Size;
         return true;
@@ -300,7 +367,8 @@ public readonly struct I16BE : IUtf8SpanFormattable, IBinaryParsable<I16BE>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryParse(ReadOnlySpan<byte> source, out I16BE value, out int bytesConsumed)
     {
-        if (source.Length < Size) { value = default; bytesConsumed = 0; return false; }
+        if (source.Length < Size)
+        { value = default; bytesConsumed = 0; return false; }
         value = new I16BE(BinaryPrimitives.ReadInt16BigEndian(source));
         bytesConsumed = Size;
         return true;
@@ -330,13 +398,17 @@ public readonly struct I32BE : IUtf8SpanFormattable, IBinaryParsable<I32BE>
     /// <summary>Initializes a new instance with the specified value.</summary>
     /// <param name="value">The value to wrap.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public I32BE(int value) => Value = value;
+    public I32BE(int value)
+    {
+        Value = value;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size) { bytesWritten = 0; return false; }
+        if (destination.Length < Size)
+        { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteInt32BigEndian(destination, Value);
         bytesWritten = Size;
         return true;
@@ -349,7 +421,8 @@ public readonly struct I32BE : IUtf8SpanFormattable, IBinaryParsable<I32BE>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryParse(ReadOnlySpan<byte> source, out I32BE value, out int bytesConsumed)
     {
-        if (source.Length < Size) { value = default; bytesConsumed = 0; return false; }
+        if (source.Length < Size)
+        { value = default; bytesConsumed = 0; return false; }
         value = new I32BE(BinaryPrimitives.ReadInt32BigEndian(source));
         bytesConsumed = Size;
         return true;
@@ -379,13 +452,17 @@ public readonly struct I64BE : IUtf8SpanFormattable, IBinaryParsable<I64BE>
     /// <summary>Initializes a new instance with the specified value.</summary>
     /// <param name="value">The value to wrap.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public I64BE(long value) => Value = value;
+    public I64BE(long value)
+    {
+        Value = value;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size) { bytesWritten = 0; return false; }
+        if (destination.Length < Size)
+        { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteInt64BigEndian(destination, Value);
         bytesWritten = Size;
         return true;
@@ -398,7 +475,8 @@ public readonly struct I64BE : IUtf8SpanFormattable, IBinaryParsable<I64BE>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryParse(ReadOnlySpan<byte> source, out I64BE value, out int bytesConsumed)
     {
-        if (source.Length < Size) { value = default; bytesConsumed = 0; return false; }
+        if (source.Length < Size)
+        { value = default; bytesConsumed = 0; return false; }
         value = new I64BE(BinaryPrimitives.ReadInt64BigEndian(source));
         bytesConsumed = Size;
         return true;
@@ -428,13 +506,17 @@ public readonly struct I128BE : IUtf8SpanFormattable, IBinaryParsable<I128BE>
     /// <summary>Initializes a new instance with the specified value.</summary>
     /// <param name="value">The value to wrap.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public I128BE(Int128 value) => Value = value;
+    public I128BE(Int128 value)
+    {
+        Value = value;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size) { bytesWritten = 0; return false; }
+        if (destination.Length < Size)
+        { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteInt128BigEndian(destination, Value);
         bytesWritten = Size;
         return true;
@@ -447,7 +529,8 @@ public readonly struct I128BE : IUtf8SpanFormattable, IBinaryParsable<I128BE>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryParse(ReadOnlySpan<byte> source, out I128BE value, out int bytesConsumed)
     {
-        if (source.Length < Size) { value = default; bytesConsumed = 0; return false; }
+        if (source.Length < Size)
+        { value = default; bytesConsumed = 0; return false; }
         value = new I128BE(BinaryPrimitives.ReadInt128BigEndian(source));
         bytesConsumed = Size;
         return true;
@@ -481,18 +564,25 @@ public readonly struct U16LE : IUtf8SpanFormattable, IBinaryParsable<U16LE>
     /// <summary>Initializes a new instance with the specified value.</summary>
     /// <param name="value">The value to wrap.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public U16LE(ushort value) => Value = value;
+    public U16LE(ushort value)
+    {
+        Value = value;
+    }
 
     /// <summary>Initializes a new instance with a signed 16-bit value.</summary>
     /// <param name="value">The value to wrap.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public U16LE(short value) => Value = unchecked((ushort)value);
+    public U16LE(short value)
+    {
+        Value = unchecked((ushort)value);
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size) { bytesWritten = 0; return false; }
+        if (destination.Length < Size)
+        { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteUInt16LittleEndian(destination, Value);
         bytesWritten = Size;
         return true;
@@ -505,14 +595,22 @@ public readonly struct U16LE : IUtf8SpanFormattable, IBinaryParsable<U16LE>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryParse(ReadOnlySpan<byte> source, out U16LE value, out int bytesConsumed)
     {
-        if (source.Length < Size) { value = default; bytesConsumed = 0; return false; }
+        if (source.Length < Size)
+        { value = default; bytesConsumed = 0; return false; }
         value = new U16LE(BinaryPrimitives.ReadUInt16LittleEndian(source));
         bytesConsumed = Size;
         return true;
     }
 
     /// <inheritdoc/>
-    public override string ToString() => Value.ToString("X4");
+    public override string ToString() => string.Create(4, Value, static (chars, v) =>
+    {
+        ReadOnlySpan<char> hex = "0123456789ABCDEF";
+        chars[0] = hex[(v >> 12) & 0xF];
+        chars[1] = hex[(v >> 8) & 0xF];
+        chars[2] = hex[(v >> 4) & 0xF];
+        chars[3] = hex[v & 0xF];
+    });
 
     /// <inheritdoc/>
     public string ToString(string? format, IFormatProvider? formatProvider) => Value.ToString(format, formatProvider);
@@ -540,18 +638,25 @@ public readonly struct U32LE : IUtf8SpanFormattable, IBinaryParsable<U32LE>
     /// <summary>Initializes a new instance with the specified value.</summary>
     /// <param name="value">The value to wrap.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public U32LE(uint value) => Value = value;
+    public U32LE(uint value)
+    {
+        Value = value;
+    }
 
     /// <summary>Initializes a new instance with a signed 32-bit value.</summary>
     /// <param name="value">The value to wrap.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public U32LE(int value) => Value = unchecked((uint)value);
+    public U32LE(int value)
+    {
+        Value = unchecked((uint)value);
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size) { bytesWritten = 0; return false; }
+        if (destination.Length < Size)
+        { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteUInt32LittleEndian(destination, Value);
         bytesWritten = Size;
         return true;
@@ -564,14 +669,22 @@ public readonly struct U32LE : IUtf8SpanFormattable, IBinaryParsable<U32LE>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryParse(ReadOnlySpan<byte> source, out U32LE value, out int bytesConsumed)
     {
-        if (source.Length < Size) { value = default; bytesConsumed = 0; return false; }
+        if (source.Length < Size)
+        { value = default; bytesConsumed = 0; return false; }
         value = new U32LE(BinaryPrimitives.ReadUInt32LittleEndian(source));
         bytesConsumed = Size;
         return true;
     }
 
     /// <inheritdoc/>
-    public override string ToString() => Value.ToString("X8");
+    public override string ToString() => string.Create(8, Value, static (chars, v) =>
+    {
+        ReadOnlySpan<char> hex = "0123456789ABCDEF";
+        for (int i = 0; i < 8; i++)
+        {
+            chars[i] = hex[(int)(v >> (28 - i * 4)) & 0xF];
+        }
+    });
 
     /// <inheritdoc/>
     public string ToString(string? format, IFormatProvider? formatProvider) => Value.ToString(format, formatProvider);
@@ -599,18 +712,25 @@ public readonly struct U64LE : IUtf8SpanFormattable, IBinaryParsable<U64LE>
     /// <summary>Initializes a new instance with the specified value.</summary>
     /// <param name="value">The value to wrap.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public U64LE(ulong value) => Value = value;
+    public U64LE(ulong value)
+    {
+        Value = value;
+    }
 
     /// <summary>Initializes a new instance with a signed 64-bit value.</summary>
     /// <param name="value">The value to wrap.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public U64LE(long value) => Value = unchecked((ulong)value);
+    public U64LE(long value)
+    {
+        Value = unchecked((ulong)value);
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size) { bytesWritten = 0; return false; }
+        if (destination.Length < Size)
+        { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteUInt64LittleEndian(destination, Value);
         bytesWritten = Size;
         return true;
@@ -623,14 +743,22 @@ public readonly struct U64LE : IUtf8SpanFormattable, IBinaryParsable<U64LE>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryParse(ReadOnlySpan<byte> source, out U64LE value, out int bytesConsumed)
     {
-        if (source.Length < Size) { value = default; bytesConsumed = 0; return false; }
+        if (source.Length < Size)
+        { value = default; bytesConsumed = 0; return false; }
         value = new U64LE(BinaryPrimitives.ReadUInt64LittleEndian(source));
         bytesConsumed = Size;
         return true;
     }
 
     /// <inheritdoc/>
-    public override string ToString() => Value.ToString("X16");
+    public override string ToString() => string.Create(16, Value, static (chars, v) =>
+    {
+        ReadOnlySpan<char> hex = "0123456789ABCDEF";
+        for (int i = 0; i < 16; i++)
+        {
+            chars[i] = hex[(int)(v >> (60 - i * 4)) & 0xF];
+        }
+    });
 
     /// <inheritdoc/>
     public string ToString(string? format, IFormatProvider? formatProvider) => Value.ToString(format, formatProvider);
@@ -658,13 +786,17 @@ public readonly struct U128LE : IUtf8SpanFormattable, IBinaryParsable<U128LE>
     /// <summary>Initializes a new instance with the specified value.</summary>
     /// <param name="value">The value to wrap.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public U128LE(UInt128 value) => Value = value;
+    public U128LE(UInt128 value)
+    {
+        Value = value;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size) { bytesWritten = 0; return false; }
+        if (destination.Length < Size)
+        { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteUInt128LittleEndian(destination, Value);
         bytesWritten = Size;
         return true;
@@ -677,14 +809,28 @@ public readonly struct U128LE : IUtf8SpanFormattable, IBinaryParsable<U128LE>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryParse(ReadOnlySpan<byte> source, out U128LE value, out int bytesConsumed)
     {
-        if (source.Length < Size) { value = default; bytesConsumed = 0; return false; }
+        if (source.Length < Size)
+        { value = default; bytesConsumed = 0; return false; }
         value = new U128LE(BinaryPrimitives.ReadUInt128LittleEndian(source));
         bytesConsumed = Size;
         return true;
     }
 
     /// <inheritdoc/>
-    public override string ToString() => Value.ToString("X32");
+    public override string ToString() => string.Create(32, Value, static (chars, v) =>
+    {
+        ReadOnlySpan<char> hex = "0123456789ABCDEF";
+        ulong hi = (ulong)(v >> 64);
+        ulong lo = (ulong)v;
+        for (int i = 0; i < 16; i++)
+        {
+            chars[i] = hex[(int)(hi >> (60 - i * 4)) & 0xF];
+        }
+        for (int i = 0; i < 16; i++)
+        {
+            chars[16 + i] = hex[(int)(lo >> (60 - i * 4)) & 0xF];
+        }
+    });
 
     /// <inheritdoc/>
     public string ToString(string? format, IFormatProvider? formatProvider) => Value.ToString(format, formatProvider);
@@ -711,13 +857,17 @@ public readonly struct I16LE : IUtf8SpanFormattable, IBinaryParsable<I16LE>
     /// <summary>Initializes a new instance with the specified value.</summary>
     /// <param name="value">The value to wrap.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public I16LE(short value) => Value = value;
+    public I16LE(short value)
+    {
+        Value = value;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size) { bytesWritten = 0; return false; }
+        if (destination.Length < Size)
+        { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteInt16LittleEndian(destination, Value);
         bytesWritten = Size;
         return true;
@@ -730,7 +880,8 @@ public readonly struct I16LE : IUtf8SpanFormattable, IBinaryParsable<I16LE>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryParse(ReadOnlySpan<byte> source, out I16LE value, out int bytesConsumed)
     {
-        if (source.Length < Size) { value = default; bytesConsumed = 0; return false; }
+        if (source.Length < Size)
+        { value = default; bytesConsumed = 0; return false; }
         value = new I16LE(BinaryPrimitives.ReadInt16LittleEndian(source));
         bytesConsumed = Size;
         return true;
@@ -760,13 +911,17 @@ public readonly struct I32LE : IUtf8SpanFormattable, IBinaryParsable<I32LE>
     /// <summary>Initializes a new instance with the specified value.</summary>
     /// <param name="value">The value to wrap.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public I32LE(int value) => Value = value;
+    public I32LE(int value)
+    {
+        Value = value;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size) { bytesWritten = 0; return false; }
+        if (destination.Length < Size)
+        { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteInt32LittleEndian(destination, Value);
         bytesWritten = Size;
         return true;
@@ -779,7 +934,8 @@ public readonly struct I32LE : IUtf8SpanFormattable, IBinaryParsable<I32LE>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryParse(ReadOnlySpan<byte> source, out I32LE value, out int bytesConsumed)
     {
-        if (source.Length < Size) { value = default; bytesConsumed = 0; return false; }
+        if (source.Length < Size)
+        { value = default; bytesConsumed = 0; return false; }
         value = new I32LE(BinaryPrimitives.ReadInt32LittleEndian(source));
         bytesConsumed = Size;
         return true;
@@ -809,13 +965,17 @@ public readonly struct I64LE : IUtf8SpanFormattable, IBinaryParsable<I64LE>
     /// <summary>Initializes a new instance with the specified value.</summary>
     /// <param name="value">The value to wrap.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public I64LE(long value) => Value = value;
+    public I64LE(long value)
+    {
+        Value = value;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size) { bytesWritten = 0; return false; }
+        if (destination.Length < Size)
+        { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteInt64LittleEndian(destination, Value);
         bytesWritten = Size;
         return true;
@@ -828,7 +988,8 @@ public readonly struct I64LE : IUtf8SpanFormattable, IBinaryParsable<I64LE>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryParse(ReadOnlySpan<byte> source, out I64LE value, out int bytesConsumed)
     {
-        if (source.Length < Size) { value = default; bytesConsumed = 0; return false; }
+        if (source.Length < Size)
+        { value = default; bytesConsumed = 0; return false; }
         value = new I64LE(BinaryPrimitives.ReadInt64LittleEndian(source));
         bytesConsumed = Size;
         return true;
@@ -858,13 +1019,17 @@ public readonly struct I128LE : IUtf8SpanFormattable, IBinaryParsable<I128LE>
     /// <summary>Initializes a new instance with the specified value.</summary>
     /// <param name="value">The value to wrap.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public I128LE(Int128 value) => Value = value;
+    public I128LE(Int128 value)
+    {
+        Value = value;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size) { bytesWritten = 0; return false; }
+        if (destination.Length < Size)
+        { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteInt128LittleEndian(destination, Value);
         bytesWritten = Size;
         return true;
@@ -877,7 +1042,8 @@ public readonly struct I128LE : IUtf8SpanFormattable, IBinaryParsable<I128LE>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryParse(ReadOnlySpan<byte> source, out I128LE value, out int bytesConsumed)
     {
-        if (source.Length < Size) { value = default; bytesConsumed = 0; return false; }
+        if (source.Length < Size)
+        { value = default; bytesConsumed = 0; return false; }
         value = new I128LE(BinaryPrimitives.ReadInt128LittleEndian(source));
         bytesConsumed = Size;
         return true;
@@ -911,13 +1077,17 @@ public readonly struct F32BE : IUtf8SpanFormattable, IBinaryParsable<F32BE>
     /// <summary>Initializes a new instance with a single-precision floating-point value.</summary>
     /// <param name="value">The value to wrap.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public F32BE(float value) => Value = value;
+    public F32BE(float value)
+    {
+        Value = value;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size) { bytesWritten = 0; return false; }
+        if (destination.Length < Size)
+        { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteSingleBigEndian(destination, Value);
         bytesWritten = Size;
         return true;
@@ -930,7 +1100,8 @@ public readonly struct F32BE : IUtf8SpanFormattable, IBinaryParsable<F32BE>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryParse(ReadOnlySpan<byte> source, out F32BE value, out int bytesConsumed)
     {
-        if (source.Length < Size) { value = default; bytesConsumed = 0; return false; }
+        if (source.Length < Size)
+        { value = default; bytesConsumed = 0; return false; }
         value = new F32BE(BinaryPrimitives.ReadSingleBigEndian(source));
         bytesConsumed = Size;
         return true;
@@ -960,13 +1131,17 @@ public readonly struct F32LE : IUtf8SpanFormattable, IBinaryParsable<F32LE>
     /// <summary>Initializes a new instance with a single-precision floating-point value.</summary>
     /// <param name="value">The value to wrap.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public F32LE(float value) => Value = value;
+    public F32LE(float value)
+    {
+        Value = value;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size) { bytesWritten = 0; return false; }
+        if (destination.Length < Size)
+        { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteSingleLittleEndian(destination, Value);
         bytesWritten = Size;
         return true;
@@ -979,7 +1154,8 @@ public readonly struct F32LE : IUtf8SpanFormattable, IBinaryParsable<F32LE>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryParse(ReadOnlySpan<byte> source, out F32LE value, out int bytesConsumed)
     {
-        if (source.Length < Size) { value = default; bytesConsumed = 0; return false; }
+        if (source.Length < Size)
+        { value = default; bytesConsumed = 0; return false; }
         value = new F32LE(BinaryPrimitives.ReadSingleLittleEndian(source));
         bytesConsumed = Size;
         return true;
@@ -1009,13 +1185,17 @@ public readonly struct F64BE : IUtf8SpanFormattable, IBinaryParsable<F64BE>
     /// <summary>Initializes a new instance with a double-precision floating-point value.</summary>
     /// <param name="value">The value to wrap.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public F64BE(double value) => Value = value;
+    public F64BE(double value)
+    {
+        Value = value;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size) { bytesWritten = 0; return false; }
+        if (destination.Length < Size)
+        { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteDoubleBigEndian(destination, Value);
         bytesWritten = Size;
         return true;
@@ -1028,7 +1208,8 @@ public readonly struct F64BE : IUtf8SpanFormattable, IBinaryParsable<F64BE>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryParse(ReadOnlySpan<byte> source, out F64BE value, out int bytesConsumed)
     {
-        if (source.Length < Size) { value = default; bytesConsumed = 0; return false; }
+        if (source.Length < Size)
+        { value = default; bytesConsumed = 0; return false; }
         value = new F64BE(BinaryPrimitives.ReadDoubleBigEndian(source));
         bytesConsumed = Size;
         return true;
@@ -1058,13 +1239,17 @@ public readonly struct F64LE : IUtf8SpanFormattable, IBinaryParsable<F64LE>
     /// <summary>Initializes a new instance with a double-precision floating-point value.</summary>
     /// <param name="value">The value to wrap.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public F64LE(double value) => Value = value;
+    public F64LE(double value)
+    {
+        Value = value;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size) { bytesWritten = 0; return false; }
+        if (destination.Length < Size)
+        { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteDoubleLittleEndian(destination, Value);
         bytesWritten = Size;
         return true;
@@ -1077,7 +1262,8 @@ public readonly struct F64LE : IUtf8SpanFormattable, IBinaryParsable<F64LE>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryParse(ReadOnlySpan<byte> source, out F64LE value, out int bytesConsumed)
     {
-        if (source.Length < Size) { value = default; bytesConsumed = 0; return false; }
+        if (source.Length < Size)
+        { value = default; bytesConsumed = 0; return false; }
         value = new F64LE(BinaryPrimitives.ReadDoubleLittleEndian(source));
         bytesConsumed = Size;
         return true;
@@ -1106,18 +1292,21 @@ public readonly struct F64LE : IUtf8SpanFormattable, IBinaryParsable<F64LE>
 /// </remarks>
 public readonly ref struct Raw
 {
-    private readonly ReadOnlySpan<byte> _value;
+    private readonly ReadOnlySpan<byte> _Value;
 
     /// <summary>Gets the size in bytes of this instance when serialized.</summary>
-    public int Size => _value.Length;
+    public int Size => _Value.Length;
 
     /// <summary>Gets the underlying raw data.</summary>
-    public ReadOnlySpan<byte> Value => _value;
+    public ReadOnlySpan<byte> Value => _Value;
 
     /// <summary>Initializes a new instance with the specified raw data.</summary>
     /// <param name="value">The raw bytes to wrap.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Raw(ReadOnlySpan<byte> value) => _value = value;
+    public Raw(ReadOnlySpan<byte> value)
+    {
+        _Value = value;
+    }
 
     /// <summary>Formats the raw bytes to the destination.</summary>
     /// <param name="destination">The destination span to write to.</param>
@@ -1128,14 +1317,15 @@ public readonly ref struct Raw
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < _value.Length) { bytesWritten = 0; return false; }
-        _value.CopyTo(destination);
-        bytesWritten = _value.Length;
+        if (destination.Length < _Value.Length)
+        { bytesWritten = 0; return false; }
+        _Value.CopyTo(destination);
+        bytesWritten = _Value.Length;
         return true;
     }
 
     /// <inheritdoc/>
-    public override string ToString() => Convert.ToHexString(_value);
+    public override string ToString() => Convert.ToHexString(_Value);
 
     /// <summary>Implicitly converts a ReadOnlySpan&lt;byte&gt; to Raw.</summary>
     /// <param name="v">The raw bytes to convert.</param>
@@ -1175,7 +1365,10 @@ public readonly struct VarInt : IUtf8SpanFormattable, IBinarySerializable, IBina
     /// <summary>Initializes a new instance with the specified value.</summary>
     /// <param name="value">The value to wrap.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public VarInt(ulong value) => Value = value;
+    public VarInt(ulong value)
+    {
+        Value = value;
+    }
 
     /// <summary>Gets the actual encoded size in bytes for this value.</summary>
     public int EncodedSize
@@ -1202,12 +1395,14 @@ public readonly struct VarInt : IUtf8SpanFormattable, IBinarySerializable, IBina
 
         while (value >= 0x80)
         {
-            if (pos >= destination.Length) { bytesWritten = 0; return false; }
+            if (pos >= destination.Length)
+            { bytesWritten = 0; return false; }
             destination[pos++] = (byte)(value | 0x80);
             value >>= 7;
         }
 
-        if (pos >= destination.Length) { bytesWritten = 0; return false; }
+        if (pos >= destination.Length)
+        { bytesWritten = 0; return false; }
         destination[pos++] = (byte)value;
         bytesWritten = pos;
         return true;
@@ -1302,7 +1497,10 @@ public readonly struct VarIntZigZag : IUtf8SpanFormattable, IBinarySerializable,
     /// <summary>Initializes a new instance with the specified value.</summary>
     /// <param name="value">The value to wrap.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public VarIntZigZag(long value) => Value = value;
+    public VarIntZigZag(long value)
+    {
+        Value = value;
+    }
 
     /// <summary>Gets the ZigZag-encoded unsigned representation.</summary>
     public ulong ZigZagEncoded => (ulong)((Value << 1) ^ (Value >> 63));
@@ -1332,12 +1530,14 @@ public readonly struct VarIntZigZag : IUtf8SpanFormattable, IBinarySerializable,
 
         while (value >= 0x80)
         {
-            if (pos >= destination.Length) { bytesWritten = 0; return false; }
+            if (pos >= destination.Length)
+            { bytesWritten = 0; return false; }
             destination[pos++] = (byte)(value | 0x80);
             value >>= 7;
         }
 
-        if (pos >= destination.Length) { bytesWritten = 0; return false; }
+        if (pos >= destination.Length)
+        { bytesWritten = 0; return false; }
         destination[pos++] = (byte)value;
         bytesWritten = pos;
         return true;

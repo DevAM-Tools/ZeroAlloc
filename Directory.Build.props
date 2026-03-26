@@ -1,0 +1,27 @@
+<Project>
+
+  <!-- Common build properties for all projects -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <!-- Shared NuGet package metadata -->
+  <PropertyGroup>
+    <Version>0.2.0</Version>
+    <Authors>ZeroAlloc Contributors</Authors>
+    <Company>ZeroAlloc Contributors</Company>
+    <Copyright>Copyright © ZeroAlloc Contributors</Copyright>
+    <PackageProjectUrl>https://github.com/DevAM-Tools/ZeroAlloc</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/DevAM-Tools/ZeroAlloc</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+</Project>

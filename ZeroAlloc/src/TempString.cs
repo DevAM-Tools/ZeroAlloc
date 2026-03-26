@@ -164,10 +164,7 @@ public readonly ref struct TempString : IDisposable
     /// The span is valid until <see cref="Dispose"/> is called.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ReadOnlySpan<char> AsSpan()
-    {
-        return new ReadOnlySpan<char>(_Buffer, 0, _Length);
-    }
+    public ReadOnlySpan<char> AsSpan() => new ReadOnlySpan<char>(_Buffer, 0, _Length);
 
     /// <summary>
     /// Creates a heap-allocated string from the temporary content.
@@ -228,10 +225,7 @@ public readonly ref struct TempString : IDisposable
     /// <param name="temp">The temporary string to convert.</param>
     /// <returns>A read-only span view of the content.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static implicit operator ReadOnlySpan<char>(TempString temp)
-    {
-        return temp.AsSpan();
-    }
+    public static implicit operator ReadOnlySpan<char>(TempString temp) => temp.AsSpan();
 
     /// <summary>
     /// Implicitly converts a <see cref="TempString"/> to a heap-allocated <see cref="string"/>.

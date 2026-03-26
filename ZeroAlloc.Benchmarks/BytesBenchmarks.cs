@@ -25,8 +25,6 @@ SOFTWARE.
 
 namespace ZeroAlloc.Benchmarks;
 
-using System.Buffers.Binary;
-
 /// <summary>
 /// Zero-allocation API for the benchmarks assembly.
 /// The generator automatically creates optimized overloads.

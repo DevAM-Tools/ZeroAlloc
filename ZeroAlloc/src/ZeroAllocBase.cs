@@ -396,4 +396,42 @@ public abstract class ZeroAllocBase
     }
 
     #endregion
+
+    #region Lazy API
+
+    /// <summary>
+    /// Creates a <see cref="LazyString"/> that defers string building using <c>ZA.String()</c> internally.
+    /// Optimal when the ThreadStatic buffer is available (not during a nested <c>ZA.String</c> call).
+    /// </summary>
+    /// <param name="values">The values to format lazily.</param>
+    /// <returns>A <see cref="LazyString"/> whose string is built on first access.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// This method should never be called. The source generator should create specific overloads.
+    /// </exception>
+    public static LazyString Lazy(params object?[] values)
+    {
+        throw new InvalidOperationException(
+            "The generic Lazy() method should never be called. " +
+            "The source generator should have created a specific overload for your argument types. " +
+            "Please rebuild your project to regenerate the source.");
+    }
+
+    /// <summary>
+    /// Creates a <see cref="LazyString"/> that defers string building using <c>$"..."</c> interpolation.
+    /// Safe for recursive or nested calls where the ThreadStatic buffer may already be in use.
+    /// </summary>
+    /// <param name="values">The values to format lazily.</param>
+    /// <returns>A <see cref="LazyString"/> whose string is built on first access.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// This method should never be called. The source generator should create specific overloads.
+    /// </exception>
+    public static LazyString LazyInterpolated(params object?[] values)
+    {
+        throw new InvalidOperationException(
+            "The generic LazyInterpolated() method should never be called. " +
+            "The source generator should have created a specific overload for your argument types. " +
+            "Please rebuild your project to regenerate the source.");
+    }
+
+    #endregion
 }

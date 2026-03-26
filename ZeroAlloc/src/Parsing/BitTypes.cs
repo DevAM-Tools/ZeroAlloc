@@ -150,7 +150,9 @@ public readonly record struct UIntBits
     public UIntBits(ulong value, byte bitCount)
     {
         if (bitCount is < 1 or > 64)
+        {
             throw new ArgumentOutOfRangeException(nameof(bitCount), "BitCount must be between 1 and 64");
+        }
 
         Value = bitCount == 64 ? value : value & ((1UL << bitCount) - 1);
         BitCount = bitCount;
@@ -177,7 +179,9 @@ public readonly record struct IntBits
     public IntBits(long value, byte bitCount)
     {
         if (bitCount is < 1 or > 64)
+        {
             throw new ArgumentOutOfRangeException(nameof(bitCount), "BitCount must be between 1 and 64");
+        }
 
         // Sign-extend the value
         if (bitCount < 64)
@@ -186,7 +190,9 @@ public readonly record struct IntBits
             long signBit = 1L << (bitCount - 1);
             Value = value & mask;
             if ((Value & signBit) != 0)
+            {
                 Value |= ~mask; // Sign extend
+            }
         }
         else
         {

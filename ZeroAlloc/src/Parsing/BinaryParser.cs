@@ -49,8 +49,8 @@ namespace ZeroAlloc;
 /// </summary>
 public ref struct BinaryParser
 {
-    private ReadOnlySpan<byte> _buffer;
-    private int _position;
+    private readonly ReadOnlySpan<byte> _Buffer;
+    private int _Position;
 
     /// <summary>
     /// Initializes a new BinaryParser with the specified buffer.
@@ -59,24 +59,24 @@ public ref struct BinaryParser
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public BinaryParser(ReadOnlySpan<byte> buffer)
     {
-        _buffer = buffer;
-        _position = 0;
+        _Buffer = buffer;
+        _Position = 0;
     }
 
     /// <summary>Gets the current byte position in the buffer.</summary>
-    public readonly int Position => _position;
+    public readonly int Position => _Position;
 
     /// <summary>Gets the remaining bytes available.</summary>
-    public readonly int Remaining => _buffer.Length - _position;
+    public readonly int Remaining => _Buffer.Length - _Position;
 
     /// <summary>Gets the total buffer length.</summary>
-    public readonly int Length => _buffer.Length;
+    public readonly int Length => _Buffer.Length;
 
     /// <summary>Gets whether the parser has reached the end of the buffer.</summary>
-    public readonly bool IsAtEnd => _position >= _buffer.Length;
+    public readonly bool IsAtEnd => _Position >= _Buffer.Length;
 
     /// <summary>Gets a span of the remaining bytes.</summary>
-    public readonly ReadOnlySpan<byte> RemainingSpan => _buffer.Slice(_position);
+    public readonly ReadOnlySpan<byte> RemainingSpan => _Buffer.Slice(_Position);
 
     // ========================================================================
     // PRIMITIVE READS - Big Endian (Network Byte Order)
@@ -86,9 +86,12 @@ public ref struct BinaryParser
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte ReadByte()
     {
-        if (_position >= _buffer.Length)
+        if (_Position >= _Buffer.Length)
+        {
             ThrowInsufficientData(1);
-        return _buffer[_position++];
+        }
+
+        return _Buffer[_Position++];
     }
 
     /// <summary>Reads a signed byte.</summary>
@@ -99,10 +102,13 @@ public ref struct BinaryParser
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ushort ReadUInt16BE()
     {
-        if (_position + 2 > _buffer.Length)
+        if (_Position + 2 > _Buffer.Length)
+        {
             ThrowInsufficientData(2);
-        ushort value = BinaryPrimitives.ReadUInt16BigEndian(_buffer.Slice(_position));
-        _position += 2;
+        }
+
+        ushort value = BinaryPrimitives.ReadUInt16BigEndian(_Buffer.Slice(_Position));
+        _Position += 2;
         return value;
     }
 
@@ -110,10 +116,13 @@ public ref struct BinaryParser
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public uint ReadUInt32BE()
     {
-        if (_position + 4 > _buffer.Length)
+        if (_Position + 4 > _Buffer.Length)
+        {
             ThrowInsufficientData(4);
-        uint value = BinaryPrimitives.ReadUInt32BigEndian(_buffer.Slice(_position));
-        _position += 4;
+        }
+
+        uint value = BinaryPrimitives.ReadUInt32BigEndian(_Buffer.Slice(_Position));
+        _Position += 4;
         return value;
     }
 
@@ -121,10 +130,13 @@ public ref struct BinaryParser
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ulong ReadUInt64BE()
     {
-        if (_position + 8 > _buffer.Length)
+        if (_Position + 8 > _Buffer.Length)
+        {
             ThrowInsufficientData(8);
-        ulong value = BinaryPrimitives.ReadUInt64BigEndian(_buffer.Slice(_position));
-        _position += 8;
+        }
+
+        ulong value = BinaryPrimitives.ReadUInt64BigEndian(_Buffer.Slice(_Position));
+        _Position += 8;
         return value;
     }
 
@@ -148,10 +160,13 @@ public ref struct BinaryParser
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ushort ReadUInt16LE()
     {
-        if (_position + 2 > _buffer.Length)
+        if (_Position + 2 > _Buffer.Length)
+        {
             ThrowInsufficientData(2);
-        ushort value = BinaryPrimitives.ReadUInt16LittleEndian(_buffer.Slice(_position));
-        _position += 2;
+        }
+
+        ushort value = BinaryPrimitives.ReadUInt16LittleEndian(_Buffer.Slice(_Position));
+        _Position += 2;
         return value;
     }
 
@@ -159,10 +174,13 @@ public ref struct BinaryParser
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public uint ReadUInt32LE()
     {
-        if (_position + 4 > _buffer.Length)
+        if (_Position + 4 > _Buffer.Length)
+        {
             ThrowInsufficientData(4);
-        uint value = BinaryPrimitives.ReadUInt32LittleEndian(_buffer.Slice(_position));
-        _position += 4;
+        }
+
+        uint value = BinaryPrimitives.ReadUInt32LittleEndian(_Buffer.Slice(_Position));
+        _Position += 4;
         return value;
     }
 
@@ -170,10 +188,13 @@ public ref struct BinaryParser
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ulong ReadUInt64LE()
     {
-        if (_position + 8 > _buffer.Length)
+        if (_Position + 8 > _Buffer.Length)
+        {
             ThrowInsufficientData(8);
-        ulong value = BinaryPrimitives.ReadUInt64LittleEndian(_buffer.Slice(_position));
-        _position += 8;
+        }
+
+        ulong value = BinaryPrimitives.ReadUInt64LittleEndian(_Buffer.Slice(_Position));
+        _Position += 8;
         return value;
     }
 
@@ -240,18 +261,24 @@ public ref struct BinaryParser
 
         while (true)
         {
-            if (_position >= _buffer.Length)
+            if (_Position >= _Buffer.Length)
+            {
                 ThrowInsufficientData(1);
+            }
 
-            byte b = _buffer[_position++];
+            byte b = _Buffer[_Position++];
             result |= (ulong)(b & 0x7F) << shift;
 
             if ((b & 0x80) == 0)
+            {
                 return result;
+            }
 
             shift += 7;
             if (shift >= 70) // Overflow protection (10 bytes max)
+            {
                 throw new InvalidOperationException("VarInt is too long (exceeds 64 bits)");
+            }
         }
     }
 
@@ -278,11 +305,13 @@ public ref struct BinaryParser
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<byte> ReadBytes(int length)
     {
-        if (_position + length > _buffer.Length)
+        if (_Position + length > _Buffer.Length)
+        {
             ThrowInsufficientData(length);
+        }
 
-        var span = _buffer.Slice(_position, length);
-        _position += length;
+        ReadOnlySpan<byte> span = _Buffer.Slice(_Position, length);
+        _Position += length;
         return span;
     }
 
@@ -292,9 +321,12 @@ public ref struct BinaryParser
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Skip(int count)
     {
-        if (_position + count > _buffer.Length)
+        if (_Position + count > _Buffer.Length)
+        {
             ThrowInsufficientData(count);
-        _position += count;
+        }
+
+        _Position += count;
     }
 
     // ========================================================================
@@ -307,10 +339,7 @@ public ref struct BinaryParser
     /// <param name="byteLength">The byte length of the string.</param>
     /// <returns>A span containing the UTF-8 bytes (can be decoded with Encoding.UTF8).</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ReadOnlySpan<byte> ReadUtf8Bytes(int byteLength)
-    {
-        return ReadBytes(byteLength);
-    }
+    public ReadOnlySpan<byte> ReadUtf8Bytes(int byteLength) => ReadBytes(byteLength);
 
     /// <summary>
     /// Reads a UTF-8 string with a VarInt length prefix (no allocation).
@@ -351,17 +380,19 @@ public ref struct BinaryParser
     /// <returns>A span containing the UTF-8 bytes (excluding the null terminator).</returns>
     public ReadOnlySpan<byte> ReadUtf8Null()
     {
-        int start = _position;
-        while (_position < _buffer.Length && _buffer[_position] != 0)
+        int start = _Position;
+        while (_Position < _Buffer.Length && _Buffer[_Position] != 0)
         {
-            _position++;
+            _Position++;
         }
 
-        var span = _buffer.Slice(start, _position - start);
+        ReadOnlySpan<byte> span = _Buffer.Slice(start, _Position - start);
 
         // Skip the null terminator if present
-        if (_position < _buffer.Length)
-            _position++;
+        if (_Position < _Buffer.Length)
+        {
+            _Position++;
+        }
 
         return span;
     }
@@ -372,10 +403,7 @@ public ref struct BinaryParser
     /// <param name="byteLength">The byte length of the string.</param>
     /// <returns>A span containing the ASCII bytes.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ReadOnlySpan<byte> ReadAsciiBytes(int byteLength)
-    {
-        return ReadBytes(byteLength);
-    }
+    public ReadOnlySpan<byte> ReadAsciiBytes(int byteLength) => ReadBytes(byteLength);
 
     /// <summary>
     /// Decodes UTF-8 bytes to a character span without heap allocation.
@@ -385,10 +413,7 @@ public ref struct BinaryParser
     /// <param name="charsWritten">Number of characters written.</param>
     /// <returns><c>true</c> if decoding succeeded; <c>false</c> if destination is too small.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryDecodeUtf8(ReadOnlySpan<byte> utf8Bytes, Span<char> destination, out int charsWritten)
-    {
-        return Encoding.UTF8.TryGetChars(utf8Bytes, destination, out charsWritten);
-    }
+    public static bool TryDecodeUtf8(ReadOnlySpan<byte> utf8Bytes, Span<char> destination, out int charsWritten) => Encoding.UTF8.TryGetChars(utf8Bytes, destination, out charsWritten);
 
     // ========================================================================
     // STRUCT/RECORD PARSING
@@ -409,7 +434,7 @@ public ref struct BinaryParser
             ThrowInsufficientData(requiredSize);
         }
 
-        _position += bytesConsumed;
+        _Position += bytesConsumed;
         return value;
     }
 
@@ -424,7 +449,7 @@ public ref struct BinaryParser
     {
         if (T.TryParse(RemainingSpan, out value, out int bytesConsumed))
         {
-            _position += bytesConsumed;
+            _Position += bytesConsumed;
             return true;
         }
         return false;
@@ -445,15 +470,20 @@ public ref struct BinaryParser
     public int ReadArray<T>(int count, Span<T> destination) where T : IBinaryParsable<T>
     {
         if (!T.TryGetSerializedSize(out int size) || size < 0)
+        {
             throw new ArgumentException($"Type {typeof(T).Name} has variable size and cannot be read as a fixed-size array. Use ReadList<T> instead.");
+        }
 
         int elementsToRead = Math.Min(count, destination.Length);
         int elementsRead = 0;
 
         for (int i = 0; i < elementsToRead; i++)
         {
-            if (!TryRead<T>(out var value))
+            if (!TryRead<T>(out T? value))
+            {
                 break;
+            }
+
             destination[i] = value;
             elementsRead++;
         }
@@ -505,8 +535,8 @@ public ref struct BinaryParser
     private readonly void ThrowInsufficientData(int bytesNeeded)
     {
         throw new InvalidOperationException(
-            $"Insufficient data: need {bytesNeeded} bytes at position {_position}, " +
-            $"but only {Remaining} bytes remaining (buffer length: {_buffer.Length}).");
+            $"Insufficient data: need {bytesNeeded} bytes at position {_Position}, " +
+            $"but only {Remaining} bytes remaining (buffer length: {_Buffer.Length}).");
     }
 }
 
@@ -530,20 +560,28 @@ public static class BinaryParseValidator
 
         // Check for unsupported types
         if (type == typeof(object))
+        {
             throw new NotSupportedException(
                 "Type 'object' is not supported for binary parsing. Use a specific type.");
+        }
 
         if (type == typeof(string))
+        {
             throw new NotSupportedException(
                 "Type 'string' is not directly supported. Use ReadUtf8Bytes(), ReadUtf8Var(), or ReadUtf8Null() instead.");
+        }
 
         if (type.IsClass && !type.IsValueType)
+        {
             throw new NotSupportedException(
                 $"Reference type '{type.Name}' is not supported. Binary parsing requires value types (struct/record struct).");
+        }
 
         if (type.IsArray)
+        {
             throw new NotSupportedException(
                 $"Array type '{type.Name}' is not directly supported. Use ReadArray<T>() or ReadArrayVarInt<T>() methods.");
+        }
 
         // Check if type implements IBinaryParsable
         Type[] interfaces = type.GetInterfaces();
@@ -571,7 +609,10 @@ public static class BinaryParseValidator
     private static bool IsPrimitiveOrKnownType(Type type)
     {
         // Primitives
-        if (type.IsPrimitive) return true;
+        if (type.IsPrimitive)
+        {
+            return true;
+        }
 
         // Known wrapper types (check by name pattern)
         string name = type.Name;

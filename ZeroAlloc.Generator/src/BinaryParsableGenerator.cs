@@ -262,6 +262,28 @@ internal static partial class ParseDiagnostics
         category: "ZeroAlloc.Parsing",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
+
+    /// <summary>
+    /// ZA2014: [BinaryFixedLength] or [StringFixedLength] value must be greater than zero.
+    /// </summary>
+    public static readonly DiagnosticDescriptor InvalidFixedLength = new(
+        id: "ZA2014",
+        title: "Fixed length must be greater than zero",
+        messageFormat: "Member '{0}' has a fixed length of {1}, which is invalid. The length must be greater than zero.",
+        category: "ZeroAlloc.Parsing",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    /// <summary>
+    /// ZA2015: Multiple conflicting length/encoding attributes on a single member.
+    /// </summary>
+    public static readonly DiagnosticDescriptor ConflictingEncodingAttributes = new(
+        id: "ZA2015",
+        title: "Conflicting length/encoding attributes",
+        messageFormat: "Member '{0}' has multiple conflicting length/encoding attributes. Only one length encoding attribute is allowed per member.",
+        category: "ZeroAlloc.Parsing",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
 }
 
 // ============================================================================
@@ -330,7 +352,9 @@ internal record struct ParsableMemberInfo(
     StringLengthEncodingInfo? StringEncoding,
     BytesLengthEncodingInfo? BytesEncoding,
     string? LengthFromField,
-    Location Location)
+    Location Location,
+    int StringEncodingAttributeCount,
+    int BytesEncodingAttributeCount)
 {
     /// <summary>
     /// True if this member has both <c>[BinaryIgnore]</c> and <c>[BinaryOrder]</c> (conflict).
@@ -517,9 +541,10 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
     private static ParsableTypeInfo? GetParsableTypeInfo(GeneratorAttributeSyntaxContext ctx)
     {
         // Get the struct/record symbol
-        INamedTypeSymbol? typeSymbol = ctx.TargetSymbol as INamedTypeSymbol;
-        if (typeSymbol is null)
+        if (ctx.TargetSymbol is not INamedTypeSymbol typeSymbol)
+        {
             return null;
+        }
 
         // Validate it's a struct
         if (!typeSymbol.IsValueType || typeSymbol.TypeKind != TypeKind.Struct)
@@ -574,7 +599,9 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
         {
             // Skip static, methods, etc.
             if (member.IsStatic)
+            {
                 continue;
+            }
 
             // Only fields and properties
             ITypeSymbol? memberType = null;
@@ -585,7 +612,9 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
             {
                 // Skip compiler-generated backing fields for auto-properties
                 if (field.IsImplicitlyDeclared || field.Name.StartsWith("<"))
+                {
                     continue;
+                }
 
                 memberType = field.Type;
                 isProperty = false;
@@ -594,9 +623,14 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
             {
                 // Skip indexers and computed properties without setter/init
                 if (prop.IsIndexer)
+                {
                     continue;
+                }
+
                 if (prop.SetMethod is null && !prop.IsRequired)
+                {
                     continue; // Read-only computed property
+                }
 
                 memberType = prop.Type;
                 isProperty = true;
@@ -635,13 +669,15 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
                     isProperty,
                     ParsableMemberKind.Unknown, // Mark as unknown, error will be reported
                     null, null, 0, null, null, null, null,
-                    memberLocation)
+                    memberLocation, 0, 0)
                 { IsIgnoredWithOrder = true });
                 continue;
             }
 
             if (isIgnored)
+            {
                 continue;
+            }
 
             // Get [BinaryFixedLength] if present
             int? fixedLength = null;
@@ -682,6 +718,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
             // Get string length encoding from attributes (new separate attributes + legacy BinaryStringLength)
             StringLengthEncodingInfo? stringEncoding = null;
             string? lengthFromField = null;
+            int stringEncodingCount = 0; // Track conflicting attributes
 
             foreach (AttributeData attr in member.GetAttributes())
             {
@@ -691,28 +728,35 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
                 {
                     case "StringLengthVarIntAttribute":
                         stringEncoding = new StringLengthEncodingInfo(StringLengthEncodingKind.VarInt, 0, -1);
+                        stringEncodingCount++;
                         break;
                     case "StringLengthBEAttribute":
                         int beLengthBytes = attr.ConstructorArguments.Length > 0 && attr.ConstructorArguments[0].Value is int beLen ? beLen : 4;
                         stringEncoding = new StringLengthEncodingInfo(StringLengthEncodingKind.FixedBE, beLengthBytes, -1);
+                        stringEncodingCount++;
                         break;
                     case "StringLengthLEAttribute":
                         int leLengthBytes = attr.ConstructorArguments.Length > 0 && attr.ConstructorArguments[0].Value is int leLen ? leLen : 4;
                         stringEncoding = new StringLengthEncodingInfo(StringLengthEncodingKind.FixedLE, leLengthBytes, -1);
+                        stringEncodingCount++;
                         break;
                     case "StringNullTerminatedAttribute":
                         stringEncoding = new StringLengthEncodingInfo(StringLengthEncodingKind.NullTerminated, 0, -1);
+                        stringEncodingCount++;
                         break;
                     case "StringFixedLengthAttribute":
                         int strFixedLen = attr.ConstructorArguments.Length > 0 && attr.ConstructorArguments[0].Value is int sfl ? sfl : 0;
                         stringEncoding = new StringLengthEncodingInfo(StringLengthEncodingKind.Fixed, 0, strFixedLen);
+                        stringEncodingCount++;
                         break;
                     case "StringLengthFromFieldAttribute":
                         lengthFromField = attr.ConstructorArguments.Length > 0 ? attr.ConstructorArguments[0].Value as string : null;
                         stringEncoding = new StringLengthEncodingInfo(StringLengthEncodingKind.FromField, 0, -1);
+                        stringEncodingCount++;
                         break;
                     case "BinaryStringLengthAttribute":
                         // Legacy attribute support
+                        stringEncodingCount++;
                         if (attr.ConstructorArguments.Length > 0)
                         {
                             int encodingValue = (int)(attr.ConstructorArguments[0].Value ?? 0);
@@ -722,9 +766,13 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
                             foreach (KeyValuePair<string, TypedConstant> arg in attr.NamedArguments)
                             {
                                 if (arg.Key == "LengthBytes" && arg.Value.Value is int lb)
+                                {
                                     legacyLengthBytes = lb;
+                                }
                                 else if (arg.Key == "FixedLength" && arg.Value.Value is int fl)
+                                {
                                     legacyFixedLength = fl;
+                                }
                             }
 
                             stringEncoding = new StringLengthEncodingInfo(
@@ -739,6 +787,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
             // Get bytes length encoding from attributes
             BytesLengthEncodingInfo? bytesEncoding = null;
             string? bytesLengthFromField = null;
+            int bytesEncodingCount = 0; // Track conflicting attributes
 
             foreach (AttributeData bytesAttr in member.GetAttributes())
             {
@@ -748,18 +797,22 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
                 {
                     case "BytesLengthVarIntAttribute":
                         bytesEncoding = new BytesLengthEncodingInfo(BytesLengthEncodingKind.VarInt, 0);
+                        bytesEncodingCount++;
                         break;
                     case "BytesLengthBEAttribute":
                         int beBytesLen = bytesAttr.ConstructorArguments.Length > 0 && bytesAttr.ConstructorArguments[0].Value is int bebl ? bebl : 4;
                         bytesEncoding = new BytesLengthEncodingInfo(BytesLengthEncodingKind.FixedBE, beBytesLen);
+                        bytesEncodingCount++;
                         break;
                     case "BytesLengthLEAttribute":
                         int leBytesLen = bytesAttr.ConstructorArguments.Length > 0 && bytesAttr.ConstructorArguments[0].Value is int lebl ? lebl : 4;
                         bytesEncoding = new BytesLengthEncodingInfo(BytesLengthEncodingKind.FixedLE, leBytesLen);
+                        bytesEncodingCount++;
                         break;
                     case "BytesLengthFromFieldAttribute":
                         bytesLengthFromField = bytesAttr.ConstructorArguments.Length > 0 ? bytesAttr.ConstructorArguments[0].Value as string : null;
                         bytesEncoding = new BytesLengthEncodingInfo(BytesLengthEncodingKind.FromField, 0);
+                        bytesEncodingCount++;
                         break;
                     case "BinaryFixedLengthAttribute":
                         // Existing attribute - already handled by fixedLength above
@@ -791,7 +844,9 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
                 stringEncoding,
                 bytesEncoding,
                 combinedLengthFromField,
-                memberLocation));
+                memberLocation,
+                stringEncodingCount,
+                bytesEncodingCount));
         }
 
         return new ParsableTypeInfo(
@@ -821,23 +876,33 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
 
         // Check for endian wrappers
         if (IsEndianWrapper(typeName))
+        {
             return ParsableMemberKind.EndianWrapper;
+        }
 
         // Check for VarInt types
         if (typeName is "VarInt" or "VarIntZigZag")
+        {
             return ParsableMemberKind.VarInt;
+        }
 
         // Check for byte
         if (type.SpecialType == SpecialType.System_Byte)
+        {
             return ParsableMemberKind.Byte;
+        }
 
         // Check for byte[]
         if (type is IArrayTypeSymbol arrayType && arrayType.ElementType.SpecialType == SpecialType.System_Byte)
+        {
             return hasBytesEncoding ? ParsableMemberKind.ByteArrayDynamic : ParsableMemberKind.ByteArray;
+        }
 
         // Check for Memory<byte> and ReadOnlyMemory<byte>
         if (fullName is "System.Memory<byte>" or "System.ReadOnlyMemory<byte>")
+        {
             return hasBytesEncoding ? ParsableMemberKind.MemoryDynamic : ParsableMemberKind.Unknown;
+        }
 
         // Check for [BinaryParsable] nested type
         if (type.GetAttributes().Any(a =>
@@ -857,36 +922,16 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
 
         // Check for primitive integers (need explicit endianness)
         if (IsPrimitiveInteger(type))
+        {
             return ParsableMemberKind.PrimitiveInteger;
+        }
 
         return ParsableMemberKind.Unknown;
     }
 
-    /// <summary>
-    /// Determines if a type is an endian wrapper (U16BE, I32LE, etc.).
-    /// </summary>
-    /// <param name="typeName">The simple type name to check.</param>
-    /// <returns><c>true</c> if the type is an endian wrapper.</returns>
-    private static bool IsEndianWrapper(string typeName) =>
-        typeName is "U16BE" or "U16LE" or "U32BE" or "U32LE" or
-                   "U64BE" or "U64LE" or "U128BE" or "U128LE" or
-                   "I16BE" or "I16LE" or "I32BE" or "I32LE" or
-                   "I64BE" or "I64LE" or "I128BE" or "I128LE" or
-                   "F32BE" or "F32LE" or "F64BE" or "F64LE";
-
-    /// <summary>
-    /// Determines if a type is a primitive integer that requires explicit endianness.
-    /// </summary>
-    /// <param name="type">The type symbol to check.</param>
-    /// <returns><c>true</c> if the type is a primitive integer.</returns>
-    private static bool IsPrimitiveInteger(ITypeSymbol type) =>
-        type.SpecialType is SpecialType.System_SByte or
-                           SpecialType.System_Int16 or SpecialType.System_UInt16 or
-                           SpecialType.System_Int32 or SpecialType.System_UInt32 or
-                           SpecialType.System_Int64 or SpecialType.System_UInt64 or
-                           SpecialType.System_Single or SpecialType.System_Double or
-                           SpecialType.System_IntPtr or SpecialType.System_UIntPtr ||
-        type.ToDisplayString() is "System.Int128" or "System.UInt128" or "System.Half";
+    // Type recognition helpers delegate to BinaryGeneratorHelpers
+    private static bool IsEndianWrapper(string typeName) => BinaryGeneratorHelpers.IsEndianWrapper(typeName);
+    private static bool IsPrimitiveInteger(ITypeSymbol type) => BinaryGeneratorHelpers.IsPrimitiveInteger(type);
 
     // ========================================================================
     // CODE GENERATION
@@ -920,12 +965,16 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
     private static void GenerateParsingCode(SourceProductionContext ctx, ParsableTypeInfo? typeInfoNullable)
     {
         if (typeInfoNullable is not ParsableTypeInfo typeInfo)
+        {
             return;
+        }
 
         // Validate members
         List<ParsableMemberInfo> orderedMembers = ValidateAndOrderMembers(ctx, typeInfo);
         if (orderedMembers.Count == 0 && typeInfo.Members.Length > 0)
+        {
             return; // Errors were reported
+        }
 
         // Check if any member uses bit-level parsing
         bool usesBitReader = orderedMembers.Any(m => m.Kind == ParsableMemberKind.BitField);
@@ -1215,6 +1264,46 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
                     member.PaddingBits));
                 return new List<ParsableMemberInfo>();
             }
+
+            // ZA2014: Validate FixedLength > 0 (for [BinaryFixedLength] and [StringFixedLength])
+            if (member.FixedLength is not null and <= 0)
+            {
+                ctx.ReportDiagnostic(Diagnostic.Create(
+                    ParseDiagnostics.InvalidFixedLength,
+                    member.Location,
+                    member.Name,
+                    member.FixedLength));
+                return new List<ParsableMemberInfo>();
+            }
+
+            if (member.StringEncoding is { Encoding: StringLengthEncodingKind.Fixed, FixedLength: <= 0 })
+            {
+                ctx.ReportDiagnostic(Diagnostic.Create(
+                    ParseDiagnostics.InvalidFixedLength,
+                    member.Location,
+                    member.Name,
+                    member.StringEncoding.Value.FixedLength));
+                return new List<ParsableMemberInfo>();
+            }
+
+            // ZA2015: Validate no conflicting encoding attributes
+            if (member.StringEncodingAttributeCount > 1)
+            {
+                ctx.ReportDiagnostic(Diagnostic.Create(
+                    ParseDiagnostics.ConflictingEncodingAttributes,
+                    member.Location,
+                    member.Name));
+                return new List<ParsableMemberInfo>();
+            }
+
+            if (member.BytesEncodingAttributeCount > 1)
+            {
+                ctx.ReportDiagnostic(Diagnostic.Create(
+                    ParseDiagnostics.ConflictingEncodingAttributes,
+                    member.Location,
+                    member.Name));
+                return new List<ParsableMemberInfo>();
+            }
         }
 
         // Check ordering consistency
@@ -1423,99 +1512,13 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
     // Fixed sizes enable early length validation in generated code.
     // ========================================================================
 
-    /// <summary>
-    /// Calculates the total fixed size in bytes for all members, if all are fixed-size.
-    /// </summary>
-    /// <remarks>
-    /// Returns <c>null</c> if any member has variable size (VarInt, dynamic arrays, etc.).
-    /// For fixed-size types, this enables a single length check at the start of TryParse.
-    /// </remarks>
-    /// <param name="members">The ordered list of members.</param>
-    /// <returns>Total size in bytes, or <c>null</c> if variable.</returns>
-    private static int? CalculateFixedSize(List<ParsableMemberInfo> members)
-    {
-        int total = 0;
-        foreach (ParsableMemberInfo member in members)
-        {
-            int? size = member.Kind switch
-            {
-                ParsableMemberKind.EndianWrapper => GetEndianWrapperSize(member.TypeName),
-                ParsableMemberKind.Byte => 1,
-                ParsableMemberKind.ByteArray => member.FixedLength,
-                ParsableMemberKind.Float => 4,
-                ParsableMemberKind.Double => 8,
-                ParsableMemberKind.VarInt => null, // Variable
-                ParsableMemberKind.NestedParsable => null, // Would need to check nested type
-                ParsableMemberKind.PrimitiveInteger => GetPrimitiveSize(member.FullTypeName),
-                _ => null
-            };
+    private static int? CalculateFixedSize(List<ParsableMemberInfo> members) => BinaryGeneratorHelpers.CalculateFixedSize(members);
 
-            if (size is null)
-                return null;
+    // Size calculation helpers delegate to BinaryGeneratorHelpers
+    private static int? GetEndianWrapperSize(string typeName) => BinaryGeneratorHelpers.GetEndianWrapperSize(typeName);
+    private static int? GetPrimitiveSize(string fullTypeName) => BinaryGeneratorHelpers.GetPrimitiveSize(fullTypeName);
 
-            total += size.Value;
-        }
-        return total;
-    }
-
-    /// <summary>
-    /// Gets the size in bytes of an endian wrapper type.
-    /// </summary>
-    private static int? GetEndianWrapperSize(string typeName) => typeName switch
-    {
-        "U16BE" or "U16LE" or "I16BE" or "I16LE" => 2,
-        "U32BE" or "U32LE" or "I32BE" or "I32LE" or "F32BE" or "F32LE" => 4,
-        "U64BE" or "U64LE" or "I64BE" or "I64LE" or "F64BE" or "F64LE" => 8,
-        "U128BE" or "U128LE" or "I128BE" or "I128LE" => 16,
-        _ => null
-    };
-
-    /// <summary>
-    /// Gets the size in bytes of a primitive integer type.
-    /// </summary>
-    private static int? GetPrimitiveSize(string fullTypeName) => fullTypeName switch
-    {
-        "sbyte" or "System.SByte" => 1,
-        "short" or "ushort" or "System.Int16" or "System.UInt16" or "System.Half" => 2,
-        "int" or "uint" or "System.Int32" or "System.UInt32" or "float" or "System.Single" => 4,
-        "long" or "ulong" or "System.Int64" or "System.UInt64" or "double" or "System.Double" or "nint" or "nuint" or "System.IntPtr" or "System.UIntPtr" => 8,
-        "System.Int128" or "System.UInt128" => 16,
-        _ => null
-    };
-
-    /// <summary>
-    /// Calculates the total bit count for types using bit-level parsing.
-    /// </summary>
-    /// <remarks>
-    /// Used when any member has <c>[BinaryField(BitCount = n)]</c>.
-    /// Returns <c>null</c> if any member has variable bit size.
-    /// </remarks>
-    /// <param name="members">The ordered list of members.</param>
-    /// <returns>Total size in bits, or <c>null</c> if variable.</returns>
-    private static int? CalculateFixedBits(List<ParsableMemberInfo> members)
-    {
-        int totalBits = 0;
-        foreach (ParsableMemberInfo member in members)
-        {
-            // Add padding bits
-            totalBits += member.PaddingBits;
-
-            int? bits = member.Kind switch
-            {
-                ParsableMemberKind.BitField => member.BitCount,
-                ParsableMemberKind.Byte => 8,
-                ParsableMemberKind.EndianWrapper => GetEndianWrapperSize(member.TypeName) * 8,
-                ParsableMemberKind.PrimitiveInteger => GetPrimitiveSize(member.FullTypeName) * 8,
-                _ => null
-            };
-
-            if (bits is null)
-                return null;
-
-            totalBits += bits.Value;
-        }
-        return totalBits;
-    }
+    private static int? CalculateFixedBits(List<ParsableMemberInfo> members) => BinaryGeneratorHelpers.CalculateFixedBits(members);
 
     // ========================================================================
     // MEMBER-SPECIFIC PARSING CODE GENERATION
@@ -1993,16 +1996,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
         }
     }
 
-    private static int GetDefaultBitCount(ParsableMemberInfo member)
-    {
-        return member.Kind switch
-        {
-            ParsableMemberKind.Byte => 8,
-            ParsableMemberKind.EndianWrapper => (GetEndianWrapperSize(member.TypeName) ?? 4) * 8,
-            ParsableMemberKind.PrimitiveInteger => (GetPrimitiveSize(member.FullTypeName) ?? 4) * 8,
-            _ => 32
-        };
-    }
+    private static int GetDefaultBitCount(ParsableMemberInfo member) => BinaryGeneratorHelpers.GetDefaultBitCount(member);
 
     private static void GenerateBitReaderEndianWrapperParsing(StringBuilder sb, ParsableMemberInfo member, string varName)
     {

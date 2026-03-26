@@ -33,8 +33,8 @@ namespace ZeroAlloc;
 /// </summary>
 public ref struct BitReader
 {
-    private ReadOnlySpan<byte> _buffer;
-    private int _bitOffset; // Global bit offset from start of buffer
+    private readonly ReadOnlySpan<byte> _Buffer;
+    private int _BitOffset; // Global bit offset from start of buffer
 
     /// <summary>
     /// Initializes a new BitReader with the specified buffer.
@@ -43,29 +43,29 @@ public ref struct BitReader
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public BitReader(ReadOnlySpan<byte> buffer)
     {
-        _buffer = buffer;
-        _bitOffset = 0;
+        _Buffer = buffer;
+        _BitOffset = 0;
     }
 
     /// <summary>
     /// Gets the current bit offset from the start of the buffer.
     /// </summary>
-    public readonly int BitOffset => _bitOffset;
+    public readonly int BitOffset => _BitOffset;
 
     /// <summary>
     /// Gets the current byte position (rounded down).
     /// </summary>
-    public readonly int BytePosition => _bitOffset >> 3;
+    public readonly int BytePosition => _BitOffset >> 3;
 
     /// <summary>
     /// Gets the bit position within the current byte (0-7).
     /// </summary>
-    public readonly int BitPositionInByte => _bitOffset & 7;
+    public readonly int BitPositionInByte => _BitOffset & 7;
 
     /// <summary>
     /// Gets whether the reader is currently byte-aligned.
     /// </summary>
-    public readonly bool IsByteAligned => (_bitOffset & 7) == 0;
+    public readonly bool IsByteAligned => (_BitOffset & 7) == 0;
 
     /// <summary>
     /// Reads up to 64 bits as an unsigned integer. Optimized for both aligned and non-aligned reads.
@@ -76,10 +76,20 @@ public ref struct BitReader
     public ulong ReadBits(int bitCount)
     {
         if (bitCount is < 1 or > 64)
+        {
             throw new ArgumentOutOfRangeException(nameof(bitCount), "BitCount must be between 1 and 64");
+        }
 
-        int bytePos = _bitOffset >> 3;
-        int bitPos = _bitOffset & 7;
+        // Ensure enough bits remain in the buffer before accessing data
+        int totalBits = _Buffer.Length << 3;
+        if (_BitOffset + bitCount > totalBits)
+        {
+            throw new InvalidOperationException(
+                $"Cannot read {bitCount} bits: only {totalBits - _BitOffset} bits remaining");
+        }
+
+        int bytePos = _BitOffset >> 3;
+        int bitPos = _BitOffset & 7;
 
         ulong value;
 
@@ -94,7 +104,7 @@ public ref struct BitReader
             value = ReadBitsUnaligned(bytePos, bitPos, bitCount);
         }
 
-        _bitOffset += bitCount;
+        _BitOffset += bitCount;
         return value;
     }
 
@@ -104,19 +114,16 @@ public ref struct BitReader
         // Optimized for byte-aligned reads - use direct integer reads when possible
         return bitCount switch
         {
-            8 => _buffer[bytePos],
-            16 => BinaryPrimitives.ReadUInt16BigEndian(_buffer.Slice(bytePos)),
-            32 => BinaryPrimitives.ReadUInt32BigEndian(_buffer.Slice(bytePos)),
-            64 => BinaryPrimitives.ReadUInt64BigEndian(_buffer.Slice(bytePos)),
+            8 => _Buffer[bytePos],
+            16 => BinaryPrimitives.ReadUInt16BigEndian(_Buffer.Slice(bytePos)),
+            32 => BinaryPrimitives.ReadUInt32BigEndian(_Buffer.Slice(bytePos)),
+            64 => BinaryPrimitives.ReadUInt64BigEndian(_Buffer.Slice(bytePos)),
             _ => ReadBitsGeneric(bytePos, 0, bitCount)
         };
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private readonly ulong ReadBitsUnaligned(int bytePos, int bitPos, int bitCount)
-    {
-        return ReadBitsGeneric(bytePos, bitPos, bitCount);
-    }
+    private readonly ulong ReadBitsUnaligned(int bytePos, int bitPos, int bitCount) => ReadBitsGeneric(bytePos, bitPos, bitCount);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private readonly ulong ReadBitsGeneric(int bytePos, int bitPos, int bitCount)
@@ -129,7 +136,7 @@ public ref struct BitReader
         {
             int bitsInFirstByte = Math.Min(8 - bitPos, bitsRemaining);
             byte mask = (byte)((1 << bitsInFirstByte) - 1);
-            byte value = (byte)((_buffer[bytePos] >> (8 - bitPos - bitsInFirstByte)) & mask);
+            byte value = (byte)((_Buffer[bytePos] >> (8 - bitPos - bitsInFirstByte)) & mask);
             result = value;
             bitsRemaining -= bitsInFirstByte;
             bytePos++;
@@ -138,14 +145,14 @@ public ref struct BitReader
         // Read complete bytes
         while (bitsRemaining >= 8)
         {
-            result = (result << 8) | _buffer[bytePos++];
+            result = (result << 8) | _Buffer[bytePos++];
             bitsRemaining -= 8;
         }
 
         // Read final partial byte if needed
         if (bitsRemaining > 0)
         {
-            byte value = (byte)(_buffer[bytePos] >> (8 - bitsRemaining));
+            byte value = (byte)(_Buffer[bytePos] >> (8 - bitsRemaining));
             result = (result << bitsRemaining) | value;
         }
 
@@ -158,10 +165,10 @@ public ref struct BitReader
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Bit1 ReadBit1()
     {
-        int bytePos = _bitOffset >> 3;
-        int bitPos = _bitOffset & 7;
-        bool bit = ((_buffer[bytePos] >> (7 - bitPos)) & 1) == 1;
-        _bitOffset++;
+        int bytePos = _BitOffset >> 3;
+        int bitPos = _BitOffset & 7;
+        bool bit = ((_Buffer[bytePos] >> (7 - bitPos)) & 1) == 1;
+        _BitOffset++;
         return new Bit1(bit);
     }
 
@@ -238,8 +245,8 @@ public ref struct BitReader
     {
         if (IsByteAligned)
         {
-            byte value = _buffer[BytePosition];
-            _bitOffset += 8;
+            byte value = _Buffer[BytePosition];
+            _BitOffset += 8;
             return value;
         }
         return (byte)ReadBits(8);
@@ -276,10 +283,10 @@ public ref struct BitReader
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AlignToNextByte()
     {
-        int remainder = _bitOffset & 7;
+        int remainder = _BitOffset & 7;
         if (remainder != 0)
         {
-            _bitOffset += 8 - remainder;
+            _BitOffset += 8 - remainder;
         }
     }
 
@@ -287,10 +294,7 @@ public ref struct BitReader
     /// Skips the specified number of bits.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void SkipBits(int bitCount)
-    {
-        _bitOffset += bitCount;
-    }
+    public void SkipBits(int bitCount) => _BitOffset += bitCount;
 
     /// <summary>
     /// Reads a byte array of the specified length. Must be byte-aligned.
@@ -300,25 +304,25 @@ public ref struct BitReader
     public ReadOnlySpan<byte> ReadBytes(int byteCount)
     {
         // Ensure we're byte-aligned
-        if ((_bitOffset & 7) != 0)
+        if ((_BitOffset & 7) != 0)
         {
             throw new InvalidOperationException("ReadBytes requires byte alignment. Call AlignToNextByte() first.");
         }
 
-        int byteOffset = _bitOffset >> 3;
-        _bitOffset += byteCount << 3;
-        return _buffer.Slice(byteOffset, byteCount);
+        int byteOffset = _BitOffset >> 3;
+        _BitOffset += byteCount << 3;
+        return _Buffer.Slice(byteOffset, byteCount);
     }
 
     /// <summary>
     /// Gets the remaining bits available in the buffer.
     /// </summary>
-    public readonly int RemainingBits => (_buffer.Length << 3) - _bitOffset;
+    public readonly int RemainingBits => (_Buffer.Length << 3) - _BitOffset;
 
     /// <summary>
     /// Gets the remaining bytes available in the buffer (rounded down).
     /// </summary>
-    public readonly int RemainingBytes => (_buffer.Length << 3 - _bitOffset) >> 3;
+    public readonly int RemainingBytes => ((_Buffer.Length << 3) - _BitOffset) >> 3;
 }
 
 #endregion

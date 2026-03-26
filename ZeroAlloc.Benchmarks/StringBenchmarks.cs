@@ -25,11 +25,6 @@ SOFTWARE.
 
 namespace ZeroAlloc.Benchmarks;
 
-using System.Buffers;
-using System.Globalization;
-using System.Text;
-using Cysharp.Text;
-
 /// <summary>
 /// Comprehensive benchmarks comparing ZeroAlloc.String performance against:
 /// - String concatenation (+ operator)

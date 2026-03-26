@@ -45,7 +45,7 @@ namespace ZeroAlloc;
 /// </remarks>
 public ref struct SpanStringBuilder
 {
-    private Span<char> _buffer;
+    private Span<char> _Buffer;
     private int _Position;
 
     /// <summary>
@@ -55,7 +55,7 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public SpanStringBuilder(Span<char> buffer)
     {
-        _buffer = buffer;
+        _Buffer = buffer;
         _Position = 0;
     }
 
@@ -67,17 +67,17 @@ public ref struct SpanStringBuilder
     /// <summary>
     /// Gets the current capacity of the buffer.
     /// </summary>
-    public readonly int Capacity => _buffer.Length;
+    public readonly int Capacity => _Buffer.Length;
 
     /// <summary>
     /// Gets the remaining capacity in the buffer.
     /// </summary>
-    public readonly int Remaining => _buffer.Length - _Position;
+    public readonly int Remaining => _Buffer.Length - _Position;
 
     /// <summary>
     /// Gets the written content as a read-only span.
     /// </summary>
-    public readonly ReadOnlySpan<char> AsSpan() => _buffer.Slice(0, _Position);
+    public readonly ReadOnlySpan<char> AsSpan() => _Buffer.Slice(0, _Position);
 
     /// <summary>
     /// Clears the builder, resetting the position to zero.
@@ -128,8 +128,12 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(string? value)
     {
-        if (value is null) return;
-        value.AsSpan().CopyTo(_buffer.Slice(_Position));
+        if (value is null)
+        {
+            return;
+        }
+
+        value.AsSpan().CopyTo(_Buffer.Slice(_Position));
         _Position += value.Length;
     }
 
@@ -139,7 +143,7 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(ReadOnlySpan<char> value)
     {
-        value.CopyTo(_buffer.Slice(_Position));
+        value.CopyTo(_Buffer.Slice(_Position));
         _Position += value.Length;
     }
 
@@ -147,10 +151,7 @@ public ref struct SpanStringBuilder
     /// Appends a single character to the buffer.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Append(char value)
-    {
-        _buffer[_Position++] = value;
-    }
+    public void Append(char value) => _Buffer[_Position++] = value;
 
     #endregion
 
@@ -161,8 +162,11 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(int value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
+        {
             throw new InvalidOperationException("Buffer too small for int value.");
+        }
+
         _Position += charsWritten;
     }
 
@@ -171,8 +175,11 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(long value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
+        {
             throw new InvalidOperationException("Buffer too small for long value.");
+        }
+
         _Position += charsWritten;
     }
 
@@ -181,8 +188,11 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(uint value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
+        {
             throw new InvalidOperationException("Buffer too small for uint value.");
+        }
+
         _Position += charsWritten;
     }
 
@@ -191,8 +201,11 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(ulong value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
+        {
             throw new InvalidOperationException("Buffer too small for ulong value.");
+        }
+
         _Position += charsWritten;
     }
 
@@ -201,8 +214,11 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(short value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
+        {
             throw new InvalidOperationException("Buffer too small for short value.");
+        }
+
         _Position += charsWritten;
     }
 
@@ -211,8 +227,11 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(ushort value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
+        {
             throw new InvalidOperationException("Buffer too small for ushort value.");
+        }
+
         _Position += charsWritten;
     }
 
@@ -221,8 +240,11 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(byte value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
+        {
             throw new InvalidOperationException("Buffer too small for byte value.");
+        }
+
         _Position += charsWritten;
     }
 
@@ -231,8 +253,11 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(sbyte value)
     {
-        if (!((int)value).TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!((int)value).TryFormat(_Buffer.Slice(_Position), out int charsWritten))
+        {
             throw new InvalidOperationException("Buffer too small for sbyte value.");
+        }
+
         _Position += charsWritten;
     }
 
@@ -241,8 +266,10 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(bool value)
     {
-        if (value) { "True".AsSpan().CopyTo(_buffer.Slice(_Position)); _Position += 4; }
-        else { "False".AsSpan().CopyTo(_buffer.Slice(_Position)); _Position += 5; }
+        if (value)
+        { "True".AsSpan().CopyTo(_Buffer.Slice(_Position)); _Position += 4; }
+        else
+        { "False".AsSpan().CopyTo(_Buffer.Slice(_Position)); _Position += 5; }
     }
 
     /// <summary>Appends a DateTime value to the buffer.</summary>
@@ -250,8 +277,11 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(DateTime value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
+        {
             throw new InvalidOperationException("Buffer too small for DateTime value.");
+        }
+
         _Position += charsWritten;
     }
 
@@ -260,8 +290,11 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(DateTimeOffset value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
+        {
             throw new InvalidOperationException("Buffer too small for DateTimeOffset value.");
+        }
+
         _Position += charsWritten;
     }
 
@@ -270,8 +303,11 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(TimeSpan value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
+        {
             throw new InvalidOperationException("Buffer too small for TimeSpan value.");
+        }
+
         _Position += charsWritten;
     }
 
@@ -280,8 +316,11 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(Guid value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
+        {
             throw new InvalidOperationException("Buffer too small for Guid value.");
+        }
+
         _Position += charsWritten;
     }
 
@@ -290,8 +329,11 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(Int128 value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
+        {
             throw new InvalidOperationException("Buffer too small for Int128 value.");
+        }
+
         _Position += charsWritten;
     }
 
@@ -300,8 +342,11 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(UInt128 value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
+        {
             throw new InvalidOperationException("Buffer too small for UInt128 value.");
+        }
+
         _Position += charsWritten;
     }
 
@@ -310,8 +355,11 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(float value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
+        {
             throw new InvalidOperationException("Buffer too small for float value.");
+        }
+
         _Position += charsWritten;
     }
 
@@ -320,8 +368,11 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(double value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
+        {
             throw new InvalidOperationException("Buffer too small for double value.");
+        }
+
         _Position += charsWritten;
     }
 
@@ -330,8 +381,11 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(decimal value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
+        {
             throw new InvalidOperationException("Buffer too small for decimal value.");
+        }
+
         _Position += charsWritten;
     }
 
@@ -340,8 +394,11 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(Half value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
+        {
             throw new InvalidOperationException("Buffer too small for Half value.");
+        }
+
         _Position += charsWritten;
     }
 
@@ -350,8 +407,11 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(DateOnly value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
+        {
             throw new InvalidOperationException("Buffer too small for DateOnly value.");
+        }
+
         _Position += charsWritten;
     }
 
@@ -360,8 +420,11 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(TimeOnly value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
+        {
             throw new InvalidOperationException("Buffer too small for TimeOnly value.");
+        }
+
         _Position += charsWritten;
     }
 
@@ -370,8 +433,11 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(nint value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
+        {
             throw new InvalidOperationException("Buffer too small for nint value.");
+        }
+
         _Position += charsWritten;
     }
 
@@ -380,8 +446,11 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(nuint value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
+        {
             throw new InvalidOperationException("Buffer too small for nuint value.");
+        }
+
         _Position += charsWritten;
     }
 
@@ -396,8 +465,11 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(int value, ReadOnlySpan<char> format, IFormatProvider? provider = null)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten, format, provider))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten, format, provider))
+        {
             throw new InvalidOperationException("Buffer too small.");
+        }
+
         _Position += charsWritten;
     }
 
@@ -408,8 +480,11 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(long value, ReadOnlySpan<char> format, IFormatProvider? provider = null)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten, format, provider))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten, format, provider))
+        {
             throw new InvalidOperationException("Buffer too small.");
+        }
+
         _Position += charsWritten;
     }
 
@@ -420,8 +495,11 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(double value, ReadOnlySpan<char> format, IFormatProvider? provider = null)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten, format, provider))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten, format, provider))
+        {
             throw new InvalidOperationException("Buffer too small.");
+        }
+
         _Position += charsWritten;
     }
 
@@ -432,8 +510,11 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(float value, ReadOnlySpan<char> format, IFormatProvider? provider = null)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten, format, provider))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten, format, provider))
+        {
             throw new InvalidOperationException("Buffer too small.");
+        }
+
         _Position += charsWritten;
     }
 
@@ -444,8 +525,11 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(decimal value, ReadOnlySpan<char> format, IFormatProvider? provider = null)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten, format, provider))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten, format, provider))
+        {
             throw new InvalidOperationException("Buffer too small.");
+        }
+
         _Position += charsWritten;
     }
 
@@ -456,8 +540,11 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(DateTime value, ReadOnlySpan<char> format, IFormatProvider? provider = null)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten, format, provider))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten, format, provider))
+        {
             throw new InvalidOperationException("Buffer too small.");
+        }
+
         _Position += charsWritten;
     }
 
@@ -468,8 +555,11 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(DateTimeOffset value, ReadOnlySpan<char> format, IFormatProvider? provider = null)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten, format, provider))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten, format, provider))
+        {
             throw new InvalidOperationException("Buffer too small.");
+        }
+
         _Position += charsWritten;
     }
 
@@ -480,8 +570,11 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(TimeSpan value, ReadOnlySpan<char> format, IFormatProvider? provider = null)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten, format, provider))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten, format, provider))
+        {
             throw new InvalidOperationException("Buffer too small.");
+        }
+
         _Position += charsWritten;
     }
 
@@ -491,8 +584,11 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(Guid value, ReadOnlySpan<char> format)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten, format))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten, format))
+        {
             throw new InvalidOperationException("Buffer too small.");
+        }
+
         _Position += charsWritten;
     }
 
@@ -507,8 +603,11 @@ public ref struct SpanStringBuilder
     public void Append<T>(T value, ReadOnlySpan<char> format, IFormatProvider? provider = null)
         where T : ISpanFormattable
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten, format, provider))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten, format, provider))
+        {
             throw new InvalidOperationException($"Buffer too small for {typeof(T).Name} value.");
+        }
+
         _Position += charsWritten;
     }
 
@@ -534,7 +633,7 @@ public ref struct SpanStringBuilder
             return false;
         }
 
-        value.AsSpan().CopyTo(_buffer.Slice(_Position));
+        value.AsSpan().CopyTo(_Buffer.Slice(_Position));
         _Position += value.Length;
         return true;
     }
@@ -552,7 +651,7 @@ public ref struct SpanStringBuilder
             return false;
         }
 
-        value.CopyTo(_buffer.Slice(_Position));
+        value.CopyTo(_Buffer.Slice(_Position));
         _Position += value.Length;
         return true;
     }
@@ -570,7 +669,7 @@ public ref struct SpanStringBuilder
             return false;
         }
 
-        _buffer[_Position++] = value;
+        _Buffer[_Position++] = value;
         return true;
     }
 
@@ -580,7 +679,7 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppend(int value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
         {
             return false;
         }
@@ -595,7 +694,7 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppend(long value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
         {
             return false;
         }
@@ -610,7 +709,7 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppend(uint value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
         {
             return false;
         }
@@ -625,7 +724,7 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppend(ulong value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
         {
             return false;
         }
@@ -640,7 +739,7 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppend(short value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
         {
             return false;
         }
@@ -655,7 +754,7 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppend(ushort value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
         {
             return false;
         }
@@ -670,7 +769,7 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppend(byte value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
         {
             return false;
         }
@@ -685,7 +784,7 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppend(sbyte value)
     {
-        if (!((int)value).TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!((int)value).TryFormat(_Buffer.Slice(_Position), out int charsWritten))
         {
             return false;
         }
@@ -707,7 +806,7 @@ public ref struct SpanStringBuilder
                 return false;
             }
 
-            "True".AsSpan().CopyTo(_buffer.Slice(_Position));
+            "True".AsSpan().CopyTo(_Buffer.Slice(_Position));
             _Position += 4;
         }
         else
@@ -717,7 +816,7 @@ public ref struct SpanStringBuilder
                 return false;
             }
 
-            "False".AsSpan().CopyTo(_buffer.Slice(_Position));
+            "False".AsSpan().CopyTo(_Buffer.Slice(_Position));
             _Position += 5;
         }
         return true;
@@ -729,7 +828,7 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppend(DateTime value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
         {
             return false;
         }
@@ -744,7 +843,7 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppend(DateTimeOffset value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
         {
             return false;
         }
@@ -759,7 +858,7 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppend(TimeSpan value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
         {
             return false;
         }
@@ -774,7 +873,7 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppend(Guid value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
         {
             return false;
         }
@@ -789,7 +888,7 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppend(Int128 value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
         {
             return false;
         }
@@ -804,7 +903,7 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppend(UInt128 value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
         {
             return false;
         }
@@ -819,7 +918,7 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppend(float value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
         {
             return false;
         }
@@ -834,7 +933,7 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppend(double value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
         {
             return false;
         }
@@ -849,7 +948,7 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppend(decimal value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
         {
             return false;
         }
@@ -864,7 +963,7 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppend(Half value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
         {
             return false;
         }
@@ -879,7 +978,7 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppend(DateOnly value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
         {
             return false;
         }
@@ -894,7 +993,7 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppend(TimeOnly value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
         {
             return false;
         }
@@ -909,7 +1008,7 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppend(nint value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
         {
             return false;
         }
@@ -924,7 +1023,7 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppend(nuint value)
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten))
         {
             return false;
         }
@@ -945,7 +1044,7 @@ public ref struct SpanStringBuilder
     public bool TryAppend<T>(T value, ReadOnlySpan<char> format, IFormatProvider? provider = null)
         where T : ISpanFormattable
     {
-        if (!value.TryFormat(_buffer.Slice(_Position), out int charsWritten, format, provider))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten, format, provider))
         {
             return false;
         }
@@ -983,8 +1082,8 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendHex2(byte value)
     {
-        _buffer[_Position++] = HexChars[value >> 4];
-        _buffer[_Position++] = HexChars[value & 0xF];
+        _Buffer[_Position++] = HexChars[value >> 4];
+        _Buffer[_Position++] = HexChars[value & 0xF];
     }
 
     /// <summary>Appends a ushort as 4 hexadecimal characters to the buffer.</summary>
@@ -992,10 +1091,10 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendHex4(ushort value)
     {
-        _buffer[_Position++] = HexChars[(value >> 12) & 0xF];
-        _buffer[_Position++] = HexChars[(value >> 8) & 0xF];
-        _buffer[_Position++] = HexChars[(value >> 4) & 0xF];
-        _buffer[_Position++] = HexChars[value & 0xF];
+        _Buffer[_Position++] = HexChars[(value >> 12) & 0xF];
+        _Buffer[_Position++] = HexChars[(value >> 8) & 0xF];
+        _Buffer[_Position++] = HexChars[(value >> 4) & 0xF];
+        _Buffer[_Position++] = HexChars[value & 0xF];
     }
 
     /// <summary>Appends a uint as 8 hexadecimal characters to the buffer.</summary>
@@ -1011,22 +1110,46 @@ public ref struct SpanStringBuilder
     /// <summary>Appends a byte as 8 binary characters to the buffer.</summary>
     /// <param name="value">The byte value to format.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AppendBinary8(byte value) { for (int i = 7; i >= 0; i--) _buffer[_Position++] = (char)('0' + ((value >> i) & 1)); }
+    public void AppendBinary8(byte value)
+    {
+        for (int i = 7; i >= 0; i--)
+        {
+            _Buffer[_Position++] = (char)('0' + ((value >> i) & 1));
+        }
+    }
 
     /// <summary>Appends a ushort as 16 binary characters to the buffer.</summary>
     /// <param name="value">The value to format.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AppendBinary16(ushort value) { for (int i = 15; i >= 0; i--) _buffer[_Position++] = (char)('0' + ((value >> i) & 1)); }
+    public void AppendBinary16(ushort value)
+    {
+        for (int i = 15; i >= 0; i--)
+        {
+            _Buffer[_Position++] = (char)('0' + ((value >> i) & 1));
+        }
+    }
 
     /// <summary>Appends a uint as 32 binary characters to the buffer.</summary>
     /// <param name="value">The value to format.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AppendBinary32(uint value) { for (int i = 31; i >= 0; i--) _buffer[_Position++] = (char)('0' + ((value >> i) & 1)); }
+    public void AppendBinary32(uint value)
+    {
+        for (int i = 31; i >= 0; i--)
+        {
+            _Buffer[_Position++] = (char)('0' + ((value >> i) & 1));
+        }
+    }
 
     /// <summary>Appends a ulong as 64 binary characters to the buffer.</summary>
     /// <param name="value">The value to format.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AppendBinary64(ulong value) { for (int i = 63; i >= 0; i--) _buffer[_Position++] = (char)('0' + (int)((value >> i) & 1)); }
+    public void AppendBinary64(ulong value)
+    {
+        for (int i = 63; i >= 0; i--)
+        {
+            _Buffer[_Position++] = (char)('0' + (int)((value >> i) & 1));
+        }
+    }
 
     /// <summary>Tries to append a byte as 2 hexadecimal characters without throwing.</summary>
     /// <param name="value">The byte value to format.</param>
@@ -1039,8 +1162,8 @@ public ref struct SpanStringBuilder
             return false;
         }
 
-        _buffer[_Position++] = HexChars[value >> 4];
-        _buffer[_Position++] = HexChars[value & 0xF];
+        _Buffer[_Position++] = HexChars[value >> 4];
+        _Buffer[_Position++] = HexChars[value & 0xF];
         return true;
     }
 
@@ -1055,10 +1178,10 @@ public ref struct SpanStringBuilder
             return false;
         }
 
-        _buffer[_Position++] = HexChars[(value >> 12) & 0xF];
-        _buffer[_Position++] = HexChars[(value >> 8) & 0xF];
-        _buffer[_Position++] = HexChars[(value >> 4) & 0xF];
-        _buffer[_Position++] = HexChars[value & 0xF];
+        _Buffer[_Position++] = HexChars[(value >> 12) & 0xF];
+        _Buffer[_Position++] = HexChars[(value >> 8) & 0xF];
+        _Buffer[_Position++] = HexChars[(value >> 4) & 0xF];
+        _Buffer[_Position++] = HexChars[value & 0xF];
         return true;
     }
 
@@ -1107,7 +1230,7 @@ public ref struct SpanStringBuilder
 
         for (int i = 7; i >= 0; i--)
         {
-            _buffer[_Position++] = (char)('0' + ((value >> i) & 1));
+            _Buffer[_Position++] = (char)('0' + ((value >> i) & 1));
         }
         return true;
     }
@@ -1125,7 +1248,7 @@ public ref struct SpanStringBuilder
 
         for (int i = 15; i >= 0; i--)
         {
-            _buffer[_Position++] = (char)('0' + ((value >> i) & 1));
+            _Buffer[_Position++] = (char)('0' + ((value >> i) & 1));
         }
         return true;
     }
@@ -1143,7 +1266,7 @@ public ref struct SpanStringBuilder
 
         for (int i = 31; i >= 0; i--)
         {
-            _buffer[_Position++] = (char)('0' + ((value >> i) & 1));
+            _Buffer[_Position++] = (char)('0' + ((value >> i) & 1));
         }
         return true;
     }
@@ -1161,7 +1284,7 @@ public ref struct SpanStringBuilder
 
         for (int i = 63; i >= 0; i--)
         {
-            _buffer[_Position++] = (char)('0' + (int)((value >> i) & 1));
+            _Buffer[_Position++] = (char)('0' + (int)((value >> i) & 1));
         }
         return true;
     }
@@ -1173,10 +1296,10 @@ public ref struct SpanStringBuilder
     /// <summary>Returns the written content as a new string.</summary>
     /// <returns>A string containing the written characters.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly override string ToString() => new string(_buffer.Slice(0, _Position));
+    public readonly override string ToString() => new string(_Buffer.Slice(0, _Position));
 
     /// <summary>Gets the written content as a read-only span.</summary>
-    public readonly ReadOnlySpan<char> WrittenSpan => _buffer.Slice(0, _Position);
+    public readonly ReadOnlySpan<char> WrittenSpan => _Buffer.Slice(0, _Position);
 
     #endregion
 }

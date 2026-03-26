@@ -59,8 +59,8 @@ namespace ZeroAlloc;
 /// </remarks>
 public ref struct SpanBytesBuilder
 {
-    private Span<byte> _buffer;
-    private int _position;
+    private Span<byte> _Buffer;
+    private int _Position;
 
     /// <summary>
     /// Initializes a new instance with the given buffer.
@@ -69,26 +69,26 @@ public ref struct SpanBytesBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public SpanBytesBuilder(Span<byte> buffer)
     {
-        _buffer = buffer;
-        _position = 0;
+        _Buffer = buffer;
+        _Position = 0;
     }
 
     /// <summary>Gets the current position (number of bytes written).</summary>
-    public readonly int Length => _position;
+    public readonly int Length => _Position;
 
     /// <summary>Gets the current capacity of the buffer.</summary>
-    public readonly int Capacity => _buffer.Length;
+    public readonly int Capacity => _Buffer.Length;
 
     /// <summary>Gets the remaining capacity in the buffer.</summary>
-    public readonly int Remaining => _buffer.Length - _position;
+    public readonly int Remaining => _Buffer.Length - _Position;
 
     /// <summary>Gets the written content as a read-only span.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly ReadOnlySpan<byte> AsSpan() => _buffer.Slice(0, _position);
+    public readonly ReadOnlySpan<byte> AsSpan() => _Buffer.Slice(0, _Position);
 
     /// <summary>Clears the builder, resetting the position to zero.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Clear() => _position = 0;
+    public void Clear() => _Position = 0;
 
     /// <summary>
     /// Moves the write position back by the specified number of bytes.
@@ -100,13 +100,13 @@ public ref struct SpanBytesBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void SeekBack(int count)
     {
-        if ((uint)count > (uint)_position)
+        if ((uint)count > (uint)_Position)
         {
             throw new ArgumentOutOfRangeException(nameof(count),
-                $"Cannot seek back {count} bytes when only {_position} bytes have been written.");
+                $"Cannot seek back {count} bytes when only {_Position} bytes have been written.");
         }
 
-        _position -= count;
+        _Position -= count;
     }
 
     /// <summary>
@@ -117,22 +117,22 @@ public ref struct SpanBytesBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TrySeekBack(int count)
     {
-        if ((uint)count > (uint)_position)
+        if ((uint)count > (uint)_Position)
         {
             return false;
         }
 
-        _position -= count;
+        _Position -= count;
         return true;
     }
 
     /// <summary>Gets the remaining span that can be written to.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Span<byte> GetRemainingSpan() => _buffer.Slice(_position);
+    public readonly Span<byte> GetRemainingSpan() => _Buffer.Slice(_Position);
 
     /// <summary>Advances the position by the specified number of bytes.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Advance(int count) => _position += count;
+    public void Advance(int count) => _Position += count;
 
     // ========================================================================
     // APPEND - RAW BYTES
@@ -140,13 +140,17 @@ public ref struct SpanBytesBuilder
 
     /// <summary>Appends a single byte to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Append(byte value) => _buffer[_position++] = value;
+    public void Append(byte value) => _Buffer[_Position++] = value;
 
     /// <summary>Appends a byte array to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(byte[]? value)
     {
-        if (value is null) return;
+        if (value is null)
+        {
+            return;
+        }
+
         Append(value.AsSpan());
     }
 
@@ -154,8 +158,8 @@ public ref struct SpanBytesBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(ReadOnlySpan<byte> value)
     {
-        value.CopyTo(_buffer.Slice(_position));
-        _position += value.Length;
+        value.CopyTo(_Buffer.Slice(_Position));
+        _Position += value.Length;
     }
 
     // ========================================================================
@@ -166,64 +170,64 @@ public ref struct SpanBytesBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendInt16BigEndian(short value)
     {
-        BinaryPrimitives.WriteInt16BigEndian(_buffer.Slice(_position), value);
-        _position += 2;
+        BinaryPrimitives.WriteInt16BigEndian(_Buffer.Slice(_Position), value);
+        _Position += 2;
     }
 
     /// <summary>Appends a 32-bit signed integer in big-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendInt32BigEndian(int value)
     {
-        BinaryPrimitives.WriteInt32BigEndian(_buffer.Slice(_position), value);
-        _position += 4;
+        BinaryPrimitives.WriteInt32BigEndian(_Buffer.Slice(_Position), value);
+        _Position += 4;
     }
 
     /// <summary>Appends a 64-bit signed integer in big-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendInt64BigEndian(long value)
     {
-        BinaryPrimitives.WriteInt64BigEndian(_buffer.Slice(_position), value);
-        _position += 8;
+        BinaryPrimitives.WriteInt64BigEndian(_Buffer.Slice(_Position), value);
+        _Position += 8;
     }
 
     /// <summary>Appends a 128-bit signed integer in big-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendInt128BigEndian(Int128 value)
     {
-        BinaryPrimitives.WriteInt128BigEndian(_buffer.Slice(_position), value);
-        _position += 16;
+        BinaryPrimitives.WriteInt128BigEndian(_Buffer.Slice(_Position), value);
+        _Position += 16;
     }
 
     /// <summary>Appends a 16-bit unsigned integer in big-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUInt16BigEndian(ushort value)
     {
-        BinaryPrimitives.WriteUInt16BigEndian(_buffer.Slice(_position), value);
-        _position += 2;
+        BinaryPrimitives.WriteUInt16BigEndian(_Buffer.Slice(_Position), value);
+        _Position += 2;
     }
 
     /// <summary>Appends a 32-bit unsigned integer in big-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUInt32BigEndian(uint value)
     {
-        BinaryPrimitives.WriteUInt32BigEndian(_buffer.Slice(_position), value);
-        _position += 4;
+        BinaryPrimitives.WriteUInt32BigEndian(_Buffer.Slice(_Position), value);
+        _Position += 4;
     }
 
     /// <summary>Appends a 64-bit unsigned integer in big-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUInt64BigEndian(ulong value)
     {
-        BinaryPrimitives.WriteUInt64BigEndian(_buffer.Slice(_position), value);
-        _position += 8;
+        BinaryPrimitives.WriteUInt64BigEndian(_Buffer.Slice(_Position), value);
+        _Position += 8;
     }
 
     /// <summary>Appends a 128-bit unsigned integer in big-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUInt128BigEndian(UInt128 value)
     {
-        BinaryPrimitives.WriteUInt128BigEndian(_buffer.Slice(_position), value);
-        _position += 16;
+        BinaryPrimitives.WriteUInt128BigEndian(_Buffer.Slice(_Position), value);
+        _Position += 16;
     }
 
     // ========================================================================
@@ -234,64 +238,64 @@ public ref struct SpanBytesBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendInt16LittleEndian(short value)
     {
-        BinaryPrimitives.WriteInt16LittleEndian(_buffer.Slice(_position), value);
-        _position += 2;
+        BinaryPrimitives.WriteInt16LittleEndian(_Buffer.Slice(_Position), value);
+        _Position += 2;
     }
 
     /// <summary>Appends a 32-bit signed integer in little-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendInt32LittleEndian(int value)
     {
-        BinaryPrimitives.WriteInt32LittleEndian(_buffer.Slice(_position), value);
-        _position += 4;
+        BinaryPrimitives.WriteInt32LittleEndian(_Buffer.Slice(_Position), value);
+        _Position += 4;
     }
 
     /// <summary>Appends a 64-bit signed integer in little-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendInt64LittleEndian(long value)
     {
-        BinaryPrimitives.WriteInt64LittleEndian(_buffer.Slice(_position), value);
-        _position += 8;
+        BinaryPrimitives.WriteInt64LittleEndian(_Buffer.Slice(_Position), value);
+        _Position += 8;
     }
 
     /// <summary>Appends a 128-bit signed integer in little-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendInt128LittleEndian(Int128 value)
     {
-        BinaryPrimitives.WriteInt128LittleEndian(_buffer.Slice(_position), value);
-        _position += 16;
+        BinaryPrimitives.WriteInt128LittleEndian(_Buffer.Slice(_Position), value);
+        _Position += 16;
     }
 
     /// <summary>Appends a 16-bit unsigned integer in little-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUInt16LittleEndian(ushort value)
     {
-        BinaryPrimitives.WriteUInt16LittleEndian(_buffer.Slice(_position), value);
-        _position += 2;
+        BinaryPrimitives.WriteUInt16LittleEndian(_Buffer.Slice(_Position), value);
+        _Position += 2;
     }
 
     /// <summary>Appends a 32-bit unsigned integer in little-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUInt32LittleEndian(uint value)
     {
-        BinaryPrimitives.WriteUInt32LittleEndian(_buffer.Slice(_position), value);
-        _position += 4;
+        BinaryPrimitives.WriteUInt32LittleEndian(_Buffer.Slice(_Position), value);
+        _Position += 4;
     }
 
     /// <summary>Appends a 64-bit unsigned integer in little-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUInt64LittleEndian(ulong value)
     {
-        BinaryPrimitives.WriteUInt64LittleEndian(_buffer.Slice(_position), value);
-        _position += 8;
+        BinaryPrimitives.WriteUInt64LittleEndian(_Buffer.Slice(_Position), value);
+        _Position += 8;
     }
 
     /// <summary>Appends a 128-bit unsigned integer in little-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUInt128LittleEndian(UInt128 value)
     {
-        BinaryPrimitives.WriteUInt128LittleEndian(_buffer.Slice(_position), value);
-        _position += 16;
+        BinaryPrimitives.WriteUInt128LittleEndian(_Buffer.Slice(_Position), value);
+        _Position += 16;
     }
 
     // ========================================================================
@@ -302,48 +306,48 @@ public ref struct SpanBytesBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendHalfBigEndian(Half value)
     {
-        BinaryPrimitives.WriteHalfBigEndian(_buffer.Slice(_position), value);
-        _position += 2;
+        BinaryPrimitives.WriteHalfBigEndian(_Buffer.Slice(_Position), value);
+        _Position += 2;
     }
 
     /// <summary>Appends a half-precision float in little-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendHalfLittleEndian(Half value)
     {
-        BinaryPrimitives.WriteHalfLittleEndian(_buffer.Slice(_position), value);
-        _position += 2;
+        BinaryPrimitives.WriteHalfLittleEndian(_Buffer.Slice(_Position), value);
+        _Position += 2;
     }
 
     /// <summary>Appends a single-precision float in big-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendSingleBigEndian(float value)
     {
-        BinaryPrimitives.WriteSingleBigEndian(_buffer.Slice(_position), value);
-        _position += 4;
+        BinaryPrimitives.WriteSingleBigEndian(_Buffer.Slice(_Position), value);
+        _Position += 4;
     }
 
     /// <summary>Appends a single-precision float in little-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendSingleLittleEndian(float value)
     {
-        BinaryPrimitives.WriteSingleLittleEndian(_buffer.Slice(_position), value);
-        _position += 4;
+        BinaryPrimitives.WriteSingleLittleEndian(_Buffer.Slice(_Position), value);
+        _Position += 4;
     }
 
     /// <summary>Appends a double-precision float in big-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendDoubleBigEndian(double value)
     {
-        BinaryPrimitives.WriteDoubleBigEndian(_buffer.Slice(_position), value);
-        _position += 8;
+        BinaryPrimitives.WriteDoubleBigEndian(_Buffer.Slice(_Position), value);
+        _Position += 8;
     }
 
     /// <summary>Appends a double-precision float in little-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendDoubleLittleEndian(double value)
     {
-        BinaryPrimitives.WriteDoubleLittleEndian(_buffer.Slice(_position), value);
-        _position += 8;
+        BinaryPrimitives.WriteDoubleLittleEndian(_Buffer.Slice(_Position), value);
+        _Position += 8;
     }
 
     // ========================================================================
@@ -356,10 +360,10 @@ public ref struct SpanBytesBuilder
     {
         while (value >= 0x80)
         {
-            _buffer[_position++] = (byte)(value | 0x80);
+            _Buffer[_Position++] = (byte)(value | 0x80);
             value >>= 7;
         }
-        _buffer[_position++] = (byte)value;
+        _Buffer[_Position++] = (byte)value;
     }
 
     /// <summary>Appends a variable-length signed integer using ZigZag encoding.</summary>
@@ -386,9 +390,13 @@ public ref struct SpanBytesBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUtf8(string? value)
     {
-        if (string.IsNullOrEmpty(value)) return;
-        int written = Encoding.UTF8.GetBytes(value, _buffer.Slice(_position));
-        _position += written;
+        if (string.IsNullOrEmpty(value))
+        {
+            return;
+        }
+
+        int written = Encoding.UTF8.GetBytes(value, _Buffer.Slice(_Position));
+        _Position += written;
     }
 
     /// <summary>Appends a string as UTF-8 bytes followed by a null terminator.</summary>
@@ -411,8 +419,8 @@ public ref struct SpanBytesBuilder
 
         int byteCount = Encoding.UTF8.GetByteCount(value);
         AppendVarInt((ulong)byteCount);
-        int written = Encoding.UTF8.GetBytes(value, _buffer.Slice(_position));
-        _position += written;
+        int written = Encoding.UTF8.GetBytes(value, _Buffer.Slice(_Position));
+        _Position += written;
     }
 
     /// <summary>Appends a string with a 4-byte big-endian length prefix followed by UTF-8 bytes.</summary>
@@ -427,8 +435,8 @@ public ref struct SpanBytesBuilder
 
         int byteCount = Encoding.UTF8.GetByteCount(value);
         AppendUInt32BigEndian((uint)byteCount);
-        int written = Encoding.UTF8.GetBytes(value, _buffer.Slice(_position));
-        _position += written;
+        int written = Encoding.UTF8.GetBytes(value, _Buffer.Slice(_Position));
+        _Position += written;
     }
 
     /// <summary>Appends a string with a 4-byte little-endian length prefix followed by UTF-8 bytes.</summary>
@@ -443,8 +451,8 @@ public ref struct SpanBytesBuilder
 
         int byteCount = Encoding.UTF8.GetByteCount(value);
         AppendUInt32LittleEndian((uint)byteCount);
-        int written = Encoding.UTF8.GetBytes(value, _buffer.Slice(_position));
-        _position += written;
+        int written = Encoding.UTF8.GetBytes(value, _Buffer.Slice(_Position));
+        _Position += written;
     }
 
     // ========================================================================
@@ -515,11 +523,11 @@ public ref struct SpanBytesBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append<T>(T value) where T : IBinarySerializable
     {
-        if (!value.TryWrite(_buffer.Slice(_position), out int bytesWritten))
+        if (!value.TryWrite(_Buffer.Slice(_Position), out int bytesWritten))
         {
             throw new InvalidOperationException($"Buffer too small for {typeof(T).Name}.");
         }
-        _position += bytesWritten;
+        _Position += bytesWritten;
     }
 
     // ========================================================================
@@ -537,7 +545,7 @@ public ref struct SpanBytesBuilder
             return false;
         }
 
-        _buffer[_position++] = value;
+        _Buffer[_Position++] = value;
         return true;
     }
 
@@ -566,8 +574,8 @@ public ref struct SpanBytesBuilder
             return false;
         }
 
-        value.CopyTo(_buffer.Slice(_position));
-        _position += value.Length;
+        value.CopyTo(_Buffer.Slice(_Position));
+        _Position += value.Length;
         return true;
     }
 
@@ -582,8 +590,8 @@ public ref struct SpanBytesBuilder
             return false;
         }
 
-        BinaryPrimitives.WriteInt16BigEndian(_buffer.Slice(_position), value);
-        _position += 2;
+        BinaryPrimitives.WriteInt16BigEndian(_Buffer.Slice(_Position), value);
+        _Position += 2;
         return true;
     }
 
@@ -598,8 +606,8 @@ public ref struct SpanBytesBuilder
             return false;
         }
 
-        BinaryPrimitives.WriteInt32BigEndian(_buffer.Slice(_position), value);
-        _position += 4;
+        BinaryPrimitives.WriteInt32BigEndian(_Buffer.Slice(_Position), value);
+        _Position += 4;
         return true;
     }
 
@@ -614,8 +622,8 @@ public ref struct SpanBytesBuilder
             return false;
         }
 
-        BinaryPrimitives.WriteInt64BigEndian(_buffer.Slice(_position), value);
-        _position += 8;
+        BinaryPrimitives.WriteInt64BigEndian(_Buffer.Slice(_Position), value);
+        _Position += 8;
         return true;
     }
 
@@ -630,8 +638,8 @@ public ref struct SpanBytesBuilder
             return false;
         }
 
-        BinaryPrimitives.WriteInt128BigEndian(_buffer.Slice(_position), value);
-        _position += 16;
+        BinaryPrimitives.WriteInt128BigEndian(_Buffer.Slice(_Position), value);
+        _Position += 16;
         return true;
     }
 
@@ -646,8 +654,8 @@ public ref struct SpanBytesBuilder
             return false;
         }
 
-        BinaryPrimitives.WriteUInt16BigEndian(_buffer.Slice(_position), value);
-        _position += 2;
+        BinaryPrimitives.WriteUInt16BigEndian(_Buffer.Slice(_Position), value);
+        _Position += 2;
         return true;
     }
 
@@ -662,8 +670,8 @@ public ref struct SpanBytesBuilder
             return false;
         }
 
-        BinaryPrimitives.WriteUInt32BigEndian(_buffer.Slice(_position), value);
-        _position += 4;
+        BinaryPrimitives.WriteUInt32BigEndian(_Buffer.Slice(_Position), value);
+        _Position += 4;
         return true;
     }
 
@@ -678,8 +686,8 @@ public ref struct SpanBytesBuilder
             return false;
         }
 
-        BinaryPrimitives.WriteUInt64BigEndian(_buffer.Slice(_position), value);
-        _position += 8;
+        BinaryPrimitives.WriteUInt64BigEndian(_Buffer.Slice(_Position), value);
+        _Position += 8;
         return true;
     }
 
@@ -694,8 +702,8 @@ public ref struct SpanBytesBuilder
             return false;
         }
 
-        BinaryPrimitives.WriteUInt128BigEndian(_buffer.Slice(_position), value);
-        _position += 16;
+        BinaryPrimitives.WriteUInt128BigEndian(_Buffer.Slice(_Position), value);
+        _Position += 16;
         return true;
     }
 
@@ -710,8 +718,8 @@ public ref struct SpanBytesBuilder
             return false;
         }
 
-        BinaryPrimitives.WriteInt16LittleEndian(_buffer.Slice(_position), value);
-        _position += 2;
+        BinaryPrimitives.WriteInt16LittleEndian(_Buffer.Slice(_Position), value);
+        _Position += 2;
         return true;
     }
 
@@ -726,8 +734,8 @@ public ref struct SpanBytesBuilder
             return false;
         }
 
-        BinaryPrimitives.WriteInt32LittleEndian(_buffer.Slice(_position), value);
-        _position += 4;
+        BinaryPrimitives.WriteInt32LittleEndian(_Buffer.Slice(_Position), value);
+        _Position += 4;
         return true;
     }
 
@@ -742,8 +750,8 @@ public ref struct SpanBytesBuilder
             return false;
         }
 
-        BinaryPrimitives.WriteInt64LittleEndian(_buffer.Slice(_position), value);
-        _position += 8;
+        BinaryPrimitives.WriteInt64LittleEndian(_Buffer.Slice(_Position), value);
+        _Position += 8;
         return true;
     }
 
@@ -758,8 +766,8 @@ public ref struct SpanBytesBuilder
             return false;
         }
 
-        BinaryPrimitives.WriteInt128LittleEndian(_buffer.Slice(_position), value);
-        _position += 16;
+        BinaryPrimitives.WriteInt128LittleEndian(_Buffer.Slice(_Position), value);
+        _Position += 16;
         return true;
     }
 
@@ -774,8 +782,8 @@ public ref struct SpanBytesBuilder
             return false;
         }
 
-        BinaryPrimitives.WriteUInt16LittleEndian(_buffer.Slice(_position), value);
-        _position += 2;
+        BinaryPrimitives.WriteUInt16LittleEndian(_Buffer.Slice(_Position), value);
+        _Position += 2;
         return true;
     }
 
@@ -790,8 +798,8 @@ public ref struct SpanBytesBuilder
             return false;
         }
 
-        BinaryPrimitives.WriteUInt32LittleEndian(_buffer.Slice(_position), value);
-        _position += 4;
+        BinaryPrimitives.WriteUInt32LittleEndian(_Buffer.Slice(_Position), value);
+        _Position += 4;
         return true;
     }
 
@@ -806,8 +814,8 @@ public ref struct SpanBytesBuilder
             return false;
         }
 
-        BinaryPrimitives.WriteUInt64LittleEndian(_buffer.Slice(_position), value);
-        _position += 8;
+        BinaryPrimitives.WriteUInt64LittleEndian(_Buffer.Slice(_Position), value);
+        _Position += 8;
         return true;
     }
 
@@ -822,8 +830,8 @@ public ref struct SpanBytesBuilder
             return false;
         }
 
-        BinaryPrimitives.WriteUInt128LittleEndian(_buffer.Slice(_position), value);
-        _position += 16;
+        BinaryPrimitives.WriteUInt128LittleEndian(_Buffer.Slice(_Position), value);
+        _Position += 16;
         return true;
     }
 
@@ -838,8 +846,8 @@ public ref struct SpanBytesBuilder
             return false;
         }
 
-        BinaryPrimitives.WriteHalfBigEndian(_buffer.Slice(_position), value);
-        _position += 2;
+        BinaryPrimitives.WriteHalfBigEndian(_Buffer.Slice(_Position), value);
+        _Position += 2;
         return true;
     }
 
@@ -854,8 +862,8 @@ public ref struct SpanBytesBuilder
             return false;
         }
 
-        BinaryPrimitives.WriteHalfLittleEndian(_buffer.Slice(_position), value);
-        _position += 2;
+        BinaryPrimitives.WriteHalfLittleEndian(_Buffer.Slice(_Position), value);
+        _Position += 2;
         return true;
     }
 
@@ -870,8 +878,8 @@ public ref struct SpanBytesBuilder
             return false;
         }
 
-        BinaryPrimitives.WriteSingleBigEndian(_buffer.Slice(_position), value);
-        _position += 4;
+        BinaryPrimitives.WriteSingleBigEndian(_Buffer.Slice(_Position), value);
+        _Position += 4;
         return true;
     }
 
@@ -886,8 +894,8 @@ public ref struct SpanBytesBuilder
             return false;
         }
 
-        BinaryPrimitives.WriteSingleLittleEndian(_buffer.Slice(_position), value);
-        _position += 4;
+        BinaryPrimitives.WriteSingleLittleEndian(_Buffer.Slice(_Position), value);
+        _Position += 4;
         return true;
     }
 
@@ -902,8 +910,8 @@ public ref struct SpanBytesBuilder
             return false;
         }
 
-        BinaryPrimitives.WriteDoubleBigEndian(_buffer.Slice(_position), value);
-        _position += 8;
+        BinaryPrimitives.WriteDoubleBigEndian(_Buffer.Slice(_Position), value);
+        _Position += 8;
         return true;
     }
 
@@ -918,8 +926,8 @@ public ref struct SpanBytesBuilder
             return false;
         }
 
-        BinaryPrimitives.WriteDoubleLittleEndian(_buffer.Slice(_position), value);
-        _position += 8;
+        BinaryPrimitives.WriteDoubleLittleEndian(_Buffer.Slice(_Position), value);
+        _Position += 8;
         return true;
     }
 
@@ -945,10 +953,10 @@ public ref struct SpanBytesBuilder
 
         while (value >= 0x80)
         {
-            _buffer[_position++] = (byte)(value | 0x80);
+            _Buffer[_Position++] = (byte)(value | 0x80);
             value >>= 7;
         }
-        _buffer[_position++] = (byte)value;
+        _Buffer[_Position++] = (byte)value;
         return true;
     }
 
@@ -989,8 +997,8 @@ public ref struct SpanBytesBuilder
             return false;
         }
 
-        int written = Encoding.UTF8.GetBytes(value, _buffer.Slice(_position));
-        _position += written;
+        int written = Encoding.UTF8.GetBytes(value, _Buffer.Slice(_Position));
+        _Position += written;
         return true;
     }
 
@@ -1008,10 +1016,10 @@ public ref struct SpanBytesBuilder
 
         if (!string.IsNullOrEmpty(value))
         {
-            int written = Encoding.UTF8.GetBytes(value, _buffer.Slice(_position));
-            _position += written;
+            int written = Encoding.UTF8.GetBytes(value, _Buffer.Slice(_Position));
+            _Position += written;
         }
-        _buffer[_position++] = 0;
+        _Buffer[_Position++] = 0;
         return true;
     }
 
@@ -1022,12 +1030,12 @@ public ref struct SpanBytesBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppend<T>(T value) where T : IBinarySerializable
     {
-        if (!value.TryWrite(_buffer.Slice(_position), out int bytesWritten))
+        if (!value.TryWrite(_Buffer.Slice(_Position), out int bytesWritten))
         {
             return false;
         }
 
-        _position += bytesWritten;
+        _Position += bytesWritten;
         return true;
     }
 
@@ -1041,12 +1049,12 @@ public ref struct SpanBytesBuilder
     public bool TryAppendUtf8Formattable<T>(T value, ReadOnlySpan<char> format = default, IFormatProvider? provider = null)
         where T : IUtf8SpanFormattable
     {
-        if (!value.TryFormat(_buffer.Slice(_position), out int bytesWritten, format, provider))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int bytesWritten, format, provider))
         {
             return false;
         }
 
-        _position += bytesWritten;
+        _Position += bytesWritten;
         return true;
     }
 
@@ -1059,11 +1067,11 @@ public ref struct SpanBytesBuilder
     public void AppendUtf8Formattable<T>(T value, ReadOnlySpan<char> format = default, IFormatProvider? provider = null)
         where T : IUtf8SpanFormattable
     {
-        if (!value.TryFormat(_buffer.Slice(_position), out int bytesWritten, format, provider))
+        if (!value.TryFormat(_Buffer.Slice(_Position), out int bytesWritten, format, provider))
         {
             throw new InvalidOperationException($"Buffer too small for {typeof(T).Name}.");
         }
-        _position += bytesWritten;
+        _Position += bytesWritten;
     }
 
     // ========================================================================
@@ -1076,18 +1084,18 @@ public ref struct SpanBytesBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendHex2(byte value)
     {
-        _buffer[_position++] = HexCharsBytes[value >> 4];
-        _buffer[_position++] = HexCharsBytes[value & 0xF];
+        _Buffer[_Position++] = HexCharsBytes[value >> 4];
+        _Buffer[_Position++] = HexCharsBytes[value & 0xF];
     }
 
     /// <summary>Appends a ushort as 4 hexadecimal ASCII bytes.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendHex4(ushort value)
     {
-        _buffer[_position++] = HexCharsBytes[(value >> 12) & 0xF];
-        _buffer[_position++] = HexCharsBytes[(value >> 8) & 0xF];
-        _buffer[_position++] = HexCharsBytes[(value >> 4) & 0xF];
-        _buffer[_position++] = HexCharsBytes[value & 0xF];
+        _Buffer[_Position++] = HexCharsBytes[(value >> 12) & 0xF];
+        _Buffer[_Position++] = HexCharsBytes[(value >> 8) & 0xF];
+        _Buffer[_Position++] = HexCharsBytes[(value >> 4) & 0xF];
+        _Buffer[_Position++] = HexCharsBytes[value & 0xF];
     }
 
     /// <summary>Appends a uint as 8 hexadecimal ASCII bytes.</summary>
@@ -1111,7 +1119,9 @@ public ref struct SpanBytesBuilder
     public void AppendBinary8(byte value)
     {
         for (int i = 7; i >= 0; i--)
-            _buffer[_position++] = (byte)('0' + ((value >> i) & 1));
+        {
+            _Buffer[_Position++] = (byte)('0' + ((value >> i) & 1));
+        }
     }
 
     /// <summary>Appends a ushort as 16 binary ASCII bytes.</summary>
@@ -1119,7 +1129,9 @@ public ref struct SpanBytesBuilder
     public void AppendBinary16(ushort value)
     {
         for (int i = 15; i >= 0; i--)
-            _buffer[_position++] = (byte)('0' + ((value >> i) & 1));
+        {
+            _Buffer[_Position++] = (byte)('0' + ((value >> i) & 1));
+        }
     }
 
     /// <summary>Appends a uint as 32 binary ASCII bytes.</summary>
@@ -1127,7 +1139,9 @@ public ref struct SpanBytesBuilder
     public void AppendBinary32(uint value)
     {
         for (int i = 31; i >= 0; i--)
-            _buffer[_position++] = (byte)('0' + ((value >> i) & 1));
+        {
+            _Buffer[_Position++] = (byte)('0' + ((value >> i) & 1));
+        }
     }
 
     /// <summary>Appends a ulong as 64 binary ASCII bytes.</summary>
@@ -1135,7 +1149,9 @@ public ref struct SpanBytesBuilder
     public void AppendBinary64(ulong value)
     {
         for (int i = 63; i >= 0; i--)
-            _buffer[_position++] = (byte)('0' + (int)((value >> i) & 1));
+        {
+            _Buffer[_Position++] = (byte)('0' + (int)((value >> i) & 1));
+        }
     }
 
     /// <summary>Tries to append a byte as 2 hexadecimal ASCII characters without throwing.</summary>
@@ -1149,8 +1165,8 @@ public ref struct SpanBytesBuilder
             return false;
         }
 
-        _buffer[_position++] = HexCharsBytes[value >> 4];
-        _buffer[_position++] = HexCharsBytes[value & 0xF];
+        _Buffer[_Position++] = HexCharsBytes[value >> 4];
+        _Buffer[_Position++] = HexCharsBytes[value & 0xF];
         return true;
     }
 
@@ -1165,10 +1181,10 @@ public ref struct SpanBytesBuilder
             return false;
         }
 
-        _buffer[_position++] = HexCharsBytes[(value >> 12) & 0xF];
-        _buffer[_position++] = HexCharsBytes[(value >> 8) & 0xF];
-        _buffer[_position++] = HexCharsBytes[(value >> 4) & 0xF];
-        _buffer[_position++] = HexCharsBytes[value & 0xF];
+        _Buffer[_Position++] = HexCharsBytes[(value >> 12) & 0xF];
+        _Buffer[_Position++] = HexCharsBytes[(value >> 8) & 0xF];
+        _Buffer[_Position++] = HexCharsBytes[(value >> 4) & 0xF];
+        _Buffer[_Position++] = HexCharsBytes[value & 0xF];
         return true;
     }
 
@@ -1217,7 +1233,7 @@ public ref struct SpanBytesBuilder
 
         for (int i = 7; i >= 0; i--)
         {
-            _buffer[_position++] = (byte)('0' + ((value >> i) & 1));
+            _Buffer[_Position++] = (byte)('0' + ((value >> i) & 1));
         }
         return true;
     }
@@ -1235,7 +1251,7 @@ public ref struct SpanBytesBuilder
 
         for (int i = 15; i >= 0; i--)
         {
-            _buffer[_position++] = (byte)('0' + ((value >> i) & 1));
+            _Buffer[_Position++] = (byte)('0' + ((value >> i) & 1));
         }
         return true;
     }
@@ -1253,7 +1269,7 @@ public ref struct SpanBytesBuilder
 
         for (int i = 31; i >= 0; i--)
         {
-            _buffer[_position++] = (byte)('0' + ((value >> i) & 1));
+            _Buffer[_Position++] = (byte)('0' + ((value >> i) & 1));
         }
         return true;
     }
@@ -1271,7 +1287,7 @@ public ref struct SpanBytesBuilder
 
         for (int i = 63; i >= 0; i--)
         {
-            _buffer[_position++] = (byte)('0' + (int)((value >> i) & 1));
+            _Buffer[_Position++] = (byte)('0' + (int)((value >> i) & 1));
         }
         return true;
     }
@@ -1281,20 +1297,22 @@ public ref struct SpanBytesBuilder
     // ========================================================================
 
     /// <summary>Gets the written content as a read-only span.</summary>
-    public readonly ReadOnlySpan<byte> WrittenSpan => _buffer.Slice(0, _position);
+    public readonly ReadOnlySpan<byte> WrittenSpan => _Buffer.Slice(0, _Position);
 
     /// <summary>Creates a heap-allocated byte array from the builder content.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly byte[] ToArray()
     {
-        if (_position == 0)
+        if (_Position == 0)
+        {
             return Array.Empty<byte>();
+        }
 
-        byte[] result = new byte[_position];
-        _buffer.Slice(0, _position).CopyTo(result);
+        byte[] result = new byte[_Position];
+        _Buffer.Slice(0, _Position).CopyTo(result);
         return result;
     }
 
     /// <summary>Returns a string representation of the builder state.</summary>
-    public readonly override string ToString() => $"SpanBytesBuilder[{_position} bytes]";
+    public readonly override string ToString() => $"SpanBytesBuilder[{_Position} bytes]";
 }

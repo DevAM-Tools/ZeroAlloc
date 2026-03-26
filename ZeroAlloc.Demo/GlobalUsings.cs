@@ -23,21 +23,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
-
-// For netstandard2.0 compatibility (required for source generators)
-#if !NET5_0_OR_GREATER
-
-namespace System.Runtime.CompilerServices;
-
-/// <summary>
-/// Reserved to be used by the compiler for tracking metadata.
-/// This class should not be used by developers in source code.
-/// </summary>
-internal static class IsExternalInit
-{
-}
-
-#endif
+global using System;
+global using System.Buffers.Binary;
+global using System.Globalization;
+global using System.Runtime.CompilerServices;
+global using ZeroAlloc;

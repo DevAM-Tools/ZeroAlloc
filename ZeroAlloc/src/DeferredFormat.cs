@@ -23,21 +23,23 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
-
-// For netstandard2.0 compatibility (required for source generators)
-#if !NET5_0_OR_GREATER
-
-namespace System.Runtime.CompilerServices;
+namespace ZeroAlloc;
 
 /// <summary>
-/// Reserved to be used by the compiler for tracking metadata.
-/// This class should not be used by developers in source code.
+/// Stores a captured state value and a <c>static</c> formatter delegate for lazy string evaluation.
+/// Used by <see cref="LazyString.FormatLazy{TState}"/> to avoid per-call closure object allocation.
+/// The state is boxed once as this object; the formatter should be a <c>static</c> lambda so no
+/// additional closure object is allocated.
 /// </summary>
-internal static class IsExternalInit
+/// <typeparam name="TState">The type of the captured state (usually a ValueTuple).</typeparam>
+internal sealed class DeferredFormat<TState>(TState state, Func<TState, string> formatter) : IDeferredFormat
 {
-}
+    /// <summary>The captured state value.</summary>
+    private readonly TState _State = state;
 
-#endif
+    /// <summary>The static formatter delegate.</summary>
+    private readonly Func<TState, string> _Formatter = formatter;
+
+    /// <inheritdoc/>
+    public string Evaluate() => _Formatter(_State);
+}

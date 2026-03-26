@@ -147,10 +147,7 @@ public readonly ref struct TempBytes : IDisposable
     /// </summary>
     /// <returns>A read-only span containing the formatted bytes.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ReadOnlySpan<byte> AsSpan()
-    {
-        return new ReadOnlySpan<byte>(_Buffer, 0, _Length);
-    }
+    public ReadOnlySpan<byte> AsSpan() => new ReadOnlySpan<byte>(_Buffer, 0, _Length);
 
     /// <summary>
     /// Creates a heap-allocated byte array from the temporary content.
@@ -177,10 +174,7 @@ public readonly ref struct TempBytes : IDisposable
     /// Returns a string representation for debugging purposes.
     /// </summary>
     /// <returns>A string showing the byte count.</returns>
-    public override string ToString()
-    {
-        return $"TempBytes[{_Length} bytes]";
-    }
+    public override string ToString() => $"TempBytes[{_Length} bytes]";
 
     // ========================================================================
     // IDISPOSABLE IMPLEMENTATION
@@ -215,10 +209,7 @@ public readonly ref struct TempBytes : IDisposable
     /// Implicitly converts a <see cref="TempBytes"/> to <see cref="ReadOnlySpan{Byte}"/>.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static implicit operator ReadOnlySpan<byte>(TempBytes temp)
-    {
-        return temp.AsSpan();
-    }
+    public static implicit operator ReadOnlySpan<byte>(TempBytes temp) => temp.AsSpan();
 
     /// <summary>
     /// Implicitly converts a <see cref="TempBytes"/> to a heap-allocated <see cref="T:byte[]"/>.

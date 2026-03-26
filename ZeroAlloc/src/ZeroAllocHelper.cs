@@ -187,10 +187,7 @@ public static class ZeroAllocHelper
     /// Called automatically by <see cref="TempString.Dispose"/> when using the ThreadStatic buffer.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ReleaseCharBuffer()
-    {
-        _CharBufferInUse = false;
-    }
+    public static void ReleaseCharBuffer() => _CharBufferInUse = false;
 
     /// <summary>
     /// Checks whether the ThreadStatic char buffer is available for acquisition.
@@ -290,10 +287,7 @@ public static class ZeroAllocHelper
     /// Releases the ThreadStatic byte buffer, making it available for the next acquisition.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ReleaseByteBuffer()
-    {
-        _ByteBufferInUse = false;
-    }
+    public static void ReleaseByteBuffer() => _ByteBufferInUse = false;
 
     /// <summary>
     /// Checks whether the ThreadStatic byte buffer is available for acquisition.
@@ -330,10 +324,14 @@ public static class ZeroAllocHelper
     public static void ResizeCharBuffer(int newSize)
     {
         if (newSize <= 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(newSize), "Buffer size must be greater than zero.");
+        }
 
         if (_CharBufferInUse)
+        {
             throw new InvalidOperationException("Cannot resize buffer while it is in use. Ensure all TempString instances are disposed.");
+        }
 
         _CharBuffer = new char[newSize];
     }
@@ -358,10 +356,14 @@ public static class ZeroAllocHelper
     public static void ResizeByteBuffer(int newSize)
     {
         if (newSize <= 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(newSize), "Buffer size must be greater than zero.");
+        }
 
         if (_ByteBufferInUse)
+        {
             throw new InvalidOperationException("Cannot resize buffer while it is in use. Ensure all TempBytes instances are disposed.");
+        }
 
         _ByteBuffer = new byte[newSize];
     }
@@ -395,10 +397,14 @@ public static class ZeroAllocHelper
     public static void ReleaseBuffers()
     {
         if (_CharBufferInUse)
+        {
             throw new InvalidOperationException("Cannot release buffers while char buffer is in use.");
+        }
 
         if (_ByteBufferInUse)
+        {
             throw new InvalidOperationException("Cannot release buffers while byte buffer is in use.");
+        }
 
         _CharBuffer = null;
         _ByteBuffer = null;
@@ -430,14 +436,16 @@ public static class ZeroAllocHelper
         const int SixteenMiB = 16_777_216;
         const int FiveHundredTwelveMiB = 536_870_912;
 
-        int newSize = currentSize switch
+        // Use long arithmetic to prevent integer overflow at large buffer sizes (>1.7 GiB)
+        long newSizeLong = currentSize switch
         {
-            <= OneMiB => currentSize * 3,
-            <= SixteenMiB => currentSize * 2,
-            <= FiveHundredTwelveMiB => currentSize + (currentSize / 2), // 1.5x
-            _ => currentSize + (currentSize / 4) // 1.25x
+            <= OneMiB => (long)currentSize * 3,
+            <= SixteenMiB => (long)currentSize * 2,
+            <= FiveHundredTwelveMiB => currentSize + (long)(currentSize / 2), // 1.5x
+            _ => currentSize + (long)(currentSize / 4) // 1.25x
         };
 
+        int newSize = (int)Math.Min(newSizeLong, int.MaxValue);
         return Math.Max(newSize, requiredSize);
     }
 

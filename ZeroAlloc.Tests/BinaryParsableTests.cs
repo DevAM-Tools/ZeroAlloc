@@ -1389,6 +1389,11 @@ public class VarIntTests
     [InlineData(300UL, new byte[] { 0xAC, 0x02 })]
     [InlineData(16383UL, new byte[] { 0xFF, 0x7F })]
     [InlineData(16384UL, new byte[] { 0x80, 0x80, 0x01 })]
+    [InlineData(2097151UL, new byte[] { 0xFF, 0xFF, 0x7F })]                       // 3-byte max (2^21 - 1)
+    [InlineData(2097152UL, new byte[] { 0x80, 0x80, 0x80, 0x01 })]                 // 4-byte min (2^21)
+    [InlineData(268435455UL, new byte[] { 0xFF, 0xFF, 0xFF, 0x7F })]               // 4-byte max (2^28 - 1)
+    [InlineData(268435456UL, new byte[] { 0x80, 0x80, 0x80, 0x80, 0x01 })]         // 5-byte min (2^28)
+    [InlineData(34359738367UL, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0x7F })]       // 5-byte max (2^35 - 1)
     public void VarInt_TryParse_ParsesCorrectly(ulong expected, byte[] data)
     {
         // Act
@@ -1422,10 +1427,46 @@ public class VarIntTests
     {
         // Arrange & Act & Assert
         Assert.Equal(1, new VarInt(0).EncodedSize);
-        Assert.Equal(1, new VarInt(127).EncodedSize);
-        Assert.Equal(2, new VarInt(128).EncodedSize);
-        Assert.Equal(2, new VarInt(16383).EncodedSize);
-        Assert.Equal(3, new VarInt(16384).EncodedSize);
+        Assert.Equal(1, new VarInt(127).EncodedSize);              // 1-byte max
+        Assert.Equal(2, new VarInt(128).EncodedSize);              // 2-byte min
+        Assert.Equal(2, new VarInt(16383).EncodedSize);            // 2-byte max
+        Assert.Equal(3, new VarInt(16384).EncodedSize);            // 3-byte min
+        Assert.Equal(3, new VarInt(2097151).EncodedSize);          // 3-byte max (2^21 - 1)
+        Assert.Equal(4, new VarInt(2097152).EncodedSize);          // 4-byte min (2^21)
+        Assert.Equal(4, new VarInt(268435455).EncodedSize);        // 4-byte max (2^28 - 1)
+        Assert.Equal(5, new VarInt(268435456).EncodedSize);        // 5-byte min (2^28)
+        Assert.Equal(5, new VarInt(34359738367).EncodedSize);      // 5-byte max (2^35 - 1)
+        Assert.Equal(10, new VarInt(ulong.MaxValue).EncodedSize);  // maximum: 10 bytes
+    }
+
+    /// <summary>Verifies VarInt roundtrip for large / extreme values including ulong.MaxValue.</summary>
+    [Fact]
+    public void VarInt_RoundTrip_ExtremeValues()
+    {
+        ulong[] testValues =
+        [
+            0, 127, 128, 16383, 16384,
+            2097151, 2097152,           // 3/4-byte boundary
+            268435455, 268435456,       // 4/5-byte boundary
+            34359738367, 34359738368,   // 5/6-byte boundary
+            ulong.MaxValue
+        ];
+        byte[] buffer = new byte[VarInt.MaxSize];
+
+        foreach (ulong expected in testValues)
+        {
+            VarInt original = new(expected);
+
+            // Write
+            bool writeSuccess = original.TryFormat(buffer, out int bytesWritten, default, null);
+            Assert.True(writeSuccess, $"Failed to write {expected}");
+
+            // Read
+            bool readSuccess = VarInt.TryParse(buffer[..bytesWritten], out VarInt parsed, out int bytesConsumed);
+            Assert.True(readSuccess, $"Failed to read {expected}");
+            Assert.Equal(expected, parsed.Value);
+            Assert.Equal(bytesWritten, bytesConsumed);
+        }
     }
 
     [Fact]
@@ -1559,9 +1600,20 @@ public class VarIntZigZagTests
         // Arrange & Act & Assert
         Assert.Equal(1, new VarIntZigZag(0).EncodedSize);
         Assert.Equal(1, new VarIntZigZag(-1).EncodedSize);
-        Assert.Equal(1, new VarIntZigZag(-64).EncodedSize);
-        Assert.Equal(2, new VarIntZigZag(64).EncodedSize);
-        Assert.Equal(2, new VarIntZigZag(-65).EncodedSize);
+        Assert.Equal(1, new VarIntZigZag(-64).EncodedSize);         // 1-byte max negative
+        Assert.Equal(1, new VarIntZigZag(63).EncodedSize);          // 1-byte max positive
+        Assert.Equal(2, new VarIntZigZag(64).EncodedSize);          // 2-byte min
+        Assert.Equal(2, new VarIntZigZag(-65).EncodedSize);         // 2-byte min negative
+        Assert.Equal(2, new VarIntZigZag(8191).EncodedSize);        // 2-byte max positive
+        Assert.Equal(2, new VarIntZigZag(-8192).EncodedSize);       // 2-byte max negative
+        Assert.Equal(3, new VarIntZigZag(8192).EncodedSize);        // 3-byte min
+        Assert.Equal(3, new VarIntZigZag(-8193).EncodedSize);       // 3-byte min negative
+        Assert.Equal(3, new VarIntZigZag(1048575).EncodedSize);     // 3-byte max positive
+        Assert.Equal(3, new VarIntZigZag(-1048576).EncodedSize);    // 3-byte max negative
+        Assert.Equal(4, new VarIntZigZag(1048576).EncodedSize);     // 4-byte min
+        Assert.Equal(4, new VarIntZigZag(-1048577).EncodedSize);    // 4-byte min negative
+        Assert.Equal(10, new VarIntZigZag(long.MaxValue).EncodedSize);
+        Assert.Equal(10, new VarIntZigZag(long.MinValue).EncodedSize);
     }
 
     [Fact]
@@ -1608,7 +1660,8 @@ public class VarIntZigZagTests
     public void VarIntZigZag_RoundTrip_PreservesValue()
     {
         // Arrange
-        long[] testValues = [0, 1, -1, 127, -128, 16383, -16384, long.MaxValue / 2, long.MinValue / 2];
+        long[] testValues = [0, 1, -1, 63, -64, 64, -65, 8191, -8192, 8192, -8193,
+            1048575, -1048576, 1048576, -1048577, long.MaxValue, long.MinValue];
         byte[] buffer = new byte[VarIntZigZag.MaxSize];
 
         foreach (long expected in testValues)

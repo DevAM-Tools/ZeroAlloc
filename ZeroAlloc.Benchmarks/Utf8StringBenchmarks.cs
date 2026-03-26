@@ -25,10 +25,6 @@ SOFTWARE.
 
 namespace ZeroAlloc.Benchmarks;
 
-using System.Globalization;
-using System.Text;
-using Cysharp.Text;
-
 /// <summary>
 /// Comprehensive benchmarks comparing ZeroAlloc UTF-8 performance against:
 /// - Encoding.UTF8.GetBytes with string interpolation
