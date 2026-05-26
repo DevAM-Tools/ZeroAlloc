@@ -1,27 +1,4 @@
-/*
-MIT License
-SPDX-License-Identifier: MIT
-
-Copyright (c) 2025 ZeroAlloc Contributors
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
+﻿// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
 // ============================================================================
 // ZeroAlloc - SpanBytesBuilder: Span-Based Byte Builder
@@ -132,15 +109,35 @@ public ref struct SpanBytesBuilder
 
     /// <summary>Advances the position by the specified number of bytes.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Advance(int count) => _Position += count;
+    public void Advance(int count)
+    {
+        if ((uint)count > (uint)Remaining)
+        {
+            throw new ArgumentOutOfRangeException(nameof(count), $"Cannot advance {count} bytes when only {Remaining} bytes remain.");
+        }
+
+        _Position += count;
+    }
 
     // ========================================================================
     // APPEND - RAW BYTES
     // ========================================================================
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void _ThrowBufferTooSmall(string operation)
+    {
+        throw new InvalidOperationException($"Buffer too small for {operation}.");
+    }
+
     /// <summary>Appends a single byte to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Append(byte value) => _Buffer[_Position++] = value;
+    public void Append(byte value)
+    {
+        if (!TryAppend(value))
+        {
+            _ThrowBufferTooSmall("byte value");
+        }
+    }
 
     /// <summary>Appends a byte array to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -151,15 +148,20 @@ public ref struct SpanBytesBuilder
             return;
         }
 
-        Append(value.AsSpan());
+        if (!TryAppend(value.AsSpan()))
+        {
+            _ThrowBufferTooSmall("byte array");
+        }
     }
 
     /// <summary>Appends a byte span to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(ReadOnlySpan<byte> value)
     {
-        value.CopyTo(_Buffer.Slice(_Position));
-        _Position += value.Length;
+        if (!TryAppend(value))
+        {
+            _ThrowBufferTooSmall("byte span");
+        }
     }
 
     // ========================================================================
@@ -170,64 +172,80 @@ public ref struct SpanBytesBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendInt16BigEndian(short value)
     {
-        BinaryPrimitives.WriteInt16BigEndian(_Buffer.Slice(_Position), value);
-        _Position += 2;
+        if (!TryAppendInt16BigEndian(value))
+        {
+            _ThrowBufferTooSmall("big-endian Int16 value");
+        }
     }
 
     /// <summary>Appends a 32-bit signed integer in big-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendInt32BigEndian(int value)
     {
-        BinaryPrimitives.WriteInt32BigEndian(_Buffer.Slice(_Position), value);
-        _Position += 4;
+        if (!TryAppendInt32BigEndian(value))
+        {
+            _ThrowBufferTooSmall("big-endian Int32 value");
+        }
     }
 
     /// <summary>Appends a 64-bit signed integer in big-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendInt64BigEndian(long value)
     {
-        BinaryPrimitives.WriteInt64BigEndian(_Buffer.Slice(_Position), value);
-        _Position += 8;
+        if (!TryAppendInt64BigEndian(value))
+        {
+            _ThrowBufferTooSmall("big-endian Int64 value");
+        }
     }
 
     /// <summary>Appends a 128-bit signed integer in big-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendInt128BigEndian(Int128 value)
     {
-        BinaryPrimitives.WriteInt128BigEndian(_Buffer.Slice(_Position), value);
-        _Position += 16;
+        if (!TryAppendInt128BigEndian(value))
+        {
+            _ThrowBufferTooSmall("big-endian Int128 value");
+        }
     }
 
     /// <summary>Appends a 16-bit unsigned integer in big-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUInt16BigEndian(ushort value)
     {
-        BinaryPrimitives.WriteUInt16BigEndian(_Buffer.Slice(_Position), value);
-        _Position += 2;
+        if (!TryAppendUInt16BigEndian(value))
+        {
+            _ThrowBufferTooSmall("big-endian UInt16 value");
+        }
     }
 
     /// <summary>Appends a 32-bit unsigned integer in big-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUInt32BigEndian(uint value)
     {
-        BinaryPrimitives.WriteUInt32BigEndian(_Buffer.Slice(_Position), value);
-        _Position += 4;
+        if (!TryAppendUInt32BigEndian(value))
+        {
+            _ThrowBufferTooSmall("big-endian UInt32 value");
+        }
     }
 
     /// <summary>Appends a 64-bit unsigned integer in big-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUInt64BigEndian(ulong value)
     {
-        BinaryPrimitives.WriteUInt64BigEndian(_Buffer.Slice(_Position), value);
-        _Position += 8;
+        if (!TryAppendUInt64BigEndian(value))
+        {
+            _ThrowBufferTooSmall("big-endian UInt64 value");
+        }
     }
 
     /// <summary>Appends a 128-bit unsigned integer in big-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUInt128BigEndian(UInt128 value)
     {
-        BinaryPrimitives.WriteUInt128BigEndian(_Buffer.Slice(_Position), value);
-        _Position += 16;
+        if (!TryAppendUInt128BigEndian(value))
+        {
+            _ThrowBufferTooSmall("big-endian UInt128 value");
+        }
     }
 
     // ========================================================================
@@ -238,64 +256,80 @@ public ref struct SpanBytesBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendInt16LittleEndian(short value)
     {
-        BinaryPrimitives.WriteInt16LittleEndian(_Buffer.Slice(_Position), value);
-        _Position += 2;
+        if (!TryAppendInt16LittleEndian(value))
+        {
+            _ThrowBufferTooSmall("little-endian Int16 value");
+        }
     }
 
     /// <summary>Appends a 32-bit signed integer in little-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendInt32LittleEndian(int value)
     {
-        BinaryPrimitives.WriteInt32LittleEndian(_Buffer.Slice(_Position), value);
-        _Position += 4;
+        if (!TryAppendInt32LittleEndian(value))
+        {
+            _ThrowBufferTooSmall("little-endian Int32 value");
+        }
     }
 
     /// <summary>Appends a 64-bit signed integer in little-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendInt64LittleEndian(long value)
     {
-        BinaryPrimitives.WriteInt64LittleEndian(_Buffer.Slice(_Position), value);
-        _Position += 8;
+        if (!TryAppendInt64LittleEndian(value))
+        {
+            _ThrowBufferTooSmall("little-endian Int64 value");
+        }
     }
 
     /// <summary>Appends a 128-bit signed integer in little-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendInt128LittleEndian(Int128 value)
     {
-        BinaryPrimitives.WriteInt128LittleEndian(_Buffer.Slice(_Position), value);
-        _Position += 16;
+        if (!TryAppendInt128LittleEndian(value))
+        {
+            _ThrowBufferTooSmall("little-endian Int128 value");
+        }
     }
 
     /// <summary>Appends a 16-bit unsigned integer in little-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUInt16LittleEndian(ushort value)
     {
-        BinaryPrimitives.WriteUInt16LittleEndian(_Buffer.Slice(_Position), value);
-        _Position += 2;
+        if (!TryAppendUInt16LittleEndian(value))
+        {
+            _ThrowBufferTooSmall("little-endian UInt16 value");
+        }
     }
 
     /// <summary>Appends a 32-bit unsigned integer in little-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUInt32LittleEndian(uint value)
     {
-        BinaryPrimitives.WriteUInt32LittleEndian(_Buffer.Slice(_Position), value);
-        _Position += 4;
+        if (!TryAppendUInt32LittleEndian(value))
+        {
+            _ThrowBufferTooSmall("little-endian UInt32 value");
+        }
     }
 
     /// <summary>Appends a 64-bit unsigned integer in little-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUInt64LittleEndian(ulong value)
     {
-        BinaryPrimitives.WriteUInt64LittleEndian(_Buffer.Slice(_Position), value);
-        _Position += 8;
+        if (!TryAppendUInt64LittleEndian(value))
+        {
+            _ThrowBufferTooSmall("little-endian UInt64 value");
+        }
     }
 
     /// <summary>Appends a 128-bit unsigned integer in little-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUInt128LittleEndian(UInt128 value)
     {
-        BinaryPrimitives.WriteUInt128LittleEndian(_Buffer.Slice(_Position), value);
-        _Position += 16;
+        if (!TryAppendUInt128LittleEndian(value))
+        {
+            _ThrowBufferTooSmall("little-endian UInt128 value");
+        }
     }
 
     // ========================================================================
@@ -306,48 +340,60 @@ public ref struct SpanBytesBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendHalfBigEndian(Half value)
     {
-        BinaryPrimitives.WriteHalfBigEndian(_Buffer.Slice(_Position), value);
-        _Position += 2;
+        if (!TryAppendHalfBigEndian(value))
+        {
+            _ThrowBufferTooSmall("big-endian Half value");
+        }
     }
 
     /// <summary>Appends a half-precision float in little-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendHalfLittleEndian(Half value)
     {
-        BinaryPrimitives.WriteHalfLittleEndian(_Buffer.Slice(_Position), value);
-        _Position += 2;
+        if (!TryAppendHalfLittleEndian(value))
+        {
+            _ThrowBufferTooSmall("little-endian Half value");
+        }
     }
 
     /// <summary>Appends a single-precision float in big-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendSingleBigEndian(float value)
     {
-        BinaryPrimitives.WriteSingleBigEndian(_Buffer.Slice(_Position), value);
-        _Position += 4;
+        if (!TryAppendSingleBigEndian(value))
+        {
+            _ThrowBufferTooSmall("big-endian Single value");
+        }
     }
 
     /// <summary>Appends a single-precision float in little-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendSingleLittleEndian(float value)
     {
-        BinaryPrimitives.WriteSingleLittleEndian(_Buffer.Slice(_Position), value);
-        _Position += 4;
+        if (!TryAppendSingleLittleEndian(value))
+        {
+            _ThrowBufferTooSmall("little-endian Single value");
+        }
     }
 
     /// <summary>Appends a double-precision float in big-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendDoubleBigEndian(double value)
     {
-        BinaryPrimitives.WriteDoubleBigEndian(_Buffer.Slice(_Position), value);
-        _Position += 8;
+        if (!TryAppendDoubleBigEndian(value))
+        {
+            _ThrowBufferTooSmall("big-endian Double value");
+        }
     }
 
     /// <summary>Appends a double-precision float in little-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendDoubleLittleEndian(double value)
     {
-        BinaryPrimitives.WriteDoubleLittleEndian(_Buffer.Slice(_Position), value);
-        _Position += 8;
+        if (!TryAppendDoubleLittleEndian(value))
+        {
+            _ThrowBufferTooSmall("little-endian Double value");
+        }
     }
 
     // ========================================================================
@@ -358,12 +404,10 @@ public ref struct SpanBytesBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendVarInt(ulong value)
     {
-        while (value >= 0x80)
+        if (!TryAppendVarInt(value))
         {
-            _Buffer[_Position++] = (byte)(value | 0x80);
-            value >>= 7;
+            _ThrowBufferTooSmall("VarInt value");
         }
-        _Buffer[_Position++] = (byte)value;
     }
 
     /// <summary>Appends a variable-length signed integer using ZigZag encoding.</summary>
@@ -390,21 +434,20 @@ public ref struct SpanBytesBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUtf8(string? value)
     {
-        if (string.IsNullOrEmpty(value))
+        if (!TryAppendUtf8(value))
         {
-            return;
+            _ThrowBufferTooSmall("UTF-8 string value");
         }
-
-        int written = Encoding.UTF8.GetBytes(value, _Buffer.Slice(_Position));
-        _Position += written;
     }
 
     /// <summary>Appends a string as UTF-8 bytes followed by a null terminator.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUtf8NullTerminated(string? value)
     {
-        AppendUtf8(value);
-        Append((byte)0);
+        if (!TryAppendUtf8NullTerminated(value))
+        {
+            _ThrowBufferTooSmall("null-terminated UTF-8 string value");
+        }
     }
 
     /// <summary>Appends a string with a VarInt length prefix followed by UTF-8 bytes.</summary>
@@ -418,6 +461,12 @@ public ref struct SpanBytesBuilder
         }
 
         int byteCount = Encoding.UTF8.GetByteCount(value);
+        int requiredBytes = checked(byteCount + _GetVarIntByteCount((ulong)byteCount));
+        if (Remaining < requiredBytes)
+        {
+            _ThrowBufferTooSmall("VarInt-prefixed UTF-8 string value");
+        }
+
         AppendVarInt((ulong)byteCount);
         int written = Encoding.UTF8.GetBytes(value, _Buffer.Slice(_Position));
         _Position += written;
@@ -434,6 +483,12 @@ public ref struct SpanBytesBuilder
         }
 
         int byteCount = Encoding.UTF8.GetByteCount(value);
+        int requiredBytes = checked(byteCount + 4);
+        if (Remaining < requiredBytes)
+        {
+            _ThrowBufferTooSmall("big-endian length-prefixed UTF-8 string value");
+        }
+
         AppendUInt32BigEndian((uint)byteCount);
         int written = Encoding.UTF8.GetBytes(value, _Buffer.Slice(_Position));
         _Position += written;
@@ -450,6 +505,12 @@ public ref struct SpanBytesBuilder
         }
 
         int byteCount = Encoding.UTF8.GetByteCount(value);
+        int requiredBytes = checked(byteCount + 4);
+        if (Remaining < requiredBytes)
+        {
+            _ThrowBufferTooSmall("little-endian length-prefixed UTF-8 string value");
+        }
+
         AppendUInt32LittleEndian((uint)byteCount);
         int written = Encoding.UTF8.GetBytes(value, _Buffer.Slice(_Position));
         _Position += written;
@@ -533,6 +594,19 @@ public ref struct SpanBytesBuilder
     // ========================================================================
     // TRYAPPEND - NON-THROWING VARIANTS
     // ========================================================================
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int _GetVarIntByteCount(ulong value)
+    {
+        int requiredBytes = 1;
+        while (value >= 0x80)
+        {
+            requiredBytes++;
+            value >>= 7;
+        }
+
+        return requiredBytes;
+    }
 
     /// <summary>Tries to append a single byte without throwing.</summary>
     /// <param name="value">The byte to append.</param>
@@ -937,14 +1011,7 @@ public ref struct SpanBytesBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendVarInt(ulong value)
     {
-        // Calculate required bytes (1-10 bytes for ulong)
-        int requiredBytes = 1;
-        ulong temp = value;
-        while (temp >= 0x80)
-        {
-            requiredBytes++;
-            temp >>= 7;
-        }
+        int requiredBytes = _GetVarIntByteCount(value);
 
         if (Remaining < requiredBytes)
         {
@@ -1084,43 +1151,49 @@ public ref struct SpanBytesBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendHex2(byte value)
     {
-        _Buffer[_Position++] = HexCharsBytes[value >> 4];
-        _Buffer[_Position++] = HexCharsBytes[value & 0xF];
+        if (!TryAppendHex2(value))
+        {
+            _ThrowBufferTooSmall("2-digit hexadecimal byte value");
+        }
     }
 
     /// <summary>Appends a ushort as 4 hexadecimal ASCII bytes.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendHex4(ushort value)
     {
-        _Buffer[_Position++] = HexCharsBytes[(value >> 12) & 0xF];
-        _Buffer[_Position++] = HexCharsBytes[(value >> 8) & 0xF];
-        _Buffer[_Position++] = HexCharsBytes[(value >> 4) & 0xF];
-        _Buffer[_Position++] = HexCharsBytes[value & 0xF];
+        if (!TryAppendHex4(value))
+        {
+            _ThrowBufferTooSmall("4-digit hexadecimal ushort value");
+        }
     }
 
     /// <summary>Appends a uint as 8 hexadecimal ASCII bytes.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendHex8(uint value)
     {
-        AppendHex4((ushort)(value >> 16));
-        AppendHex4((ushort)(value & 0xFFFF));
+        if (!TryAppendHex8(value))
+        {
+            _ThrowBufferTooSmall("8-digit hexadecimal uint value");
+        }
     }
 
     /// <summary>Appends a ulong as 16 hexadecimal ASCII bytes.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendHex16(ulong value)
     {
-        AppendHex8((uint)(value >> 32));
-        AppendHex8((uint)(value & 0xFFFFFFFF));
+        if (!TryAppendHex16(value))
+        {
+            _ThrowBufferTooSmall("16-digit hexadecimal ulong value");
+        }
     }
 
     /// <summary>Appends a byte as 8 binary ASCII bytes ('0' or '1').</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendBinary8(byte value)
     {
-        for (int i = 7; i >= 0; i--)
+        if (!TryAppendBinary8(value))
         {
-            _Buffer[_Position++] = (byte)('0' + ((value >> i) & 1));
+            _ThrowBufferTooSmall("8-character binary byte value");
         }
     }
 
@@ -1128,9 +1201,9 @@ public ref struct SpanBytesBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendBinary16(ushort value)
     {
-        for (int i = 15; i >= 0; i--)
+        if (!TryAppendBinary16(value))
         {
-            _Buffer[_Position++] = (byte)('0' + ((value >> i) & 1));
+            _ThrowBufferTooSmall("16-character binary ushort value");
         }
     }
 
@@ -1138,9 +1211,9 @@ public ref struct SpanBytesBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendBinary32(uint value)
     {
-        for (int i = 31; i >= 0; i--)
+        if (!TryAppendBinary32(value))
         {
-            _Buffer[_Position++] = (byte)('0' + ((value >> i) & 1));
+            _ThrowBufferTooSmall("32-character binary uint value");
         }
     }
 
@@ -1148,9 +1221,9 @@ public ref struct SpanBytesBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendBinary64(ulong value)
     {
-        for (int i = 63; i >= 0; i--)
+        if (!TryAppendBinary64(value))
         {
-            _Buffer[_Position++] = (byte)('0' + (int)((value >> i) & 1));
+            _ThrowBufferTooSmall("64-character binary ulong value");
         }
     }
 

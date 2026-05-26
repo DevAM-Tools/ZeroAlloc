@@ -1,27 +1,4 @@
-/*
-MIT License
-SPDX-License-Identifier: MIT
-
-Copyright (c) 2025 ZeroAlloc Contributors
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
+﻿// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
 // ============================================================================
 // ZeroAlloc Binary Generator Helpers
@@ -126,8 +103,6 @@ internal static class BinaryGeneratorHelpers
                 ParsableMemberKind.EndianWrapper => GetEndianWrapperSize(member.TypeName),
                 ParsableMemberKind.Byte => 1,
                 ParsableMemberKind.ByteArray => member.FixedLength,
-                ParsableMemberKind.Float => 4,
-                ParsableMemberKind.Double => 8,
                 ParsableMemberKind.PrimitiveInteger => GetPrimitiveSize(member.FullTypeName),
                 _ => null
             };
@@ -192,6 +167,104 @@ internal static class BinaryGeneratorHelpers
             ParsableMemberKind.PrimitiveInteger => (GetPrimitiveSize(member.FullTypeName) ?? 4) * 8,
             _ => 32
         };
+    }
+
+    /// <summary>
+    /// Returns the fixed byte size of a member (own bytes plus trailing padding), or <c>null</c>
+    /// if the member has variable length (VarInt, dynamic array, nested parsable, string, etc.).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Used by the grouped-bounds-check algorithm to batch consecutive fixed-size members into a
+    /// single <c>if (source.Length - offset &lt; N) return false;</c> guard, preventing
+    /// <see cref="System.ArgumentOutOfRangeException"/> on span slicing for variable-size structs.
+    /// </para>
+    /// <para>
+    /// PaddingBits must be a multiple of 8 in byte-aligned mode; if the division leaves a
+    /// remainder it is intentionally discarded (the validator rejects misaligned padding).
+    /// </para>
+    /// </remarks>
+    /// <param name="member">The member whose fixed size is queried.</param>
+    /// <returns>Fixed byte size including padding, or <c>null</c> for variable-size members.</returns>
+    internal static int? GetFixedMemberByteSize(ParsableMemberInfo member)
+    {
+        int? ownSize = member.Kind switch
+        {
+            ParsableMemberKind.Byte => 1,
+            ParsableMemberKind.ByteArray => member.FixedLength,
+            ParsableMemberKind.EndianWrapper => GetEndianWrapperSize(member.TypeName),
+            ParsableMemberKind.PrimitiveInteger => GetPrimitiveSize(member.FullTypeName),
+            _ => null
+        };
+
+        if (ownSize is null)
+        {
+            return null;
+        }
+
+        int paddingBytes = member.PaddingBits / 8;
+        return ownSize.Value + paddingBytes;
+    }
+
+    /// <summary>
+    /// Builds a map from member index to the summed fixed byte size of the consecutive fixed-size
+    /// run starting at that index. Used by the grouped-bounds-check algorithm in both
+    /// <c>GenerateParsingCode</c> and <c>GenerateTryWrite</c> to emit a single
+    /// <c>if (source/destination.Length - offset &lt; N) return false;</c> guard before the first
+    /// member of each run, preventing <see cref="System.ArgumentOutOfRangeException"/> on span
+    /// slicing when the buffer is too short.
+    /// </summary>
+    /// <remarks>
+    /// Returns an empty dictionary when <paramref name="usesBitMode"/> is <c>true</c> (the struct
+    /// uses <c>BitReader</c>/<c>BitWriter</c> which handles bounds internally) or when
+    /// <paramref name="fixedSize"/> has a value (the single upfront size check already covers
+    /// the full struct).
+    /// </remarks>
+    /// <param name="members">Ordered list of members.</param>
+    /// <param name="usesBitMode">
+    /// <c>true</c> when bit-level parsing or writing is active; grouped checks are skipped in bit mode.
+    /// </param>
+    /// <param name="fixedSize">
+    /// Pre-computed total fixed size in bytes, or <c>null</c> when the struct is variable-size.
+    /// </param>
+    /// <returns>
+    /// Dictionary mapping each run-start member index to the total byte size of that run,
+    /// or an empty dictionary when grouped checks are not applicable.
+    /// </returns>
+    internal static Dictionary<int, int> BuildGroupChecks(
+        List<ParsableMemberInfo> members,
+        bool usesBitMode,
+        int? fixedSize)
+    {
+        Dictionary<int, int> groupChecks = new();
+        if (usesBitMode || fixedSize.HasValue)
+        {
+            return groupChecks;
+        }
+
+        int k = 0;
+        while (k < members.Count)
+        {
+            if (GetFixedMemberByteSize(members[k]) is not null)
+            {
+                // Accumulate the total byte size of this consecutive fixed-size run
+                int groupTotal = 0;
+                int j = k;
+                while (j < members.Count && GetFixedMemberByteSize(members[j]) is int sz)
+                {
+                    groupTotal += sz;
+                    j++;
+                }
+                groupChecks[k] = groupTotal;
+                k = j;
+            }
+            else
+            {
+                k++;
+            }
+        }
+
+        return groupChecks;
     }
 
     #endregion

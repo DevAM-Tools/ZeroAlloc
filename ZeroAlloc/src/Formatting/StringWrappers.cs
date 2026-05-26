@@ -1,3 +1,5 @@
+﻿// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
+
 // ============================================================================
 // ZeroAlloc - String Encoding Wrappers
 // ============================================================================
@@ -14,35 +16,14 @@
 //   Utf8FixLE = UTF-8 with 4-byte little-endian length prefix
 // ============================================================================
 
-/*
-MIT License
-SPDX-License-Identifier: MIT
-
-Copyright (c) 2025 ZeroAlloc Contributors
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
-
 namespace ZeroAlloc;
 
 #region Helper Methods
 
+/// <summary>
+/// Stateless helpers for string encoding wrappers.
+/// Thread-safe because all operations work only on caller-provided values and spans.
+/// </summary>
 internal static class EncodingHelper
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -67,6 +48,60 @@ internal static class EncodingHelper
         while (v >= 0x80)
         { v >>= 7; size++; }
         return size;
+    }
+
+    /// <summary>
+    /// Writes a zero-length 32-bit big-endian prefix when the destination can hold it.
+    /// Returns <see langword="false"/> without touching the destination when it is too small.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static bool TryWriteZeroLengthPrefix32BE(Span<byte> destination, out int bytesWritten)
+    {
+        if (destination.Length < 4)
+        {
+            bytesWritten = 0;
+            return false;
+        }
+
+        BinaryPrimitives.WriteUInt32BigEndian(destination, 0);
+        bytesWritten = 4;
+        return true;
+    }
+
+    /// <summary>
+    /// Writes a zero-length 32-bit little-endian prefix when the destination can hold it.
+    /// Returns <see langword="false"/> without touching the destination when it is too small.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static bool TryWriteZeroLengthPrefix32LE(Span<byte> destination, out int bytesWritten)
+    {
+        if (destination.Length < 4)
+        {
+            bytesWritten = 0;
+            return false;
+        }
+
+        BinaryPrimitives.WriteUInt32LittleEndian(destination, 0);
+        bytesWritten = 4;
+        return true;
+    }
+
+    /// <summary>
+    /// Writes a zero-length 16-bit little-endian prefix when the destination can hold it.
+    /// Returns <see langword="false"/> without touching the destination when it is too small.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static bool TryWriteZeroLengthPrefix16LE(Span<byte> destination, out int bytesWritten)
+    {
+        if (destination.Length < 2)
+        {
+            bytesWritten = 0;
+            return false;
+        }
+
+        BinaryPrimitives.WriteUInt16LittleEndian(destination, 0);
+        bytesWritten = 2;
+        return true;
     }
 }
 
@@ -132,7 +167,10 @@ public readonly struct Utf8Var : IUtf8SpanFormattable, IBinaryParsable<Utf8Var>
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (_Value is null)
-        { destination[0] = 0; bytesWritten = 1; return true; }
+        {
+            if (destination.Length < 1) { bytesWritten = 0; return false; }
+            destination[0] = 0; bytesWritten = 1; return true;
+        }
         int strBytes = Encoding.UTF8.GetByteCount(_Value);
         int varIntSize = EncodingHelper.VarIntSize(strBytes);
         if (destination.Length < varIntSize + strBytes)
@@ -204,7 +242,9 @@ public readonly struct Utf8FixBE : IUtf8SpanFormattable, IBinaryParsable<Utf8Fix
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (_Value is null)
-        { BinaryPrimitives.WriteUInt32BigEndian(destination, 0); bytesWritten = 4; return destination.Length >= 4; }
+        {
+            return EncodingHelper.TryWriteZeroLengthPrefix32BE(destination, out bytesWritten);
+        }
         int strBytes = Encoding.UTF8.GetByteCount(_Value);
         if (destination.Length < 4 + strBytes)
         { bytesWritten = 0; return false; }
@@ -267,7 +307,9 @@ public readonly struct Utf8FixLE : IUtf8SpanFormattable, IBinaryParsable<Utf8Fix
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (_Value is null)
-        { BinaryPrimitives.WriteUInt32LittleEndian(destination, 0); bytesWritten = 4; return destination.Length >= 4; }
+        {
+            return EncodingHelper.TryWriteZeroLengthPrefix32LE(destination, out bytesWritten);
+        }
         int strBytes = Encoding.UTF8.GetByteCount(_Value);
         if (destination.Length < 4 + strBytes)
         { bytesWritten = 0; return false; }
@@ -330,7 +372,9 @@ public readonly struct Utf8Fix16LE : IUtf8SpanFormattable, IBinaryParsable<Utf8F
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (_Value is null)
-        { BinaryPrimitives.WriteUInt16LittleEndian(destination, 0); bytesWritten = 2; return destination.Length >= 2; }
+        {
+            return EncodingHelper.TryWriteZeroLengthPrefix16LE(destination, out bytesWritten);
+        }
         int strBytes = Encoding.UTF8.GetByteCount(_Value);
         if (destination.Length < 2 + strBytes)
         { bytesWritten = 0; return false; }
@@ -393,7 +437,10 @@ public readonly struct Utf8Z : IUtf8SpanFormattable, IBinaryParsable<Utf8Z>
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (_Value is null)
-        { destination[0] = 0; bytesWritten = 1; return destination.Length >= 1; }
+        {
+            if (destination.Length < 1) { bytesWritten = 0; return false; }
+            destination[0] = 0; bytesWritten = 1; return true;
+        }
         int strBytes = Encoding.UTF8.GetByteCount(_Value);
         if (destination.Length < strBytes + 1)
         { bytesWritten = 0; return false; }
@@ -494,7 +541,10 @@ public readonly struct Utf16BEVar : IUtf8SpanFormattable
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (_Value is null)
-        { destination[0] = 0; bytesWritten = 1; return true; }
+        {
+            if (destination.Length < 1) { bytesWritten = 0; return false; }
+            destination[0] = 0; bytesWritten = 1; return true;
+        }
         int strBytes = _Value.Length * 2;
         int varIntSize = EncodingHelper.VarIntSize(strBytes);
         if (destination.Length < varIntSize + strBytes)
@@ -535,7 +585,9 @@ public readonly struct Utf16BEFixBE : IUtf8SpanFormattable
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (_Value is null)
-        { BinaryPrimitives.WriteUInt32BigEndian(destination, 0); bytesWritten = 4; return destination.Length >= 4; }
+        {
+            return EncodingHelper.TryWriteZeroLengthPrefix32BE(destination, out bytesWritten);
+        }
         int strBytes = _Value.Length * 2;
         if (destination.Length < 4 + strBytes)
         { bytesWritten = 0; return false; }
@@ -575,7 +627,9 @@ public readonly struct Utf16BEFixLE : IUtf8SpanFormattable
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (_Value is null)
-        { BinaryPrimitives.WriteUInt32LittleEndian(destination, 0); bytesWritten = 4; return destination.Length >= 4; }
+        {
+            return EncodingHelper.TryWriteZeroLengthPrefix32LE(destination, out bytesWritten);
+        }
         int strBytes = _Value.Length * 2;
         if (destination.Length < 4 + strBytes)
         { bytesWritten = 0; return false; }
@@ -657,7 +711,10 @@ public readonly struct Utf16LEVar : IUtf8SpanFormattable
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (_Value is null)
-        { destination[0] = 0; bytesWritten = 1; return true; }
+        {
+            if (destination.Length < 1) { bytesWritten = 0; return false; }
+            destination[0] = 0; bytesWritten = 1; return true;
+        }
         int strBytes = _Value.Length * 2;
         int varIntSize = EncodingHelper.VarIntSize(strBytes);
         if (destination.Length < varIntSize + strBytes)
@@ -698,7 +755,9 @@ public readonly struct Utf16LEFixBE : IUtf8SpanFormattable
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (_Value is null)
-        { BinaryPrimitives.WriteUInt32BigEndian(destination, 0); bytesWritten = 4; return destination.Length >= 4; }
+        {
+            return EncodingHelper.TryWriteZeroLengthPrefix32BE(destination, out bytesWritten);
+        }
         int strBytes = _Value.Length * 2;
         if (destination.Length < 4 + strBytes)
         { bytesWritten = 0; return false; }
@@ -738,7 +797,9 @@ public readonly struct Utf16LEFixLE : IUtf8SpanFormattable
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (_Value is null)
-        { BinaryPrimitives.WriteUInt32LittleEndian(destination, 0); bytesWritten = 4; return destination.Length >= 4; }
+        {
+            return EncodingHelper.TryWriteZeroLengthPrefix32LE(destination, out bytesWritten);
+        }
         int strBytes = _Value.Length * 2;
         if (destination.Length < 4 + strBytes)
         { bytesWritten = 0; return false; }
@@ -827,7 +888,10 @@ public readonly struct Utf32BEVar : IUtf8SpanFormattable
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (_Value is null)
-        { destination[0] = 0; bytesWritten = 1; return true; }
+        {
+            if (destination.Length < 1) { bytesWritten = 0; return false; }
+            destination[0] = 0; bytesWritten = 1; return true;
+        }
         int strBytes = Enc.GetByteCount(_Value);
         int varIntSize = EncodingHelper.VarIntSize(strBytes);
         if (destination.Length < varIntSize + strBytes)
@@ -868,7 +932,9 @@ public readonly struct Utf32BEFixBE : IUtf8SpanFormattable
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (_Value is null)
-        { BinaryPrimitives.WriteUInt32BigEndian(destination, 0); bytesWritten = 4; return destination.Length >= 4; }
+        {
+            return EncodingHelper.TryWriteZeroLengthPrefix32BE(destination, out bytesWritten);
+        }
         int strBytes = Enc.GetByteCount(_Value);
         if (destination.Length < 4 + strBytes)
         { bytesWritten = 0; return false; }
@@ -908,7 +974,9 @@ public readonly struct Utf32BEFixLE : IUtf8SpanFormattable
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (_Value is null)
-        { BinaryPrimitives.WriteUInt32LittleEndian(destination, 0); bytesWritten = 4; return destination.Length >= 4; }
+        {
+            return EncodingHelper.TryWriteZeroLengthPrefix32LE(destination, out bytesWritten);
+        }
         int strBytes = Enc.GetByteCount(_Value);
         if (destination.Length < 4 + strBytes)
         { bytesWritten = 0; return false; }
@@ -990,7 +1058,10 @@ public readonly struct Utf32LEVar : IUtf8SpanFormattable
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (_Value is null)
-        { destination[0] = 0; bytesWritten = 1; return true; }
+        {
+            if (destination.Length < 1) { bytesWritten = 0; return false; }
+            destination[0] = 0; bytesWritten = 1; return true;
+        }
         int strBytes = Enc.GetByteCount(_Value);
         int varIntSize = EncodingHelper.VarIntSize(strBytes);
         if (destination.Length < varIntSize + strBytes)
@@ -1031,7 +1102,9 @@ public readonly struct Utf32LEFixBE : IUtf8SpanFormattable
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (_Value is null)
-        { BinaryPrimitives.WriteUInt32BigEndian(destination, 0); bytesWritten = 4; return destination.Length >= 4; }
+        {
+            return EncodingHelper.TryWriteZeroLengthPrefix32BE(destination, out bytesWritten);
+        }
         int strBytes = Enc.GetByteCount(_Value);
         if (destination.Length < 4 + strBytes)
         { bytesWritten = 0; return false; }
@@ -1071,7 +1144,9 @@ public readonly struct Utf32LEFixLE : IUtf8SpanFormattable
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (_Value is null)
-        { BinaryPrimitives.WriteUInt32LittleEndian(destination, 0); bytesWritten = 4; return destination.Length >= 4; }
+        {
+            return EncodingHelper.TryWriteZeroLengthPrefix32LE(destination, out bytesWritten);
+        }
         int strBytes = Enc.GetByteCount(_Value);
         if (destination.Length < 4 + strBytes)
         { bytesWritten = 0; return false; }
@@ -1155,7 +1230,10 @@ public readonly struct AsciiVar : IUtf8SpanFormattable
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (_Value is null)
-        { destination[0] = 0; bytesWritten = 1; return true; }
+        {
+            if (destination.Length < 1) { bytesWritten = 0; return false; }
+            destination[0] = 0; bytesWritten = 1; return true;
+        }
         int strBytes = _Value.Length;
         int varIntSize = EncodingHelper.VarIntSize(strBytes);
         if (destination.Length < varIntSize + strBytes)
@@ -1199,7 +1277,9 @@ public readonly struct AsciiFixBE : IUtf8SpanFormattable
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (_Value is null)
-        { BinaryPrimitives.WriteUInt32BigEndian(destination, 0); bytesWritten = 4; return destination.Length >= 4; }
+        {
+            return EncodingHelper.TryWriteZeroLengthPrefix32BE(destination, out bytesWritten);
+        }
         if (destination.Length < 4 + _Value.Length)
         { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteUInt32BigEndian(destination, (uint)_Value.Length);
@@ -1241,7 +1321,9 @@ public readonly struct AsciiFixLE : IUtf8SpanFormattable
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (_Value is null)
-        { BinaryPrimitives.WriteUInt32LittleEndian(destination, 0); bytesWritten = 4; return destination.Length >= 4; }
+        {
+            return EncodingHelper.TryWriteZeroLengthPrefix32LE(destination, out bytesWritten);
+        }
         if (destination.Length < 4 + _Value.Length)
         { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteUInt32LittleEndian(destination, (uint)_Value.Length);
@@ -1283,7 +1365,10 @@ public readonly struct AsciiZ : IUtf8SpanFormattable
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (_Value is null)
-        { destination[0] = 0; bytesWritten = 1; return destination.Length >= 1; }
+        {
+            if (destination.Length < 1) { bytesWritten = 0; return false; }
+            destination[0] = 0; bytesWritten = 1; return true;
+        }
         if (destination.Length < _Value.Length + 1)
         { bytesWritten = 0; return false; }
         for (int i = 0; i < _Value.Length; i++)
@@ -1367,7 +1452,10 @@ public readonly struct Latin1Var : IUtf8SpanFormattable
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (_Value is null)
-        { destination[0] = 0; bytesWritten = 1; return true; }
+        {
+            if (destination.Length < 1) { bytesWritten = 0; return false; }
+            destination[0] = 0; bytesWritten = 1; return true;
+        }
         int strBytes = _Value.Length;
         int varIntSize = EncodingHelper.VarIntSize(strBytes);
         if (destination.Length < varIntSize + strBytes)
@@ -1408,7 +1496,9 @@ public readonly struct Latin1FixBE : IUtf8SpanFormattable
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (_Value is null)
-        { BinaryPrimitives.WriteUInt32BigEndian(destination, 0); bytesWritten = 4; return destination.Length >= 4; }
+        {
+            return EncodingHelper.TryWriteZeroLengthPrefix32BE(destination, out bytesWritten);
+        }
         if (destination.Length < 4 + _Value.Length)
         { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteUInt32BigEndian(destination, (uint)_Value.Length);
@@ -1447,7 +1537,9 @@ public readonly struct Latin1FixLE : IUtf8SpanFormattable
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (_Value is null)
-        { BinaryPrimitives.WriteUInt32LittleEndian(destination, 0); bytesWritten = 4; return destination.Length >= 4; }
+        {
+            return EncodingHelper.TryWriteZeroLengthPrefix32LE(destination, out bytesWritten);
+        }
         if (destination.Length < 4 + _Value.Length)
         { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteUInt32LittleEndian(destination, (uint)_Value.Length);
@@ -1486,7 +1578,10 @@ public readonly struct Latin1Z : IUtf8SpanFormattable
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (_Value is null)
-        { destination[0] = 0; bytesWritten = 1; return destination.Length >= 1; }
+        {
+            if (destination.Length < 1) { bytesWritten = 0; return false; }
+            destination[0] = 0; bytesWritten = 1; return true;
+        }
         if (destination.Length < _Value.Length + 1)
         { bytesWritten = 0; return false; }
         Enc.GetBytes(_Value, destination);

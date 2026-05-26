@@ -1,116 +1,126 @@
 {
-    "version": "2.0.0",
-    "tasks": [
-        {
-            "label": "build-library",
-            "command": "dotnet",
-            "type": "process",
-            "args": [
-                "build",
-                "${workspaceFolder}/ZeroAlloc/ZeroAlloc.csproj",
-                "/property:GenerateFullPaths=true",
-                "/consoleloggerparameters:NoSummary;ForceNoAlign"
-            ],
-            "problemMatcher": "$msCompile",
-            "group": "build"
-        },
-        {
-            "label": "build-tests",
-            "command": "dotnet",
-            "type": "process",
-            "args": [
-                "build",
-                "${workspaceFolder}/ZeroAlloc.Tests/ZeroAlloc.Tests.csproj",
-                "/property:GenerateFullPaths=true",
-                "/consoleloggerparameters:NoSummary;ForceNoAlign"
-            ],
-            "problemMatcher": "$msCompile",
-            "group": "build"
-        },
-        {
-            "label": "build-benchmarks",
-            "command": "dotnet",
-            "type": "process",
-            "args": [
-                "build",
-                "${workspaceFolder}/ZeroAlloc.Benchmarks/ZeroAlloc.Benchmarks.csproj",
-                "-c",
-                "Release",
-                "/property:GenerateFullPaths=true",
-                "/consoleloggerparameters:NoSummary;ForceNoAlign"
-            ],
-            "problemMatcher": "$msCompile",
-            "group": "build"
-        },
-        {
-            "label": "build-all",
-            "dependsOn": [
-                "build-library",
-                "build-tests",
-                "build-benchmarks"
-            ],
-            "problemMatcher": [],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
-        },
-        {
-            "label": "test",
-            "command": "dotnet",
-            "type": "process",
-            "args": [
-                "test",
-                "${workspaceFolder}/ZeroAlloc.Tests/ZeroAlloc.Tests.csproj",
-                "--no-build",
-                "--verbosity",
-                "normal"
-            ],
-            "problemMatcher": "$msCompile",
-            "group": {
-                "kind": "test",
-                "isDefault": true
-            }
-        },
-        {
-            "label": "build-release",
-            "command": "dotnet",
-            "type": "process",
-            "args": [
-                "build",
-                "${workspaceFolder}/ZeroAlloc/ZeroAlloc.csproj",
-                "-c",
-                "Release",
-                "/property:GenerateFullPaths=true",
-                "/consoleloggerparameters:NoSummary;ForceNoAlign"
-            ],
-            "problemMatcher": "$msCompile",
-            "group": "build"
-        },
-        {
-            "label": "pack",
-            "command": "dotnet",
-            "type": "process",
-            "args": [
-                "pack",
-                "${workspaceFolder}/ZeroAlloc/ZeroAlloc.csproj",
-                "-c",
-                "Release",
-                "-o",
-                "${workspaceFolder}/Release"
-            ],
-            "problemMatcher": "$msCompile",
-            "group": "build"
-        },
-        {
-            "label": "clean",
-            "command": "dotnet",
-            "type": "process",
-            "args": [
-                "clean",
-                "${workspaceFolder}/ZeroAlloc.slnx"
-            ],
-            "problemMatcher": "$msCompile"
-        }
-    ]
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "build-library",
+			"command": "dotnet",
+			"type": "process",
+			"args": [
+				"build",
+				"${workspaceFolder}/ZeroAlloc/ZeroAlloc.csproj",
+				"/property:GenerateFullPaths=true",
+				"/consoleloggerparameters:NoSummary;ForceNoAlign"
+			],
+			"problemMatcher": "$msCompile",
+			"group": "build"
+		},
+		{
+			"label": "build-tests",
+			"command": "dotnet",
+			"type": "process",
+			"args": [
+				"build",
+				"${workspaceFolder}/ZeroAlloc.Tests/ZeroAlloc.Tests.csproj",
+				"/property:GenerateFullPaths=true",
+				"/consoleloggerparameters:NoSummary;ForceNoAlign"
+			],
+			"problemMatcher": "$msCompile",
+			"group": "build"
+		},
+		{
+			"label": "build-benchmarks",
+			"command": "dotnet",
+			"type": "process",
+			"args": [
+				"build",
+				"${workspaceFolder}/ZeroAlloc.Benchmarks/ZeroAlloc.Benchmarks.csproj",
+				"-c",
+				"Release",
+				"/property:GenerateFullPaths=true",
+				"/consoleloggerparameters:NoSummary;ForceNoAlign"
+			],
+			"problemMatcher": "$msCompile",
+			"group": "build"
+		},
+		{
+			"label": "build-all",
+			"dependsOn": [
+				"build-library",
+				"build-tests",
+				"build-benchmarks"
+			],
+			"problemMatcher": [],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		},
+		{
+			"label": "test",
+			"command": "dotnet",
+			"type": "process",
+			"args": [
+				"test",
+				"${workspaceFolder}/ZeroAlloc.Tests/ZeroAlloc.Tests.csproj",
+				"--no-build",
+				"--verbosity",
+				"normal"
+			],
+			"problemMatcher": "$msCompile",
+			"group": {
+				"kind": "test",
+				"isDefault": true
+			}
+		},
+		{
+			"label": "build-release",
+			"command": "dotnet",
+			"type": "process",
+			"args": [
+				"build",
+				"${workspaceFolder}/ZeroAlloc/ZeroAlloc.csproj",
+				"-c",
+				"Release",
+				"/property:GenerateFullPaths=true",
+				"/consoleloggerparameters:NoSummary;ForceNoAlign"
+			],
+			"problemMatcher": "$msCompile",
+			"group": "build"
+		},
+		{
+			"label": "pack",
+			"command": "dotnet",
+			"type": "process",
+			"args": [
+				"pack",
+				"${workspaceFolder}/ZeroAlloc/ZeroAlloc.csproj",
+				"-c",
+				"Release",
+				"-o",
+				"${workspaceFolder}/Release"
+			],
+			"problemMatcher": "$msCompile",
+			"group": "build"
+		},
+		{
+			"label": "clean",
+			"command": "dotnet",
+			"type": "process",
+			"args": [
+				"clean",
+				"${workspaceFolder}/ZeroAlloc.slnx"
+			],
+			"problemMatcher": "$msCompile"
+		},
+		{
+			"label": "git-status",
+			"type": "shell",
+			"command": "git status --short && git log --oneline -3"
+		},
+		{
+			"label": "git-status-cmd",
+			"type": "shell",
+			"command": "cmd /c \"cd /d e:\\Dev\\ZeroAlloc && git status --short && git log --oneline -3\""
+		}
+	]
 }

@@ -1,9 +1,4 @@
-/*
-MIT License
-SPDX-License-Identifier: MIT
-
-Copyright (c) 2025 ZeroAlloc Contributors
-*/
+// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
 namespace ZeroAlloc.Tests;
 
@@ -13,35 +8,35 @@ namespace ZeroAlloc.Tests;
 /// </summary>
 public sealed class LazyStringTests
 {
-    [Fact]
-    public void DirectString_ReturnsValue()
+    [Test]
+    public async Task DirectString_ReturnsValue()
     {
         LazyString s = new("hello");
-        Assert.Equal("hello", s.AsString);
-        Assert.True(s.IsEvaluated);
-        Assert.False(s.IsLazy);
+        await Assert.That(s.AsString).IsEqualTo("hello");
+        await Assert.That(s.IsEvaluated).IsTrue();
+        await Assert.That(s.IsLazy).IsFalse();
     }
 
-    [Fact]
-    public void Empty_ReturnsEmptyString()
+    [Test]
+    public async Task Empty_ReturnsEmptyString()
     {
         LazyString s = LazyString.Empty;
-        Assert.Equal(string.Empty, s.AsString);
-        Assert.True(s.IsEmpty);
-        Assert.Equal(0, s.Length);
+        await Assert.That(s.AsString).IsEqualTo(string.Empty);
+        await Assert.That(s.IsEmpty).IsTrue();
+        await Assert.That(s.Length).IsEqualTo(0);
     }
 
-    [Fact]
-    public void DefaultIsNull()
+    [Test]
+    public async Task DefaultIsNull()
     {
         LazyString s = default;
-        Assert.True(s.IsNull);
-        Assert.True(s.IsEmpty);
-        Assert.Equal(string.Empty, s.AsString);
+        await Assert.That(s.IsNull).IsTrue();
+        await Assert.That(s.IsEmpty).IsTrue();
+        await Assert.That(s.AsString).IsEqualTo(string.Empty);
     }
 
-    [Fact]
-    public void Lazy_DefersEvaluation()
+    [Test]
+    public async Task Lazy_DefersEvaluation()
     {
         int callCount = 0;
         LazyString s = LazyString.Lazy(() =>
@@ -51,17 +46,17 @@ public sealed class LazyStringTests
         });
 
         // Not yet evaluated
-        Assert.True(s.IsLazy);
-        Assert.Equal(0, callCount);
+        await Assert.That(s.IsLazy).IsTrue();
+        await Assert.That(callCount).IsEqualTo(0);
 
         // First evaluation
         string result = s.AsString;
-        Assert.Equal("lazy result", result);
-        Assert.Equal(1, callCount);
+        await Assert.That(result).IsEqualTo("lazy result");
+        await Assert.That(callCount).IsEqualTo(1);
     }
 
-    [Fact]
-    public void Lazy_CachesResult()
+    [Test]
+    public async Task Lazy_CachesResult()
     {
         int callCount = 0;
         LazyString s = LazyString.Lazy(() =>
@@ -75,26 +70,26 @@ public sealed class LazyStringTests
         _ = s.AsString;
 
         // Factory should only be called once (in struct copy, may be called once per copy)
-        Assert.Equal(1, callCount);
-        Assert.True(s.IsEvaluated);
+        await Assert.That(callCount).IsEqualTo(1);
+        await Assert.That(s.IsEvaluated).IsTrue();
     }
 
-    [Fact]
-    public void FormatLazy_WithState_DefersEvaluation()
+    [Test]
+    public async Task FormatLazy_WithState_DefersEvaluation()
     {
         LazyString s = LazyString.FormatLazy(42, static state =>
         {
             return $"Value: {state}";
         });
 
-        Assert.True(s.IsLazy);
+        await Assert.That(s.IsLazy).IsTrue();
 
         string result = s.AsString;
-        Assert.Equal("Value: 42", result);
+        await Assert.That(result).IsEqualTo("Value: 42");
     }
 
-    [Fact]
-    public void FormatLazy_WithTupleState()
+    [Test]
+    public async Task FormatLazy_WithTupleState()
     {
         ushort srcPort = 443;
         ushort dstPort = 8080;
@@ -102,217 +97,223 @@ public sealed class LazyStringTests
             (srcPort, dstPort),
             static state => $"Src: {state.Item1}, Dst: {state.Item2}");
 
-        Assert.Equal("Src: 443, Dst: 8080", s.AsString);
+        await Assert.That(s.AsString).IsEqualTo("Src: 443, Dst: 8080");
     }
 
-    [Fact]
-    public void Append_CombinesStrings()
+    [Test]
+    public async Task Append_CombinesStrings()
     {
         LazyString a = new("hello");
         LazyString b = new(" world");
         LazyString combined = a.Append(b);
-        Assert.Equal("hello world", combined.AsString);
+        await Assert.That(combined.AsString).IsEqualTo("hello world");
     }
 
-    [Fact]
-    public void Append_EmptyOptimization()
+    [Test]
+    public async Task Append_EmptyOptimization()
     {
         LazyString a = new("hello");
         LazyString empty = LazyString.Empty;
 
         LazyString result1 = a.Append(empty);
-        Assert.Equal("hello", result1.AsString);
+        await Assert.That(result1.AsString).IsEqualTo("hello");
 
         LazyString result2 = empty.Append(a);
-        Assert.Equal("hello", result2.AsString);
+        await Assert.That(result2.AsString).IsEqualTo("hello");
     }
 
-    [Fact]
-    public void Append_NullOptimization()
+    [Test]
+    public async Task Append_NullOptimization()
     {
         LazyString a = new("hello");
         LazyString absent = default;
 
         LazyString result1 = a.Append(absent);
-        Assert.Equal("hello", result1.AsString);
+        await Assert.That(result1.AsString).IsEqualTo("hello");
 
         LazyString result2 = absent.Append(a);
-        Assert.Equal("hello", result2.AsString);
+        await Assert.That(result2.AsString).IsEqualTo("hello");
     }
 
-    [Fact]
-    public void Prepend_CombinesStrings()
+    [Test]
+    public async Task Prepend_CombinesStrings()
     {
         LazyString a = new("world");
         LazyString b = new("hello ");
         LazyString combined = a.Prepend(b);
-        Assert.Equal("hello world", combined.AsString);
+        await Assert.That(combined.AsString).IsEqualTo("hello world");
     }
 
-    [Fact]
-    public void ImplicitFromString()
+    [Test]
+    public async Task ImplicitFromString()
     {
         LazyString s = "implicit";
-        Assert.Equal("implicit", s.AsString);
+        await Assert.That(s.AsString).IsEqualTo("implicit");
     }
 
-    [Fact]
-    public void ImplicitToString()
+    [Test]
+    public async Task ImplicitToString()
     {
         LazyString s = new("value");
         string result = s;
-        Assert.Equal("value", result);
+        await Assert.That(result).IsEqualTo("value");
     }
 
-    [Fact]
-    public void Equality_SameValue()
+    [Test]
+    public async Task Equality_SameValue()
     {
         LazyString a = new("test");
         LazyString b = new("test");
-        Assert.True(a.Equals(b));
-        Assert.True(a == b);
+        await Assert.That(a.Equals(b)).IsTrue();
+        await Assert.That(a == b).IsTrue();
     }
 
-    [Fact]
-    public void Equality_DifferentValue()
+    [Test]
+    public async Task Equality_DifferentValue()
     {
         LazyString a = new("test");
         LazyString c = new("other");
-        Assert.False(a.Equals(c));
-        Assert.True(a != c);
+        await Assert.That(a.Equals(c)).IsFalse();
+        await Assert.That(a != c).IsTrue();
     }
 
-    [Fact]
-    public void Equality_BothDefault()
+    [Test]
+    public async Task Equality_BothDefault()
     {
         LazyString a = default;
         LazyString b = default;
-        Assert.True(a == b);
+        await Assert.That(a == b).IsTrue();
     }
 
-    [Fact]
-    public void Equality_DefaultVsValue()
+    [Test]
+    public async Task Equality_DefaultVsValue()
     {
         LazyString a = new("test");
         LazyString b = default;
-        Assert.True(a != b);
+        await Assert.That(a != b).IsTrue();
     }
 
-    [Fact]
-    public void CompareTo_Ordering()
+    [Test]
+    public async Task CompareTo_Ordering()
     {
         LazyString alpha = new("alpha");
         LazyString beta = new("beta");
-        Assert.True(alpha.CompareTo(beta) < 0);
-        Assert.True(beta.CompareTo(alpha) > 0);
-        Assert.Equal(0, alpha.CompareTo(alpha));
+        await Assert.That(alpha.CompareTo(beta) < 0).IsTrue();
+        await Assert.That(beta.CompareTo(alpha) > 0).IsTrue();
+        await Assert.That(alpha.CompareTo(alpha)).IsEqualTo(0);
     }
 
-    [Fact]
-    public void CompareTo_DefaultIsSmallest()
+    [Test]
+    public async Task CompareTo_DefaultIsSmallest()
     {
         LazyString a = new("test");
         LazyString absent = default;
-        Assert.True(a.CompareTo(absent) > 0);
-        Assert.True(absent.CompareTo(a) < 0);
+        await Assert.That(a.CompareTo(absent) > 0).IsTrue();
+        await Assert.That(absent.CompareTo(a) < 0).IsTrue();
     }
 
-    [Fact]
-    public void Length_ReturnsCorrectValue()
+    [Test]
+    public async Task Length_ReturnsCorrectValue()
     {
         LazyString s = new("12345");
-        Assert.Equal(5, s.Length);
+        await Assert.That(s.Length).IsEqualTo(5);
     }
 
-    [Fact]
-    public void ToString_ReturnsAsString()
+    [Test]
+    public async Task ToString_ReturnsAsString()
     {
         LazyString s = new("test string");
-        Assert.Equal("test string", s.ToString());
+        await Assert.That(s.ToString()).IsEqualTo("test string");
     }
 
-    [Fact]
-    public void GetHashCode_ConsistentWithEquals()
+    [Test]
+    public async Task GetHashCode_ConsistentWithEquals()
     {
         LazyString a = new("test");
         LazyString b = new("test");
-        Assert.Equal(a.GetHashCode(), b.GetHashCode());
+        await Assert.That(b.GetHashCode()).IsEqualTo(a.GetHashCode());
     }
 
-    [Fact]
-    public void TryWriteTo_Success()
+    [Test]
+    public async Task TryWriteTo_Success()
     {
         LazyString s = new("hello");
-        Span<char> buffer = stackalloc char[10];
-        int written = s.TryWriteTo(buffer);
-        Assert.Equal(5, written);
-        Assert.Equal("hello", buffer[..written].ToString());
+        int written;
+        string writtenContent;
+        {
+            Span<char> buffer = stackalloc char[10];
+            written = s.TryWriteTo(buffer);
+            writtenContent = buffer[..written].ToString();
+        }
+
+        await Assert.That(written).IsEqualTo(5);
+        await Assert.That(writtenContent).IsEqualTo("hello");
     }
 
-    [Fact]
-    public void TryWriteTo_BufferTooSmall()
+    [Test]
+    public async Task TryWriteTo_BufferTooSmall()
     {
         LazyString s = new("hello");
         Span<char> buffer = stackalloc char[3];
         int written = s.TryWriteTo(buffer);
-        Assert.Equal(-1, written);
+        await Assert.That(written).IsEqualTo(-1);
     }
 
-    [Fact]
-    public void AsSpan_ReturnsCorrectSpan()
+    [Test]
+    public async Task AsSpan_ReturnsCorrectSpan()
     {
         LazyString s = new("hello");
         ReadOnlySpan<char> span = s.AsSpan;
-        Assert.Equal("hello", span.ToString());
+        await Assert.That(span.ToString()).IsEqualTo("hello");
     }
 
-    [Fact]
-    public void RawValue_RoundTrips()
+    [Test]
+    public async Task RawValue_RoundTrips()
     {
         LazyString original = new("test");
         object? raw = original.RawValue;
         LazyString restored = LazyString.FromRawValue(raw);
-        Assert.Equal(original, restored);
+        await Assert.That(restored).IsEqualTo(original);
     }
 
-    [Fact]
-    public void TryGetString_DirectString_ReturnsTrue()
+    [Test]
+    public async Task TryGetString_DirectString_ReturnsTrue()
     {
         LazyString s = new("hello");
         bool success = s.TryGetString(out string result);
-        Assert.True(success);
-        Assert.Equal("hello", result);
+        await Assert.That(success).IsTrue();
+        await Assert.That(result).IsEqualTo("hello");
     }
 
-    [Fact]
-    public void TryGetString_Default_ReturnsTrueWithEmpty()
+    [Test]
+    public async Task TryGetString_Default_ReturnsTrueWithEmpty()
     {
         LazyString s = default;
         bool success = s.TryGetString(out string result);
-        Assert.True(success);
-        Assert.Equal(string.Empty, result);
+        await Assert.That(success).IsTrue();
+        await Assert.That(result).IsEqualTo(string.Empty);
     }
 
-    [Fact]
-    public void TryGetString_LazySuccess_ReturnsTrueWithValue()
+    [Test]
+    public async Task TryGetString_LazySuccess_ReturnsTrueWithValue()
     {
         LazyString s = LazyString.Lazy(() => "lazy result");
         bool success = s.TryGetString(out string result);
-        Assert.True(success);
-        Assert.Equal("lazy result", result);
+        await Assert.That(success).IsTrue();
+        await Assert.That(result).IsEqualTo("lazy result");
     }
 
-    [Fact]
-    public void TryGetString_LazyThrows_ReturnsFalseWithEmpty()
+    [Test]
+    public async Task TryGetString_LazyThrows_ReturnsFalseWithEmpty()
     {
         LazyString s = LazyString.Lazy(() => throw new InvalidOperationException("boom"));
         bool success = s.TryGetString(out string result);
-        Assert.False(success);
-        Assert.Equal(string.Empty, result);
+        await Assert.That(success).IsFalse();
+        await Assert.That(result).IsEqualTo(string.Empty);
     }
 
-    [Fact]
-    public void TryGetString_LazyThrows_CachesEmptyToPreventRetry()
+    [Test]
+    public async Task TryGetString_LazyThrows_CachesEmptyToPreventRetry()
     {
         int callCount = 0;
         LazyString s = LazyString.Lazy(() =>
@@ -323,102 +324,102 @@ public sealed class LazyStringTests
 
         // First call — catches exception, caches empty
         _ = s.TryGetString(out _);
-        Assert.Equal(1, callCount);
+        await Assert.That(callCount).IsEqualTo(1);
 
         // Second call — should see cached empty string
         bool success = s.TryGetString(out string result);
-        Assert.True(success);
-        Assert.Equal(string.Empty, result);
-        Assert.Equal(1, callCount);
+        await Assert.That(success).IsTrue();
+        await Assert.That(result).IsEqualTo(string.Empty);
+        await Assert.That(callCount).IsEqualTo(1);
     }
 
-    [Fact]
-    public void Append_MultipleParts()
+    [Test]
+    public async Task Append_MultipleParts()
     {
         LazyString a = new("a");
         LazyString b = new("b");
         LazyString c = new("c");
         LazyString combined = a.Append(b).Append(c);
-        Assert.Equal("abc", combined.AsString);
+        await Assert.That(combined.AsString).IsEqualTo("abc");
     }
 
-    [Fact]
-    public void FormatLazy_DeferredFormat_IsLazy()
+    [Test]
+    public async Task FormatLazy_DeferredFormat_IsLazy()
     {
         LazyString s = LazyString.FormatLazy(42, static n => $"Number: {n}");
-        Assert.True(s.IsLazy);
-        Assert.False(s.IsEvaluated);
+        await Assert.That(s.IsLazy).IsTrue();
+        await Assert.That(s.IsEvaluated).IsFalse();
         _ = s.AsString;
-        Assert.True(s.IsEvaluated);
+        await Assert.That(s.IsEvaluated).IsTrue();
     }
 
-    [Fact]
-    public void Equals_ObjectOverload()
+    [Test]
+    public async Task Equals_ObjectOverload()
     {
         LazyString a = new("test");
-        Assert.True(a.Equals((object)new LazyString("test")));
-        Assert.False(a.Equals((object?)null));
-        Assert.False(a.Equals((object)"test")); // not a LazyString
+        await Assert.That(a.Equals((object)new LazyString("test"))).IsTrue();
+        await Assert.That(a.Equals((object?)null)).IsFalse();
+        await Assert.That(a.Equals((object)"test")).IsFalse(); // not a LazyString
     }
 
     // ========================================================================
     // Generator-powered Lazy() and LazyInterpolated() tests
     // ========================================================================
 
-    [Fact]
-    public void GeneratedLazy_SingleArg_DefersAndFormats()
+    [Test]
+    public async Task GeneratedLazy_SingleArg_DefersAndFormats()
     {
         LazyString s = ZA.Lazy("hello");
-        Assert.True(s.IsLazy);
-        Assert.Equal("hello", s.AsString);
+        await Assert.That(s.IsLazy).IsTrue();
+        await Assert.That(s.AsString).IsEqualTo("hello");
     }
 
-    [Fact]
-    public void GeneratedLazy_MultipleArgs_DefersAndFormats()
+    [Test]
+    public async Task GeneratedLazy_MultipleArgs_DefersAndFormats()
     {
         LazyString s = ZA.Lazy("Port: ", (ushort)443);
-        Assert.True(s.IsLazy);
-        Assert.Equal("Port: 443", s.AsString);
+        await Assert.That(s.IsLazy).IsTrue();
+        await Assert.That(s.AsString).IsEqualTo("Port: 443");
     }
 
-    [Fact]
-    public void GeneratedLazy_ThreeArgs_FormatsAll()
+    [Test]
+    public async Task GeneratedLazy_ThreeArgs_FormatsAll()
     {
         LazyString s = ZA.Lazy("Source: ", (ushort)80, " -> Dest: ");
-        Assert.Equal("Source: 80 -> Dest: ", s.AsString);
+        await Assert.That(s.AsString).IsEqualTo("Source: 80 -> Dest: ");
     }
 
-    [Fact]
-    public void GeneratedLazy_CachesOnSecondAccess()
+    [Test]
+    public async Task GeneratedLazy_CachesOnSecondAccess()
     {
         LazyString s = ZA.Lazy("cached: ", 42);
         string first = s.AsString;
         string second = s.AsString;
-        Assert.Same(first, second);
+        await Assert.That(second).IsSameReferenceAs(first);
     }
 
-    [Fact]
-    public void GeneratedLazyInterpolated_SingleArg_DefersAndFormats()
+    [Test]
+    public async Task GeneratedLazyInterpolated_SingleArg_DefersAndFormats()
     {
         LazyString s = ZA.LazyInterpolated(42);
-        Assert.True(s.IsLazy);
-        Assert.Equal("42", s.AsString);
+        await Assert.That(s.IsLazy).IsTrue();
+        await Assert.That(s.AsString).IsEqualTo("42");
     }
 
-    [Fact]
-    public void GeneratedLazyInterpolated_MultipleArgs_DefersAndFormats()
+    [Test]
+    public async Task GeneratedLazyInterpolated_MultipleArgs_DefersAndFormats()
     {
         LazyString s = ZA.LazyInterpolated("Port: ", (ushort)443);
-        Assert.True(s.IsLazy);
-        Assert.Equal("Port: 443", s.AsString);
+        await Assert.That(s.IsLazy).IsTrue();
+        await Assert.That(s.AsString).IsEqualTo("Port: 443");
     }
 
-    [Fact]
-    public void GeneratedLazyInterpolated_CachesOnSecondAccess()
+    [Test]
+    public async Task GeneratedLazyInterpolated_CachesOnSecondAccess()
     {
         LazyString s = ZA.LazyInterpolated("value=", 99);
         string first = s.AsString;
         string second = s.AsString;
-        Assert.Same(first, second);
+        await Assert.That(second).IsSameReferenceAs(first);
     }
 }

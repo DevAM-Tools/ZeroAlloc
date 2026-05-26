@@ -1,27 +1,4 @@
-/*
-MIT License
-SPDX-License-Identifier: MIT
-
-Copyright (c) 2025 ZeroAlloc Contributors
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
+// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
 // ============================================================================
 // BinaryParsable Generator Tests
@@ -113,6 +90,47 @@ public readonly partial struct MacAddress
 {
     [BinaryFixedLength(6)]
     public byte[] Address { get; init; }
+}
+
+#endregion
+
+#region Mixed Variable/Fixed Structs
+
+/// <summary>
+/// Variable-size struct: VarInt followed by two fixed fields.
+/// Used to verify that TryParse returns false (not throws) when the buffer
+/// is sufficient for the VarInt but not for the trailing fixed fields.
+/// </summary>
+[BinaryParsable]
+public readonly partial struct VarIntThenFixedStruct
+{
+    public VarInt Count { get; init; }
+    public U32BE Value { get; init; }
+    public U16BE Flags { get; init; }
+}
+
+/// <summary>
+/// Variable-size struct: VarInt-length-prefixed string followed by a fixed field.
+/// Exercises the grouped bounds check emitted after the dynamic string member.
+/// </summary>
+[BinaryParsable]
+public readonly partial struct StringThenFixedStruct
+{
+    [StringLengthVarInt]
+    public string Label { get; init; }
+    public U32BE Id { get; init; }
+}
+
+/// <summary>
+/// Variable-size struct with a 2-byte big-endian length-prefixed string followed by a fixed field.
+/// Exercises the length-prefix bounds check in GenerateStringParsing and the grouped check on Crc.
+/// </summary>
+[BinaryParsable]
+public readonly partial struct FixedBEStringStruct
+{
+    [StringLengthBE(2)]
+    public string Content { get; init; }
+    public U16BE Crc { get; init; }
 }
 
 #endregion
@@ -238,127 +256,126 @@ public readonly partial struct LargeBitFieldStruct
 /// <summary>
 /// Tests for [BinaryParsable] generated parsing methods.
 /// </summary>
-public class BinaryParsableTests
+public sealed class BinaryParsableTests
 {
     // ========================================================================
     // BASIC PARSING TESTS
     // ========================================================================
-
     #region Basic Parsing
 
-    [Fact]
-    public void SimpleHeader_ParsesCorrectly()
+    [Test]
+    public async Task SimpleHeader_ParsesCorrectly()
     {
         // Arrange: Version=0x0100, Type=0x12345678, Length=0x00FF
         byte[] data = [0x01, 0x00, 0x12, 0x34, 0x56, 0x78, 0x00, 0xFF];
 
         // Act
-        bool success = SimpleHeader.TryParse(data, out var header, out int consumed);
+        bool success = SimpleHeader.TryParse(data, out SimpleHeader header, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal(8, consumed);
-        Assert.Equal(0x0100, header.Version.Value);
-        Assert.Equal(0x12345678u, header.MessageType.Value);
-        Assert.Equal(0x00FF, header.Length.Value);
+        await Assert.That(success).IsTrue();
+        await Assert.That(consumed).IsEqualTo(8);
+        await Assert.That((int)header.Version.Value).IsEqualTo(0x0100);
+        await Assert.That(header.MessageType.Value).IsEqualTo(0x12345678u);
+        await Assert.That((int)header.Length.Value).IsEqualTo(0x00FF);
     }
 
-    [Fact]
-    public void SimpleHeader_FailsWithInsufficientData()
+    [Test]
+    public async Task SimpleHeader_FailsWithInsufficientData()
     {
         // Arrange: Only 5 bytes, but header needs 8
         byte[] data = [0x01, 0x00, 0x12, 0x34, 0x56];
 
         // Act
-        bool success = SimpleHeader.TryParse(data, out var header, out int consumed);
+        bool success = SimpleHeader.TryParse(data, out SimpleHeader header, out int consumed);
 
         // Assert
-        Assert.False(success);
+        await Assert.That(success).IsFalse();
     }
 
-    [Fact]
-    public void MixedEndian_ParsesCorrectly()
+    [Test]
+    public async Task MixedEndian_ParsesCorrectly()
     {
         // Arrange: BE16=0x1234, LE16=0x5678 (stored as 78 56), BE32=0xAABBCCDD, LE32=0x11223344 (stored as 44 33 22 11)
         byte[] data = [0x12, 0x34, 0x78, 0x56, 0xAA, 0xBB, 0xCC, 0xDD, 0x44, 0x33, 0x22, 0x11];
 
         // Act
-        bool success = MixedEndianStruct.TryParse(data, out var result, out int consumed);
+        bool success = MixedEndianStruct.TryParse(data, out MixedEndianStruct result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal(12, consumed);
-        Assert.Equal(0x1234, result.BigEndian16.Value);
-        Assert.Equal(0x5678, result.LittleEndian16.Value);
-        Assert.Equal(0xAABBCCDDu, result.BigEndian32.Value);
-        Assert.Equal(0x11223344u, result.LittleEndian32.Value);
+        await Assert.That(success).IsTrue();
+        await Assert.That(consumed).IsEqualTo(12);
+        await Assert.That((int)result.BigEndian16.Value).IsEqualTo(0x1234);
+        await Assert.That((int)result.LittleEndian16.Value).IsEqualTo(0x5678);
+        await Assert.That(result.BigEndian32.Value).IsEqualTo(0xAABBCCDDu);
+        await Assert.That(result.LittleEndian32.Value).IsEqualTo(0x11223344u);
     }
 
-    [Fact]
-    public void ByteStruct_ParsesCorrectly()
+    [Test]
+    public async Task ByteStruct_ParsesCorrectly()
     {
         // Arrange
         byte[] data = [0x11, 0x22, 0x33];
 
         // Act
-        bool success = ByteStruct.TryParse(data, out var result, out int consumed);
+        bool success = ByteStruct.TryParse(data, out ByteStruct result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal(3, consumed);
-        Assert.Equal(0x11, result.First);
-        Assert.Equal(0x22, result.Second);
-        Assert.Equal(0x33, result.Third);
+        await Assert.That(success).IsTrue();
+        await Assert.That(consumed).IsEqualTo(3);
+        await Assert.That((int)result.First).IsEqualTo(0x11);
+        await Assert.That((int)result.Second).IsEqualTo(0x22);
+        await Assert.That((int)result.Third).IsEqualTo(0x33);
     }
 
-    [Fact]
-    public void StructWithIgnoredMember_ParsesOnlyRelevantFields()
+    [Test]
+    public async Task StructWithIgnoredMember_ParsesOnlyRelevantFields()
     {
         // Arrange: Type=0x0010, Length=0x0100
         byte[] data = [0x00, 0x10, 0x01, 0x00];
 
         // Act
-        bool success = StructWithIgnoredMember.TryParse(data, out var result, out int consumed);
+        bool success = StructWithIgnoredMember.TryParse(data, out StructWithIgnoredMember result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal(4, consumed);
-        Assert.Equal(0x0010, result.Type.Value);
-        Assert.Equal(0x0100, result.Length.Value);
-        Assert.True(result.IsControl); // 16 < 100
+        await Assert.That(success).IsTrue();
+        await Assert.That(consumed).IsEqualTo(4);
+        await Assert.That((int)result.Type.Value).IsEqualTo(0x0010);
+        await Assert.That((int)result.Length.Value).IsEqualTo(0x0100);
+        await Assert.That(result.IsControl).IsTrue(); // 16 < 100
     }
 
-    [Fact]
-    public void ReorderedStruct_ParsesInCorrectOrder()
+    [Test]
+    public async Task ReorderedStruct_ParsesInCorrectOrder()
     {
         // Arrange: Data is read as First(0), Second(1), Third(2)
         // So bytes: First=0x1111, Second=0x2222, Third=0x3333
         byte[] data = [0x11, 0x11, 0x22, 0x22, 0x33, 0x33];
 
         // Act
-        bool success = ReorderedStruct.TryParse(data, out var result, out int consumed);
+        bool success = ReorderedStruct.TryParse(data, out ReorderedStruct result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal(6, consumed);
-        Assert.Equal(0x1111, result.First.Value);
-        Assert.Equal(0x2222, result.Second.Value);
-        Assert.Equal(0x3333, result.Third.Value);
+        await Assert.That(success).IsTrue();
+        await Assert.That(consumed).IsEqualTo(6);
+        await Assert.That((int)result.First.Value).IsEqualTo(0x1111);
+        await Assert.That((int)result.Second.Value).IsEqualTo(0x2222);
+        await Assert.That((int)result.Third.Value).IsEqualTo(0x3333);
     }
 
-    [Fact]
-    public void MacAddress_ParsesFixedLengthArray()
+    [Test]
+    public async Task MacAddress_ParsesFixedLengthArray()
     {
         // Arrange: MAC address AA:BB:CC:DD:EE:FF
         byte[] data = [0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF];
 
         // Act
-        bool success = MacAddress.TryParse(data, out var result, out int consumed);
+        bool success = MacAddress.TryParse(data, out MacAddress result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal(6, consumed);
-        Assert.Equal(data, result.Address);
+        await Assert.That(success).IsTrue();
+        await Assert.That(consumed).IsEqualTo(6);
+        await Assert.That(result.Address).IsEquivalentTo(data);
     }
 
     #endregion
@@ -369,8 +386,8 @@ public class BinaryParsableTests
 
     #region BitField Parsing
 
-    [Fact]
-    public void CANStandardHeader_ParsesCorrectly()
+    [Test]
+    public async Task CANStandardHeader_ParsesCorrectly()
     {
         // Arrange: Using specific bit pattern
         // The BitReader reads bits MSB first (big-endian bit order)
@@ -395,20 +412,20 @@ public class BinaryParsableTests
         byte[] data = [0x24, 0x72, 0x00];
 
         // Act
-        bool success = CANStandardHeader.TryParse(data, out var header, out int consumed);
+        bool success = CANStandardHeader.TryParse(data, out CANStandardHeader header, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal(3, consumed);
-        Assert.Equal(0x123, header.Identifier);
-        Assert.Equal(1, header.RTR);
-        Assert.Equal(0, header.IDE);
-        Assert.Equal(0, header.Reserved);
-        Assert.Equal(8, header.DLC);
+        await Assert.That(success).IsTrue();
+        await Assert.That(consumed).IsEqualTo(3);
+        await Assert.That((int)header.Identifier).IsEqualTo(0x123);
+        await Assert.That((int)header.RTR).IsEqualTo(1);
+        await Assert.That((int)header.IDE).IsEqualTo(0);
+        await Assert.That((int)header.Reserved).IsEqualTo(0);
+        await Assert.That((int)header.DLC).IsEqualTo(8);
     }
 
-    [Fact]
-    public void CANExtendedHeader_ParsesCorrectly()
+    [Test]
+    public async Task CANExtendedHeader_ParsesCorrectly()
     {
         // Arrange: 29-bit ID, RTR, IDE, Reserved = 32 bits total
         // ID = 0x1FFFFFFF (max 29-bit value)
@@ -424,19 +441,19 @@ public class BinaryParsableTests
         byte[] data = [0xFF, 0xFF, 0xFF, 0xFE];
 
         // Act
-        bool success = CANExtendedHeader.TryParse(data, out var header, out int consumed);
+        bool success = CANExtendedHeader.TryParse(data, out CANExtendedHeader header, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal(4, consumed);
-        Assert.Equal(0x1FFFFFFFu, header.Identifier);
-        Assert.Equal(1, header.RTR);
-        Assert.Equal(1, header.IDE);
-        Assert.Equal(0, header.Reserved);
+        await Assert.That(success).IsTrue();
+        await Assert.That(consumed).IsEqualTo(4);
+        await Assert.That(header.Identifier).IsEqualTo(0x1FFFFFFFu);
+        await Assert.That((int)header.RTR).IsEqualTo(1);
+        await Assert.That((int)header.IDE).IsEqualTo(1);
+        await Assert.That((int)header.Reserved).IsEqualTo(0);
     }
 
-    [Fact]
-    public void MixedBitFieldStruct_ParsesCorrectly()
+    [Test]
+    public async Task MixedBitFieldStruct_ParsesCorrectly()
     {
         // Arrange: 3-bit + 5-bit + 12-bit + 4-bit = 24 bits = 3 bytes
         // Field3Bit = 5 = 0b101
@@ -452,42 +469,42 @@ public class BinaryParsableTests
         byte[] data = [0xB1, 0x7F, 0xF9];
 
         // Act
-        bool success = MixedBitFieldStruct.TryParse(data, out var result, out int consumed);
+        bool success = MixedBitFieldStruct.TryParse(data, out MixedBitFieldStruct result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal(3, consumed);
-        Assert.Equal(5, result.Field3Bit);
-        Assert.Equal(17, result.Field5Bit);
-        Assert.Equal(2047, result.Field12Bit);
-        Assert.Equal(9, result.Field4Bit);
+        await Assert.That(success).IsTrue();
+        await Assert.That(consumed).IsEqualTo(3);
+        await Assert.That((int)result.Field3Bit).IsEqualTo(5);
+        await Assert.That((int)result.Field5Bit).IsEqualTo(17);
+        await Assert.That((int)result.Field12Bit).IsEqualTo(2047);
+        await Assert.That((int)result.Field4Bit).IsEqualTo(9);
     }
 
-    [Fact]
-    public void BitFlagsStruct_ParsesAllFlags()
+    [Test]
+    public async Task BitFlagsStruct_ParsesAllFlags()
     {
         // Arrange: 8 x 1-bit = 8 bits = 1 byte
         // Flags: 1, 0, 1, 1, 0, 0, 1, 0 = 0b10110010 = 0xB2
         byte[] data = [0xB2];
 
         // Act
-        bool success = BitFlagsStruct.TryParse(data, out var flags, out int consumed);
+        bool success = BitFlagsStruct.TryParse(data, out BitFlagsStruct flags, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal(1, consumed);
-        Assert.Equal(1, flags.Flag1);
-        Assert.Equal(0, flags.Flag2);
-        Assert.Equal(1, flags.Flag3);
-        Assert.Equal(1, flags.Flag4);
-        Assert.Equal(0, flags.Flag5);
-        Assert.Equal(0, flags.Flag6);
-        Assert.Equal(1, flags.Flag7);
-        Assert.Equal(0, flags.Flag8);
+        await Assert.That(success).IsTrue();
+        await Assert.That(consumed).IsEqualTo(1);
+        await Assert.That((int)flags.Flag1).IsEqualTo(1);
+        await Assert.That((int)flags.Flag2).IsEqualTo(0);
+        await Assert.That((int)flags.Flag3).IsEqualTo(1);
+        await Assert.That((int)flags.Flag4).IsEqualTo(1);
+        await Assert.That((int)flags.Flag5).IsEqualTo(0);
+        await Assert.That((int)flags.Flag6).IsEqualTo(0);
+        await Assert.That((int)flags.Flag7).IsEqualTo(1);
+        await Assert.That((int)flags.Flag8).IsEqualTo(0);
     }
 
-    [Fact]
-    public void LargeBitFieldStruct_ParsesCorrectly()
+    [Test]
+    public async Task LargeBitFieldStruct_ParsesCorrectly()
     {
         // Arrange: 48-bit + 16-bit = 64 bits = 8 bytes
         // Field48Bit = 0xAABBCCDDEEFF (48 bits)
@@ -495,48 +512,48 @@ public class BinaryParsableTests
         byte[] data = [0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x12, 0x34];
 
         // Act
-        bool success = LargeBitFieldStruct.TryParse(data, out var result, out int consumed);
+        bool success = LargeBitFieldStruct.TryParse(data, out LargeBitFieldStruct result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal(8, consumed);
-        Assert.Equal(0xAABBCCDDEEFFuL, result.Field48Bit);
-        Assert.Equal(0x1234, result.Field16Bit);
+        await Assert.That(success).IsTrue();
+        await Assert.That(consumed).IsEqualTo(8);
+        await Assert.That(result.Field48Bit).IsEqualTo(0xAABBCCDDEEFFuL);
+        await Assert.That((int)result.Field16Bit).IsEqualTo(0x1234);
     }
 
-    [Fact]
-    public void CANStandardHeader_FailsWithInsufficientData()
+    [Test]
+    public async Task CANStandardHeader_FailsWithInsufficientData()
     {
         // Arrange: Only 2 bytes, but header needs 3 (18 bits)
         byte[] data = [0x00, 0x00];
 
         // Act
-        bool success = CANStandardHeader.TryParse(data, out var header, out int consumed);
+        bool success = CANStandardHeader.TryParse(data, out CANStandardHeader header, out int consumed);
 
         // Assert
-        Assert.False(success);
+        await Assert.That(success).IsFalse();
     }
 
-    [Fact]
-    public void BitField_ZeroValues_ParsesCorrectly()
+    [Test]
+    public async Task BitField_ZeroValues_ParsesCorrectly()
     {
         // Arrange: All zeros
         byte[] data = [0x00, 0x00, 0x00];
 
         // Act
-        bool success = CANStandardHeader.TryParse(data, out var header, out int consumed);
+        bool success = CANStandardHeader.TryParse(data, out CANStandardHeader header, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal(0, header.Identifier);
-        Assert.Equal(0, header.RTR);
-        Assert.Equal(0, header.IDE);
-        Assert.Equal(0, header.Reserved);
-        Assert.Equal(0, header.DLC);
+        await Assert.That(success).IsTrue();
+        await Assert.That((int)header.Identifier).IsEqualTo(0);
+        await Assert.That((int)header.RTR).IsEqualTo(0);
+        await Assert.That((int)header.IDE).IsEqualTo(0);
+        await Assert.That((int)header.Reserved).IsEqualTo(0);
+        await Assert.That((int)header.DLC).IsEqualTo(0);
     }
 
-    [Fact]
-    public void BitField_MaxValues_ParsesCorrectly()
+    [Test]
+    public async Task BitField_MaxValues_ParsesCorrectly()
     {
         // Arrange: Maximum values for each field
         // ID = 0x7FF (11 bits max), RTR=1, IDE=1, Reserved=1, DLC=15 (4 bits max)
@@ -548,15 +565,15 @@ public class BinaryParsableTests
         byte[] data = [0xFF, 0xFF, 0xC0];
 
         // Act
-        bool success = CANStandardHeader.TryParse(data, out var header, out int consumed);
+        bool success = CANStandardHeader.TryParse(data, out CANStandardHeader header, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal(0x7FF, header.Identifier); // Max 11-bit value
-        Assert.Equal(1, header.RTR);
-        Assert.Equal(1, header.IDE);
-        Assert.Equal(1, header.Reserved);
-        Assert.Equal(15, header.DLC); // Max 4-bit value
+        await Assert.That(success).IsTrue();
+        await Assert.That((int)header.Identifier).IsEqualTo(0x7FF); // Max 11-bit value
+        await Assert.That((int)header.RTR).IsEqualTo(1);
+        await Assert.That((int)header.IDE).IsEqualTo(1);
+        await Assert.That((int)header.Reserved).IsEqualTo(1);
+        await Assert.That((int)header.DLC).IsEqualTo(15); // Max 4-bit value
     }
 
     #endregion
@@ -567,31 +584,31 @@ public class BinaryParsableTests
 
     #region Edge Cases
 
-    [Fact]
-    public void SimpleHeader_EmptySpan_ReturnsFalse()
+    [Test]
+    public async Task SimpleHeader_EmptySpan_ReturnsFalse()
     {
         // Arrange
         ReadOnlySpan<byte> empty = [];
 
         // Act
-        bool success = SimpleHeader.TryParse(empty, out var header, out int consumed);
+        bool success = SimpleHeader.TryParse(empty, out SimpleHeader header, out int consumed);
 
         // Assert
-        Assert.False(success);
+        await Assert.That(success).IsFalse();
     }
 
-    [Fact]
-    public void SimpleHeader_ExtraData_IgnoresExtraBytes()
+    [Test]
+    public async Task SimpleHeader_ExtraData_IgnoresExtraBytes()
     {
         // Arrange: Valid header + extra bytes
         byte[] data = [0x01, 0x00, 0x12, 0x34, 0x56, 0x78, 0x00, 0xFF, 0xDE, 0xAD, 0xBE, 0xEF];
 
         // Act
-        bool success = SimpleHeader.TryParse(data, out var header, out int consumed);
+        bool success = SimpleHeader.TryParse(data, out SimpleHeader header, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal(8, consumed); // Only consumed what was needed
+        await Assert.That(success).IsTrue();
+        await Assert.That(consumed).IsEqualTo(8); // Only consumed what was needed
     }
 
     #endregion
@@ -602,8 +619,8 @@ public class BinaryParsableTests
 
     #region PaddingBits Tests
 
-    [Fact]
-    public void PaddingBitsStruct_ParsesCorrectlyWithPadding()
+    [Test]
+    public async Task PaddingBitsStruct_ParsesCorrectlyWithPadding()
     {
         // Arrange: 4-bit flags + 4-bit padding (skipped after Flags) + 4-byte payload
         // Byte 0: Flags(4 bits) = 0xA, Padding(4 bits, skipped) = 0xB  => 0xAB
@@ -611,13 +628,13 @@ public class BinaryParsableTests
         byte[] data = [0xAB, 0x12, 0x34, 0x56, 0x78];
 
         // Act
-        bool success = PaddingBitsTestStruct.TryParse(data, out var result, out int consumed);
+        bool success = PaddingBitsTestStruct.TryParse(data, out PaddingBitsTestStruct result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal(0xA, result.Flags);
-        Assert.Equal(0x12345678u, result.Payload.Value);
-        Assert.Equal(5, consumed);
+        await Assert.That(success).IsTrue();
+        await Assert.That((int)result.Flags).IsEqualTo(0xA);
+        await Assert.That(result.Payload.Value).IsEqualTo(0x12345678u);
+        await Assert.That(consumed).IsEqualTo(5);
     }
 
     #endregion
@@ -628,8 +645,8 @@ public class BinaryParsableTests
 
     #region Primitive Integer Tests
 
-    [Fact]
-    public void PrimitiveIntegerStructBE_ParsesAllTypes()
+    [Test]
+    public async Task PrimitiveIntegerStructBE_ParsesAllTypes()
     {
         // Arrange: All primitive types in Big-Endian order
         // short (2) + ushort (2) + int (4) + uint (4) + long (8) + ulong (8) + float (4) + double (8) + sbyte (1) = 41 bytes
@@ -647,24 +664,24 @@ public class BinaryParsableTests
         ];
 
         // Act
-        bool success = PrimitiveIntegerTestStructBE.TryParse(data, out var result, out int consumed);
+        bool success = PrimitiveIntegerTestStructBE.TryParse(data, out PrimitiveIntegerTestStructBE result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal(100, result.Int16Value);
-        Assert.Equal(200, result.UInt16Value);
-        Assert.Equal(300, result.Int32Value);
-        Assert.Equal(400u, result.UInt32Value);
-        Assert.Equal(500L, result.Int64Value);
-        Assert.Equal(600UL, result.UInt64Value);
-        Assert.Equal(1200.0f, result.SingleValue);
-        Assert.Equal(3200.0, result.DoubleValue);
-        Assert.Equal(-2, result.SByteValue);
-        Assert.Equal(41, consumed);
+        await Assert.That(success).IsTrue();
+        await Assert.That((int)result.Int16Value).IsEqualTo(100);
+        await Assert.That((int)result.UInt16Value).IsEqualTo(200);
+        await Assert.That(result.Int32Value).IsEqualTo(300);
+        await Assert.That(result.UInt32Value).IsEqualTo(400u);
+        await Assert.That(result.Int64Value).IsEqualTo(500L);
+        await Assert.That(result.UInt64Value).IsEqualTo(600UL);
+        await Assert.That(result.SingleValue).IsEqualTo(1200.0f);
+        await Assert.That(result.DoubleValue).IsEqualTo(3200.0);
+        await Assert.That((int)result.SByteValue).IsEqualTo(-2);
+        await Assert.That(consumed).IsEqualTo(41);
     }
 
-    [Fact]
-    public void PrimitiveIntegerStructLE_ParsesLittleEndian()
+    [Test]
+    public async Task PrimitiveIntegerStructLE_ParsesLittleEndian()
     {
         // Arrange: int (4) + float (4) in Little-Endian
         byte[] data =
@@ -674,24 +691,24 @@ public class BinaryParsableTests
         ];
 
         // Act
-        bool success = PrimitiveIntegerTestStructLE.TryParse(data, out var result, out int consumed);
+        bool success = PrimitiveIntegerTestStructLE.TryParse(data, out PrimitiveIntegerTestStructLE result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal(300, result.Int32Value);
-        Assert.Equal(1200.0f, result.SingleValue);
-        Assert.Equal(8, consumed);
+        await Assert.That(success).IsTrue();
+        await Assert.That(result.Int32Value).IsEqualTo(300);
+        await Assert.That(result.SingleValue).IsEqualTo(1200.0f);
+        await Assert.That(consumed).IsEqualTo(8);
     }
 
-    [Fact]
-    public void PrimitiveIntegerStructBE_ReportsTryGetSerializedSizeCorrectly()
+    [Test]
+    public async Task PrimitiveIntegerStructBE_ReportsTryGetSerializedSizeCorrectly()
     {
         // Act
         bool hasFixedSize = PrimitiveIntegerTestStructBE.TryGetSerializedSize(out int size);
 
         // Assert
-        Assert.True(hasFixedSize);
-        Assert.Equal(41, size); // 2+2+4+4+8+8+4+8+1 = 41 bytes
+        await Assert.That(hasFixedSize).IsTrue();
+        await Assert.That(size).IsEqualTo(41); // 2+2+4+4+8+8+4+8+1 = 41 bytes
     }
 
     #endregion
@@ -702,155 +719,155 @@ public class BinaryParsableTests
 
     #region String Parsing Tests
 
-    [Fact]
-    public void StringVarIntStruct_ParsesVarIntPrefixedString()
+    [Test]
+    public async Task StringVarIntStruct_ParsesVarIntPrefixedString()
     {
         // Arrange: VarInt length (5) + "Hello" UTF-8
         byte[] data = [0x05, 0x48, 0x65, 0x6C, 0x6C, 0x6F];
 
         // Act
-        bool success = StringVarIntTestStruct.TryParse(data, out var result, out int consumed);
+        bool success = StringVarIntTestStruct.TryParse(data, out StringVarIntTestStruct result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal("Hello", result.Message);
-        Assert.Equal(6, consumed); // 1 byte VarInt + 5 bytes string
+        await Assert.That(success).IsTrue();
+        await Assert.That(result.Message).IsEqualTo("Hello");
+        await Assert.That(consumed).IsEqualTo(6); // 1 byte VarInt + 5 bytes string
     }
 
-    [Fact]
-    public void StringFixedBEStruct_ParsesBigEndianLengthPrefixedString()
+    [Test]
+    public async Task StringFixedBEStruct_ParsesBigEndianLengthPrefixedString()
     {
         // Arrange: 2-byte BE length (5) + "Hello" UTF-8
         byte[] data = [0x00, 0x05, 0x48, 0x65, 0x6C, 0x6C, 0x6F];
 
         // Act
-        bool success = StringFixedBE2TestStruct.TryParse(data, out var result, out int consumed);
+        bool success = StringFixedBE2TestStruct.TryParse(data, out StringFixedBE2TestStruct result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal("Hello", result.Message);
-        Assert.Equal(7, consumed); // 2 bytes length + 5 bytes string
+        await Assert.That(success).IsTrue();
+        await Assert.That(result.Message).IsEqualTo("Hello");
+        await Assert.That(consumed).IsEqualTo(7); // 2 bytes length + 5 bytes string
     }
 
-    [Fact]
-    public void StringFixedLEStruct_ParsesLittleEndianLengthPrefixedString()
+    [Test]
+    public async Task StringFixedLEStruct_ParsesLittleEndianLengthPrefixedString()
     {
         // Arrange: 2-byte LE length (5) + "Hello" UTF-8
         byte[] data = [0x05, 0x00, 0x48, 0x65, 0x6C, 0x6C, 0x6F];
 
         // Act
-        bool success = StringFixedLE2TestStruct.TryParse(data, out var result, out int consumed);
+        bool success = StringFixedLE2TestStruct.TryParse(data, out StringFixedLE2TestStruct result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal("Hello", result.Message);
-        Assert.Equal(7, consumed); // 2 bytes length + 5 bytes string
+        await Assert.That(success).IsTrue();
+        await Assert.That(result.Message).IsEqualTo("Hello");
+        await Assert.That(consumed).IsEqualTo(7); // 2 bytes length + 5 bytes string
     }
 
-    [Fact]
-    public void StringNullTerminatedStruct_ParsesNullTerminatedString()
+    [Test]
+    public async Task StringNullTerminatedStruct_ParsesNullTerminatedString()
     {
         // Arrange: "Hello" + null byte
         byte[] data = [0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x00];
 
         // Act
-        bool success = StringNullTerminatedTestStruct.TryParse(data, out var result, out int consumed);
+        bool success = StringNullTerminatedTestStruct.TryParse(data, out StringNullTerminatedTestStruct result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal("Hello", result.Message);
-        Assert.Equal(6, consumed); // 5 bytes string + 1 null
+        await Assert.That(success).IsTrue();
+        await Assert.That(result.Message).IsEqualTo("Hello");
+        await Assert.That(consumed).IsEqualTo(6); // 5 bytes string + 1 null
     }
 
-    [Fact]
-    public void StringFixedLengthStruct_ParsesFixedLengthString()
+    [Test]
+    public async Task StringFixedLengthStruct_ParsesFixedLengthString()
     {
         // Arrange: "Hello" padded to 8 bytes
         byte[] data = [0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x00, 0x00, 0x00];
 
         // Act
-        bool success = StringFixedLengthTestStruct.TryParse(data, out var result, out int consumed);
+        bool success = StringFixedLengthTestStruct.TryParse(data, out StringFixedLengthTestStruct result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal("Hello", result.Message);
-        Assert.Equal(8, consumed); // Fixed 8 bytes
+        await Assert.That(success).IsTrue();
+        await Assert.That(result.Message).IsEqualTo("Hello");
+        await Assert.That(consumed).IsEqualTo(8); // Fixed 8 bytes
     }
 
-    [Fact]
-    public void StringWithHeaderStruct_ParsesHeaderAndString()
+    [Test]
+    public async Task StringWithHeaderStruct_ParsesHeaderAndString()
     {
         // Arrange: 2-byte version BE + VarInt length (5) + "Hello"
         byte[] data = [0x01, 0x00, 0x05, 0x48, 0x65, 0x6C, 0x6C, 0x6F];
 
         // Act
-        bool success = StringWithHeaderTestStruct.TryParse(data, out var result, out int consumed);
+        bool success = StringWithHeaderTestStruct.TryParse(data, out StringWithHeaderTestStruct result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal(0x0100, result.Version.Value);
-        Assert.Equal("Hello", result.Message);
-        Assert.Equal(8, consumed);
+        await Assert.That(success).IsTrue();
+        await Assert.That((int)result.Version.Value).IsEqualTo(0x0100);
+        await Assert.That(result.Message).IsEqualTo("Hello");
+        await Assert.That(consumed).IsEqualTo(8);
     }
 
-    [Fact]
-    public void Utf8Var_ParsesVarIntPrefixedString()
+    [Test]
+    public async Task Utf8Var_ParsesVarIntPrefixedString()
     {
         // Arrange: VarInt length (5) + "Hello" UTF-8
         byte[] data = [0x05, 0x48, 0x65, 0x6C, 0x6C, 0x6F];
 
         // Act
-        bool success = Utf8Var.TryParse(data, out var result, out int consumed);
+        bool success = Utf8Var.TryParse(data, out Utf8Var result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal("Hello", result.Value);
-        Assert.Equal(6, consumed);
+        await Assert.That(success).IsTrue();
+        await Assert.That(result.Value).IsEqualTo("Hello");
+        await Assert.That(consumed).IsEqualTo(6);
     }
 
-    [Fact]
-    public void Utf8FixBE_ParsesBigEndianLengthPrefixedString()
+    [Test]
+    public async Task Utf8FixBE_ParsesBigEndianLengthPrefixedString()
     {
         // Arrange: 4-byte BE length (5) + "Hello" UTF-8
         byte[] data = [0x00, 0x00, 0x00, 0x05, 0x48, 0x65, 0x6C, 0x6C, 0x6F];
 
         // Act
-        bool success = Utf8FixBE.TryParse(data, out var result, out int consumed);
+        bool success = Utf8FixBE.TryParse(data, out Utf8FixBE result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal("Hello", result.Value);
-        Assert.Equal(9, consumed);
+        await Assert.That(success).IsTrue();
+        await Assert.That(result.Value).IsEqualTo("Hello");
+        await Assert.That(consumed).IsEqualTo(9);
     }
 
-    [Fact]
-    public void Utf8Z_ParsesNullTerminatedString()
+    [Test]
+    public async Task Utf8Z_ParsesNullTerminatedString()
     {
         // Arrange: "Hello" + null byte
         byte[] data = [0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x00];
 
         // Act
-        bool success = Utf8Z.TryParse(data, out var result, out int consumed);
+        bool success = Utf8Z.TryParse(data, out Utf8Z result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal("Hello", result.Value);
-        Assert.Equal(6, consumed);
+        await Assert.That(success).IsTrue();
+        await Assert.That(result.Value).IsEqualTo("Hello");
+        await Assert.That(consumed).IsEqualTo(6);
     }
 
-    [Fact]
-    public void StringWrapperInBinaryParsable_WorksWithGenerator()
+    [Test]
+    public async Task StringWrapperInBinaryParsable_WorksWithGenerator()
     {
         // Arrange: 4-byte BE length (5) + "Hello" UTF-8
         byte[] data = [0x00, 0x00, 0x00, 0x05, 0x48, 0x65, 0x6C, 0x6C, 0x6F];
 
         // Act
-        bool success = Utf8FixBETestStruct.TryParse(data, out var result, out int consumed);
+        bool success = Utf8FixBETestStruct.TryParse(data, out Utf8FixBETestStruct result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal("Hello", result.Message.Value);
-        Assert.Equal(9, consumed);
+        await Assert.That(success).IsTrue();
+        await Assert.That(result.Message.Value).IsEqualTo("Hello");
+        await Assert.That(consumed).IsEqualTo(9);
     }
 
     #endregion
@@ -861,111 +878,111 @@ public class BinaryParsableTests
 
     #region New String Attribute Tests
 
-    [Fact]
-    public void StringVarIntAttr_ParsesVarIntPrefixedString()
+    [Test]
+    public async Task StringVarIntAttr_ParsesVarIntPrefixedString()
     {
         // Arrange: VarInt length (5) + "Hello" UTF-8
         byte[] data = [0x05, 0x48, 0x65, 0x6C, 0x6C, 0x6F];
 
         // Act
-        bool success = StringVarIntAttrTestStruct.TryParse(data, out var result, out int consumed);
+        bool success = StringVarIntAttrTestStruct.TryParse(data, out StringVarIntAttrTestStruct result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal("Hello", result.Message);
-        Assert.Equal(6, consumed);
+        await Assert.That(success).IsTrue();
+        await Assert.That(result.Message).IsEqualTo("Hello");
+        await Assert.That(consumed).IsEqualTo(6);
     }
 
-    [Fact]
-    public void StringBE2Attr_ParsesBigEndianLengthPrefixedString()
+    [Test]
+    public async Task StringBE2Attr_ParsesBigEndianLengthPrefixedString()
     {
         // Arrange: 2-byte BE length (5) + "Hello" UTF-8
         byte[] data = [0x00, 0x05, 0x48, 0x65, 0x6C, 0x6C, 0x6F];
 
         // Act
-        bool success = StringBE2AttrTestStruct.TryParse(data, out var result, out int consumed);
+        bool success = StringBE2AttrTestStruct.TryParse(data, out StringBE2AttrTestStruct result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal("Hello", result.Message);
-        Assert.Equal(7, consumed);
+        await Assert.That(success).IsTrue();
+        await Assert.That(result.Message).IsEqualTo("Hello");
+        await Assert.That(consumed).IsEqualTo(7);
     }
 
-    [Fact]
-    public void StringLE2Attr_ParsesLittleEndianLengthPrefixedString()
+    [Test]
+    public async Task StringLE2Attr_ParsesLittleEndianLengthPrefixedString()
     {
         // Arrange: 2-byte LE length (5) + "Hello" UTF-8
         byte[] data = [0x05, 0x00, 0x48, 0x65, 0x6C, 0x6C, 0x6F];
 
         // Act
-        bool success = StringLE2AttrTestStruct.TryParse(data, out var result, out int consumed);
+        bool success = StringLE2AttrTestStruct.TryParse(data, out StringLE2AttrTestStruct result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal("Hello", result.Message);
-        Assert.Equal(7, consumed);
+        await Assert.That(success).IsTrue();
+        await Assert.That(result.Message).IsEqualTo("Hello");
+        await Assert.That(consumed).IsEqualTo(7);
     }
 
-    [Fact]
-    public void StringNullTermAttr_ParsesNullTerminatedString()
+    [Test]
+    public async Task StringNullTermAttr_ParsesNullTerminatedString()
     {
         // Arrange: "Hello" + null byte
         byte[] data = [0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x00];
 
         // Act
-        bool success = StringNullTermAttrTestStruct.TryParse(data, out var result, out int consumed);
+        bool success = StringNullTermAttrTestStruct.TryParse(data, out StringNullTermAttrTestStruct result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal("Hello", result.Message);
-        Assert.Equal(6, consumed);
+        await Assert.That(success).IsTrue();
+        await Assert.That(result.Message).IsEqualTo("Hello");
+        await Assert.That(consumed).IsEqualTo(6);
     }
 
-    [Fact]
-    public void StringFixedAttr_ParsesFixedLengthString()
+    [Test]
+    public async Task StringFixedAttr_ParsesFixedLengthString()
     {
         // Arrange: "Hello" padded to 8 bytes
         byte[] data = [0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x00, 0x00, 0x00];
 
         // Act
-        bool success = StringFixedAttrTestStruct.TryParse(data, out var result, out int consumed);
+        bool success = StringFixedAttrTestStruct.TryParse(data, out StringFixedAttrTestStruct result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal("Hello", result.Message);
-        Assert.Equal(8, consumed);
+        await Assert.That(success).IsTrue();
+        await Assert.That(result.Message).IsEqualTo("Hello");
+        await Assert.That(consumed).IsEqualTo(8);
     }
 
-    [Fact]
-    public void StringFromField_ParsesStringWithLengthFromField()
+    [Test]
+    public async Task StringFromField_ParsesStringWithLengthFromField()
     {
         // Arrange: 1-byte length (5) + "Hello" UTF-8
         byte[] data = [0x05, 0x48, 0x65, 0x6C, 0x6C, 0x6F];
 
         // Act
-        bool success = StringFromFieldTestStruct.TryParse(data, out var result, out int consumed);
+        bool success = StringFromFieldTestStruct.TryParse(data, out StringFromFieldTestStruct result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal(5, result.NameLength);
-        Assert.Equal("Hello", result.Name);
-        Assert.Equal(6, consumed);
+        await Assert.That(success).IsTrue();
+        await Assert.That((int)result.NameLength).IsEqualTo(5);
+        await Assert.That(result.Name).IsEqualTo("Hello");
+        await Assert.That(consumed).IsEqualTo(6);
     }
 
-    [Fact]
-    public void StringFromFieldBE_ParsesStringWithLengthFromBEField()
+    [Test]
+    public async Task StringFromFieldBE_ParsesStringWithLengthFromBEField()
     {
         // Arrange: 2-byte BE length (5) + "Hello" UTF-8
         byte[] data = [0x00, 0x05, 0x48, 0x65, 0x6C, 0x6C, 0x6F];
 
         // Act
-        bool success = StringFromFieldBETestStruct.TryParse(data, out var result, out int consumed);
+        bool success = StringFromFieldBETestStruct.TryParse(data, out StringFromFieldBETestStruct result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal(5, result.MessageLength.Value);
-        Assert.Equal("Hello", result.Message);
-        Assert.Equal(7, consumed);
+        await Assert.That(success).IsTrue();
+        await Assert.That((int)result.MessageLength.Value).IsEqualTo(5);
+        await Assert.That(result.Message).IsEqualTo("Hello");
+        await Assert.That(consumed).IsEqualTo(7);
     }
 
     #endregion
@@ -976,114 +993,170 @@ public class BinaryParsableTests
 
     #region Byte Array Attribute Tests
 
-    [Fact]
-    public void ByteArrayVarInt_ParsesVarIntPrefixedArray()
+    [Test]
+    public async Task ByteArrayVarInt_ParsesVarIntPrefixedArray()
     {
         // Arrange: VarInt length (4) + data bytes
         byte[] data = [0x04, 0xAA, 0xBB, 0xCC, 0xDD];
 
         // Act
-        bool success = ByteArrayVarIntTestStruct.TryParse(data, out var result, out int consumed);
+        bool success = ByteArrayVarIntTestStruct.TryParse(data, out ByteArrayVarIntTestStruct result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal([0xAA, 0xBB, 0xCC, 0xDD], result.Data);
-        Assert.Equal(5, consumed);
+        await Assert.That(success).IsTrue();
+        await Assert.That(result.Data).IsEquivalentTo((byte[])[0xAA, 0xBB, 0xCC, 0xDD]);
+        await Assert.That(consumed).IsEqualTo(5);
     }
 
-    [Fact]
-    public void ByteArrayBE2_ParsesBigEndianLengthPrefixedArray()
+    [Test]
+    public async Task ByteArrayBE2_ParsesBigEndianLengthPrefixedArray()
     {
         // Arrange: 2-byte BE length (4) + data bytes
         byte[] data = [0x00, 0x04, 0xAA, 0xBB, 0xCC, 0xDD];
 
         // Act
-        bool success = ByteArrayBE2TestStruct.TryParse(data, out var result, out int consumed);
+        bool success = ByteArrayBE2TestStruct.TryParse(data, out ByteArrayBE2TestStruct result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal([0xAA, 0xBB, 0xCC, 0xDD], result.Data);
-        Assert.Equal(6, consumed);
+        await Assert.That(success).IsTrue();
+        await Assert.That(result.Data).IsEquivalentTo((byte[])[0xAA, 0xBB, 0xCC, 0xDD]);
+        await Assert.That(consumed).IsEqualTo(6);
     }
 
-    [Fact]
-    public void ByteArrayLE4_ParsesLittleEndianLengthPrefixedArray()
+    [Test]
+    public async Task ByteArrayLE4_ParsesLittleEndianLengthPrefixedArray()
     {
         // Arrange: 4-byte LE length (4) + data bytes
         byte[] data = [0x04, 0x00, 0x00, 0x00, 0xAA, 0xBB, 0xCC, 0xDD];
 
         // Act
-        bool success = ByteArrayLE4TestStruct.TryParse(data, out var result, out int consumed);
+        bool success = ByteArrayLE4TestStruct.TryParse(data, out ByteArrayLE4TestStruct result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal([0xAA, 0xBB, 0xCC, 0xDD], result.Data);
-        Assert.Equal(8, consumed);
+        await Assert.That(success).IsTrue();
+        await Assert.That(result.Data).IsEquivalentTo((byte[])[0xAA, 0xBB, 0xCC, 0xDD]);
+        await Assert.That(consumed).IsEqualTo(8);
     }
 
-    [Fact]
-    public void ByteArrayFromField_ParsesArrayWithLengthFromField()
+    [Test]
+    public async Task ByteArrayFromField_ParsesArrayWithLengthFromField()
     {
         // Arrange: 2-byte BE length (4) + data bytes
         byte[] data = [0x00, 0x04, 0xAA, 0xBB, 0xCC, 0xDD];
 
         // Act
-        bool success = ByteArrayFromFieldTestStruct.TryParse(data, out var result, out int consumed);
+        bool success = ByteArrayFromFieldTestStruct.TryParse(data, out ByteArrayFromFieldTestStruct result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal(4, result.DataLength.Value);
-        Assert.Equal([0xAA, 0xBB, 0xCC, 0xDD], result.Data);
-        Assert.Equal(6, consumed);
+        await Assert.That(success).IsTrue();
+        await Assert.That((int)result.DataLength.Value).IsEqualTo(4);
+        await Assert.That(result.Data).IsEquivalentTo((byte[])[0xAA, 0xBB, 0xCC, 0xDD]);
+        await Assert.That(consumed).IsEqualTo(6);
     }
 
-    [Fact]
-    public void MemoryVarInt_ParsesVarIntPrefixedMemory()
+    [Test]
+    public async Task MemoryVarInt_ParsesVarIntPrefixedMemory()
     {
         // Arrange: VarInt length (4) + data bytes
         byte[] data = [0x04, 0xAA, 0xBB, 0xCC, 0xDD];
 
         // Act
-        bool success = MemoryVarIntTestStruct.TryParse(data, out var result, out int consumed);
+        bool success = MemoryVarIntTestStruct.TryParse(data, out MemoryVarIntTestStruct result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal(4, result.Data.Length);
-        Assert.Equal([0xAA, 0xBB, 0xCC, 0xDD], result.Data.ToArray());
-        Assert.Equal(5, consumed);
+        await Assert.That(success).IsTrue();
+        await Assert.That(result.Data.Length).IsEqualTo(4);
+        await Assert.That(result.Data.ToArray()).IsEquivalentTo((byte[])[0xAA, 0xBB, 0xCC, 0xDD]);
+        await Assert.That(consumed).IsEqualTo(5);
     }
 
-    [Fact]
-    public void ReadOnlyMemoryBE2_ParsesBigEndianLengthPrefixedMemory()
+    [Test]
+    public async Task ReadOnlyMemoryBE2_ParsesBigEndianLengthPrefixedMemory()
     {
         // Arrange: 2-byte BE length (4) + data bytes
         byte[] data = [0x00, 0x04, 0xAA, 0xBB, 0xCC, 0xDD];
 
         // Act
-        bool success = ReadOnlyMemoryBE2TestStruct.TryParse(data, out var result, out int consumed);
+        bool success = ReadOnlyMemoryBE2TestStruct.TryParse(data, out ReadOnlyMemoryBE2TestStruct result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal(4, result.Data.Length);
-        Assert.Equal([0xAA, 0xBB, 0xCC, 0xDD], result.Data.ToArray());
-        Assert.Equal(6, consumed);
+        await Assert.That(success).IsTrue();
+        await Assert.That(result.Data.Length).IsEqualTo(4);
+        await Assert.That(result.Data.ToArray()).IsEquivalentTo((byte[])[0xAA, 0xBB, 0xCC, 0xDD]);
+        await Assert.That(consumed).IsEqualTo(6);
     }
 
-    [Fact]
-    public void MemoryFromField_ParsesMemoryWithLengthFromField()
+    [Test]
+    public async Task MemoryFromField_ParsesMemoryWithLengthFromField()
     {
         // Arrange: 1-byte length (4) + data bytes
         byte[] data = [0x04, 0xAA, 0xBB, 0xCC, 0xDD];
 
         // Act
-        bool success = MemoryFromFieldTestStruct.TryParse(data, out var result, out int consumed);
+        bool success = MemoryFromFieldTestStruct.TryParse(data, out MemoryFromFieldTestStruct result, out int consumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal(4, result.DataSize);
-        Assert.Equal(4, result.Data.Length);
-        Assert.Equal([0xAA, 0xBB, 0xCC, 0xDD], result.Data.ToArray());
-        Assert.Equal(5, consumed);
+        await Assert.That(success).IsTrue();
+        await Assert.That((int)result.DataSize).IsEqualTo(4);
+        await Assert.That(result.Data.Length).IsEqualTo(4);
+        await Assert.That(result.Data.ToArray()).IsEquivalentTo((byte[])[0xAA, 0xBB, 0xCC, 0xDD]);
+        await Assert.That(consumed).IsEqualTo(5);
+    }
+
+    #endregion
+
+    // ========================================================================
+    // MIXED VARIABLE/FIXED PARSING TESTS
+    // ========================================================================
+    #region Mixed Variable/Fixed Parsing
+
+    [Test]
+    public async Task VarIntThenFixedStruct_ParsesCorrectly()
+    {
+        // Arrange: VarInt=42 (single byte 0x2A), U32BE=0x01020304, U16BE=0xABCD
+        byte[] data = [0x2A, 0x01, 0x02, 0x03, 0x04, 0xAB, 0xCD];
+
+        // Act
+        bool success = VarIntThenFixedStruct.TryParse(data, out VarIntThenFixedStruct result, out int consumed);
+
+        // Assert
+        await Assert.That(success).IsTrue();
+        await Assert.That(consumed).IsEqualTo(7);
+        await Assert.That(result.Count.Value).IsEqualTo(42UL);
+        await Assert.That(result.Value.Value).IsEqualTo(0x01020304u);
+        await Assert.That((int)result.Flags.Value).IsEqualTo(0xABCD);
+    }
+
+    [Test]
+    public async Task StringThenFixedStruct_ParsesCorrectly()
+    {
+        // Arrange: VarInt-length=2, "hi" (0x68 0x69), U32BE=0xDEADBEEF
+        byte[] data = [0x02, 0x68, 0x69, 0xDE, 0xAD, 0xBE, 0xEF];
+
+        // Act
+        bool success = StringThenFixedStruct.TryParse(data, out StringThenFixedStruct result, out int consumed);
+
+        // Assert
+        await Assert.That(success).IsTrue();
+        await Assert.That(consumed).IsEqualTo(7);
+        await Assert.That(result.Label).IsEqualTo("hi");
+        await Assert.That(result.Id.Value).IsEqualTo(0xDEADBEEFu);
+    }
+
+    [Test]
+    public async Task FixedBEStringStruct_ParsesCorrectly()
+    {
+        // Arrange: 2-byte BE length=3, "abc" (0x61 0x62 0x63), U16BE=0x1234
+        byte[] data = [0x00, 0x03, 0x61, 0x62, 0x63, 0x12, 0x34];
+
+        // Act
+        bool success = FixedBEStringStruct.TryParse(data, out FixedBEStringStruct result, out int consumed);
+
+        // Assert
+        await Assert.That(success).IsTrue();
+        await Assert.That(consumed).IsEqualTo(7);
+        await Assert.That(result.Content).IsEqualTo("abc");
+        await Assert.That((int)result.Crc.Value).IsEqualTo(0x1234);
     }
 
     #endregion
@@ -1380,68 +1453,75 @@ public readonly partial struct MemoryFromFieldTestStruct
 /// <summary>
 /// Tests for VarInt IBinaryParsable implementation.
 /// </summary>
-public class VarIntTests
+public sealed class VarIntTests
 {
-    [Theory]
-    [InlineData(0UL, new byte[] { 0x00 })]
-    [InlineData(127UL, new byte[] { 0x7F })]
-    [InlineData(128UL, new byte[] { 0x80, 0x01 })]
-    [InlineData(300UL, new byte[] { 0xAC, 0x02 })]
-    [InlineData(16383UL, new byte[] { 0xFF, 0x7F })]
-    [InlineData(16384UL, new byte[] { 0x80, 0x80, 0x01 })]
-    [InlineData(2097151UL, new byte[] { 0xFF, 0xFF, 0x7F })]                       // 3-byte max (2^21 - 1)
-    [InlineData(2097152UL, new byte[] { 0x80, 0x80, 0x80, 0x01 })]                 // 4-byte min (2^21)
-    [InlineData(268435455UL, new byte[] { 0xFF, 0xFF, 0xFF, 0x7F })]               // 4-byte max (2^28 - 1)
-    [InlineData(268435456UL, new byte[] { 0x80, 0x80, 0x80, 0x80, 0x01 })]         // 5-byte min (2^28)
-    [InlineData(34359738367UL, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0x7F })]       // 5-byte max (2^35 - 1)
-    public void VarInt_TryParse_ParsesCorrectly(ulong expected, byte[] data)
+    [Test]
+    [Arguments(0UL, new byte[] { 0x00 })]
+    [Arguments(127UL, new byte[] { 0x7F })]
+    [Arguments(128UL, new byte[] { 0x80, 0x01 })]
+    [Arguments(300UL, new byte[] { 0xAC, 0x02 })]
+    [Arguments(16383UL, new byte[] { 0xFF, 0x7F })]
+    [Arguments(16384UL, new byte[] { 0x80, 0x80, 0x01 })]
+    [Arguments(2097151UL, new byte[] { 0xFF, 0xFF, 0x7F })]                       // 3-byte max (2^21 - 1)
+    [Arguments(2097152UL, new byte[] { 0x80, 0x80, 0x80, 0x01 })]                 // 4-byte min (2^21)
+    [Arguments(268435455UL, new byte[] { 0xFF, 0xFF, 0xFF, 0x7F })]               // 4-byte max (2^28 - 1)
+    [Arguments(268435456UL, new byte[] { 0x80, 0x80, 0x80, 0x80, 0x01 })]         // 5-byte min (2^28)
+    [Arguments(34359738367UL, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0x7F })]       // 5-byte max (2^35 - 1)
+    public async Task VarInt_TryParse_ParsesCorrectly(ulong expected, byte[] data)
     {
         // Act
         bool success = VarInt.TryParse(data, out VarInt value, out int bytesConsumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal(expected, value.Value);
-        Assert.Equal(data.Length, bytesConsumed);
+        await Assert.That(success).IsTrue();
+        await Assert.That(value.Value).IsEqualTo(expected);
+        await Assert.That(bytesConsumed).IsEqualTo(data.Length);
     }
 
-    [Fact]
-    public void VarInt_TryFormat_WritesCorrectly()
+    [Test]
+    public async Task VarInt_TryFormat_WritesCorrectly()
     {
         // Arrange
         VarInt varInt = new(300);
-        Span<byte> buffer = stackalloc byte[10];
+        bool success;
+        int bytesWritten;
+        byte byte0, byte1;
+        {
+            Span<byte> buffer = stackalloc byte[10];
 
-        // Act
-        bool success = varInt.TryFormat(buffer, out int bytesWritten, default, null);
+            // Act
+            success = varInt.TryFormat(buffer, out bytesWritten, default, null);
+            byte0 = buffer[0];
+            byte1 = buffer[1];
+        }
 
         // Assert
-        Assert.True(success);
-        Assert.Equal(2, bytesWritten);
-        Assert.Equal(0xAC, buffer[0]);
-        Assert.Equal(0x02, buffer[1]);
+        await Assert.That(success).IsTrue();
+        await Assert.That(bytesWritten).IsEqualTo(2);
+        await Assert.That((int)byte0).IsEqualTo(0xAC);
+        await Assert.That((int)byte1).IsEqualTo(0x02);
     }
 
-    [Fact]
-    public void VarInt_EncodedSize_ReturnsCorrectSize()
+    [Test]
+    public async Task VarInt_EncodedSize_ReturnsCorrectSize()
     {
         // Arrange & Act & Assert
-        Assert.Equal(1, new VarInt(0).EncodedSize);
-        Assert.Equal(1, new VarInt(127).EncodedSize);              // 1-byte max
-        Assert.Equal(2, new VarInt(128).EncodedSize);              // 2-byte min
-        Assert.Equal(2, new VarInt(16383).EncodedSize);            // 2-byte max
-        Assert.Equal(3, new VarInt(16384).EncodedSize);            // 3-byte min
-        Assert.Equal(3, new VarInt(2097151).EncodedSize);          // 3-byte max (2^21 - 1)
-        Assert.Equal(4, new VarInt(2097152).EncodedSize);          // 4-byte min (2^21)
-        Assert.Equal(4, new VarInt(268435455).EncodedSize);        // 4-byte max (2^28 - 1)
-        Assert.Equal(5, new VarInt(268435456).EncodedSize);        // 5-byte min (2^28)
-        Assert.Equal(5, new VarInt(34359738367).EncodedSize);      // 5-byte max (2^35 - 1)
-        Assert.Equal(10, new VarInt(ulong.MaxValue).EncodedSize);  // maximum: 10 bytes
+        await Assert.That(new VarInt(0).EncodedSize).IsEqualTo(1);
+        await Assert.That(new VarInt(127).EncodedSize).IsEqualTo(1);              // 1-byte max
+        await Assert.That(new VarInt(128).EncodedSize).IsEqualTo(2);              // 2-byte min
+        await Assert.That(new VarInt(16383).EncodedSize).IsEqualTo(2);            // 2-byte max
+        await Assert.That(new VarInt(16384).EncodedSize).IsEqualTo(3);            // 3-byte min
+        await Assert.That(new VarInt(2097151).EncodedSize).IsEqualTo(3);          // 3-byte max (2^21 - 1)
+        await Assert.That(new VarInt(2097152).EncodedSize).IsEqualTo(4);          // 4-byte min (2^21)
+        await Assert.That(new VarInt(268435455).EncodedSize).IsEqualTo(4);        // 4-byte max (2^28 - 1)
+        await Assert.That(new VarInt(268435456).EncodedSize).IsEqualTo(5);        // 5-byte min (2^28)
+        await Assert.That(new VarInt(34359738367).EncodedSize).IsEqualTo(5);      // 5-byte max (2^35 - 1)
+        await Assert.That(new VarInt(ulong.MaxValue).EncodedSize).IsEqualTo(10);  // maximum: 10 bytes
     }
 
     /// <summary>Verifies VarInt roundtrip for large / extreme values including ulong.MaxValue.</summary>
-    [Fact]
-    public void VarInt_RoundTrip_ExtremeValues()
+    [Test]
+    public async Task VarInt_RoundTrip_ExtremeValues()
     {
         ulong[] testValues =
         [
@@ -1459,18 +1539,18 @@ public class VarIntTests
 
             // Write
             bool writeSuccess = original.TryFormat(buffer, out int bytesWritten, default, null);
-            Assert.True(writeSuccess, $"Failed to write {expected}");
+            await Assert.That(writeSuccess).IsTrue().Because($"Failed to write {expected}");
 
             // Read
             bool readSuccess = VarInt.TryParse(buffer[..bytesWritten], out VarInt parsed, out int bytesConsumed);
-            Assert.True(readSuccess, $"Failed to read {expected}");
-            Assert.Equal(expected, parsed.Value);
-            Assert.Equal(bytesWritten, bytesConsumed);
+            await Assert.That(readSuccess).IsTrue().Because($"Failed to read {expected}");
+            await Assert.That(parsed.Value).IsEqualTo(expected);
+            await Assert.That(bytesConsumed).IsEqualTo(bytesWritten);
         }
     }
 
-    [Fact]
-    public void VarInt_TryParse_InsufficientData_ReturnsFalse()
+    [Test]
+    public async Task VarInt_TryParse_InsufficientData_ReturnsFalse()
     {
         // Arrange: Continuation bit set but no more data
         byte[] data = [0x80];
@@ -1479,12 +1559,12 @@ public class VarIntTests
         bool success = VarInt.TryParse(data, out VarInt value, out int bytesConsumed);
 
         // Assert
-        Assert.False(success);
-        Assert.Equal(0, bytesConsumed);
+        await Assert.That(success).IsFalse();
+        await Assert.That(bytesConsumed).IsEqualTo(0);
     }
 
-    [Fact]
-    public void VarInt_TryGetSerializedSize_Instance_ReturnsEncodedSize()
+    [Test]
+    public async Task VarInt_TryGetSerializedSize_Instance_ReturnsEncodedSize()
     {
         // VarInt instance TryGetSerializedSize returns the actual encoded size
         VarInt varInt0 = new(0);
@@ -1492,31 +1572,31 @@ public class VarIntTests
         VarInt varInt128 = new(128);
         VarInt varInt16383 = new(16383);
 
-        Assert.True(varInt0.TryGetSerializedSize(out int size0));
-        Assert.Equal(1, size0);
+        await Assert.That(varInt0.TryGetSerializedSize(out int size0)).IsTrue();
+        await Assert.That(size0).IsEqualTo(1);
 
-        Assert.True(varInt127.TryGetSerializedSize(out int size127));
-        Assert.Equal(1, size127);
+        await Assert.That(varInt127.TryGetSerializedSize(out int size127)).IsTrue();
+        await Assert.That(size127).IsEqualTo(1);
 
-        Assert.True(varInt128.TryGetSerializedSize(out int size128));
-        Assert.Equal(2, size128);
+        await Assert.That(varInt128.TryGetSerializedSize(out int size128)).IsTrue();
+        await Assert.That(size128).IsEqualTo(2);
 
-        Assert.True(varInt16383.TryGetSerializedSize(out int size16383));
-        Assert.Equal(2, size16383);
+        await Assert.That(varInt16383.TryGetSerializedSize(out int size16383)).IsTrue();
+        await Assert.That(size16383).IsEqualTo(2);
     }
 
-    [Fact]
-    public void VarInt_ToString_ReturnsDecimalString()
+    [Test]
+    public async Task VarInt_ToString_ReturnsDecimalString()
     {
         // Arrange
         VarInt varInt = new(12345);
 
         // Act & Assert
-        Assert.Equal("12345", varInt.ToString());
+        await Assert.That(varInt.ToString()).IsEqualTo("12345");
     }
 
-    [Fact]
-    public void VarInt_ImplicitConversions_Work()
+    [Test]
+    public async Task VarInt_ImplicitConversions_Work()
     {
         // Arrange & Act
         VarInt fromUlong = 12345UL;
@@ -1525,99 +1605,105 @@ public class VarIntTests
         VarInt fromByte = (byte)123;
 
         // Assert
-        Assert.Equal(12345UL, fromUlong.Value);
-        Assert.Equal(12345UL, fromUint.Value);
-        Assert.Equal(12345UL, fromUshort.Value);
-        Assert.Equal(123UL, fromByte.Value);
+        await Assert.That(fromUlong.Value).IsEqualTo(12345UL);
+        await Assert.That(fromUint.Value).IsEqualTo(12345UL);
+        await Assert.That(fromUshort.Value).IsEqualTo(12345UL);
+        await Assert.That(fromByte.Value).IsEqualTo(123UL);
     }
 }
 
 /// <summary>
 /// Tests for VarIntZigZag IBinaryParsable implementation.
 /// </summary>
-public class VarIntZigZagTests
+public sealed class VarIntZigZagTests
 {
-    [Theory]
-    [InlineData(0L, new byte[] { 0x00 })]
-    [InlineData(-1L, new byte[] { 0x01 })]
-    [InlineData(1L, new byte[] { 0x02 })]
-    [InlineData(-2L, new byte[] { 0x03 })]
-    [InlineData(2L, new byte[] { 0x04 })]
-    [InlineData(-64L, new byte[] { 0x7F })]
-    [InlineData(64L, new byte[] { 0x80, 0x01 })]
-    public void VarIntZigZag_TryParse_ParsesCorrectly(long expected, byte[] data)
+    [Test]
+    [Arguments(0L, new byte[] { 0x00 })]
+    [Arguments(-1L, new byte[] { 0x01 })]
+    [Arguments(1L, new byte[] { 0x02 })]
+    [Arguments(-2L, new byte[] { 0x03 })]
+    [Arguments(2L, new byte[] { 0x04 })]
+    [Arguments(-64L, new byte[] { 0x7F })]
+    [Arguments(64L, new byte[] { 0x80, 0x01 })]
+    public async Task VarIntZigZag_TryParse_ParsesCorrectly(long expected, byte[] data)
     {
         // Act
         bool success = VarIntZigZag.TryParse(data, out VarIntZigZag value, out int bytesConsumed);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal(expected, value.Value);
-        Assert.Equal(data.Length, bytesConsumed);
+        await Assert.That(success).IsTrue();
+        await Assert.That(value.Value).IsEqualTo(expected);
+        await Assert.That(bytesConsumed).IsEqualTo(data.Length);
     }
 
-    [Fact]
-    public void VarIntZigZag_TryFormat_WritesCorrectly()
+    [Test]
+    public async Task VarIntZigZag_TryFormat_WritesCorrectly()
     {
         // Arrange
         VarIntZigZag varInt = new(-1);
-        Span<byte> buffer = stackalloc byte[10];
+        bool success;
+        int bytesWritten;
+        byte byte0;
+        {
+            Span<byte> buffer = stackalloc byte[10];
 
-        // Act
-        bool success = varInt.TryFormat(buffer, out int bytesWritten, default, null);
+            // Act
+            success = varInt.TryFormat(buffer, out bytesWritten, default, null);
+            byte0 = buffer[0];
+        }
 
         // Assert
-        Assert.True(success);
-        Assert.Equal(1, bytesWritten);
-        Assert.Equal(0x01, buffer[0]);
+        await Assert.That(success).IsTrue();
+        await Assert.That(bytesWritten).IsEqualTo(1);
+        await Assert.That((int)byte0).IsEqualTo(0x01);
     }
 
-    [Fact]
-    public void VarIntZigZag_ZigZagEncoded_ReturnsCorrectValue()
+    [Test]
+    public async Task VarIntZigZag_ZigZagEncoded_ReturnsCorrectValue()
     {
         // ZigZag encoding: 0 → 0, -1 → 1, 1 → 2, -2 → 3, 2 → 4
-        Assert.Equal(0UL, new VarIntZigZag(0).ZigZagEncoded);
-        Assert.Equal(1UL, new VarIntZigZag(-1).ZigZagEncoded);
-        Assert.Equal(2UL, new VarIntZigZag(1).ZigZagEncoded);
-        Assert.Equal(3UL, new VarIntZigZag(-2).ZigZagEncoded);
-        Assert.Equal(4UL, new VarIntZigZag(2).ZigZagEncoded);
+        await Assert.That(new VarIntZigZag(0).ZigZagEncoded).IsEqualTo(0UL);
+        await Assert.That(new VarIntZigZag(-1).ZigZagEncoded).IsEqualTo(1UL);
+        await Assert.That(new VarIntZigZag(1).ZigZagEncoded).IsEqualTo(2UL);
+        await Assert.That(new VarIntZigZag(-2).ZigZagEncoded).IsEqualTo(3UL);
+        await Assert.That(new VarIntZigZag(2).ZigZagEncoded).IsEqualTo(4UL);
     }
 
-    [Fact]
-    public void VarIntZigZag_DecodeZigZag_DecodesCorrectly()
+    [Test]
+    public async Task VarIntZigZag_DecodeZigZag_DecodesCorrectly()
     {
         // Arrange & Act & Assert
-        Assert.Equal(0L, VarIntZigZag.DecodeZigZag(0));
-        Assert.Equal(-1L, VarIntZigZag.DecodeZigZag(1));
-        Assert.Equal(1L, VarIntZigZag.DecodeZigZag(2));
-        Assert.Equal(-2L, VarIntZigZag.DecodeZigZag(3));
-        Assert.Equal(2L, VarIntZigZag.DecodeZigZag(4));
+        await Assert.That(VarIntZigZag.DecodeZigZag(0)).IsEqualTo(0L);
+        await Assert.That(VarIntZigZag.DecodeZigZag(1)).IsEqualTo(-1L);
+        await Assert.That(VarIntZigZag.DecodeZigZag(2)).IsEqualTo(1L);
+        await Assert.That(VarIntZigZag.DecodeZigZag(3)).IsEqualTo(-2L);
+        await Assert.That(VarIntZigZag.DecodeZigZag(4)).IsEqualTo(2L);
     }
 
-    [Fact]
-    public void VarIntZigZag_EncodedSize_ReturnsCorrectSize()
+    [Test]
+    public async Task VarIntZigZag_EncodedSize_ReturnsCorrectSize()
     {
         // Arrange & Act & Assert
-        Assert.Equal(1, new VarIntZigZag(0).EncodedSize);
-        Assert.Equal(1, new VarIntZigZag(-1).EncodedSize);
-        Assert.Equal(1, new VarIntZigZag(-64).EncodedSize);         // 1-byte max negative
-        Assert.Equal(1, new VarIntZigZag(63).EncodedSize);          // 1-byte max positive
-        Assert.Equal(2, new VarIntZigZag(64).EncodedSize);          // 2-byte min
-        Assert.Equal(2, new VarIntZigZag(-65).EncodedSize);         // 2-byte min negative
-        Assert.Equal(2, new VarIntZigZag(8191).EncodedSize);        // 2-byte max positive
-        Assert.Equal(2, new VarIntZigZag(-8192).EncodedSize);       // 2-byte max negative
-        Assert.Equal(3, new VarIntZigZag(8192).EncodedSize);        // 3-byte min
-        Assert.Equal(3, new VarIntZigZag(-8193).EncodedSize);       // 3-byte min negative
-        Assert.Equal(3, new VarIntZigZag(1048575).EncodedSize);     // 3-byte max positive
-        Assert.Equal(3, new VarIntZigZag(-1048576).EncodedSize);    // 3-byte max negative
-        Assert.Equal(4, new VarIntZigZag(1048576).EncodedSize);     // 4-byte min
-        Assert.Equal(4, new VarIntZigZag(-1048577).EncodedSize);    // 4-byte min negative
-        Assert.Equal(10, new VarIntZigZag(long.MaxValue).EncodedSize);
-        Assert.Equal(10, new VarIntZigZag(long.MinValue).EncodedSize);
+        await Assert.That(new VarIntZigZag(0).EncodedSize).IsEqualTo(1);
+        await Assert.That(new VarIntZigZag(-1).EncodedSize).IsEqualTo(1);
+        await Assert.That(new VarIntZigZag(-64).EncodedSize).IsEqualTo(1);         // 1-byte max negative
+        await Assert.That(new VarIntZigZag(63).EncodedSize).IsEqualTo(1);          // 1-byte max positive
+        await Assert.That(new VarIntZigZag(64).EncodedSize).IsEqualTo(2);          // 2-byte min
+        await Assert.That(new VarIntZigZag(-65).EncodedSize).IsEqualTo(2);         // 2-byte min negative
+        await Assert.That(new VarIntZigZag(8191).EncodedSize).IsEqualTo(2);        // 2-byte max positive
+        await Assert.That(new VarIntZigZag(-8192).EncodedSize).IsEqualTo(2);       // 2-byte max negative
+        await Assert.That(new VarIntZigZag(8192).EncodedSize).IsEqualTo(3);        // 3-byte min
+        await Assert.That(new VarIntZigZag(-8193).EncodedSize).IsEqualTo(3);       // 3-byte min negative
+        await Assert.That(new VarIntZigZag(1048575).EncodedSize).IsEqualTo(3);     // 3-byte max positive
+        await Assert.That(new VarIntZigZag(-1048576).EncodedSize).IsEqualTo(3);    // 3-byte max negative
+        await Assert.That(new VarIntZigZag(1048576).EncodedSize).IsEqualTo(4);     // 4-byte min
+        await Assert.That(new VarIntZigZag(-1048577).EncodedSize).IsEqualTo(4);    // 4-byte min negative
+        await Assert.That(new VarIntZigZag(long.MaxValue).EncodedSize).IsEqualTo(10);
+        await Assert.That(new VarIntZigZag(long.MinValue).EncodedSize).IsEqualTo(10);
     }
 
-    [Fact]
-    public void VarIntZigZag_TryParse_InsufficientData_ReturnsFalse()
+    [Test]
+    public async Task VarIntZigZag_TryParse_InsufficientData_ReturnsFalse()
     {
         // Arrange: Continuation bit set but no more data
         byte[] data = [0x80];
@@ -1626,22 +1712,22 @@ public class VarIntZigZagTests
         bool success = VarIntZigZag.TryParse(data, out VarIntZigZag value, out int bytesConsumed);
 
         // Assert
-        Assert.False(success);
-        Assert.Equal(0, bytesConsumed);
+        await Assert.That(success).IsFalse();
+        await Assert.That(bytesConsumed).IsEqualTo(0);
     }
 
-    [Fact]
-    public void VarIntZigZag_ToString_ReturnsDecimalString()
+    [Test]
+    public async Task VarIntZigZag_ToString_ReturnsDecimalString()
     {
         // Arrange
         VarIntZigZag varInt = new(-12345);
 
         // Act & Assert
-        Assert.Equal("-12345", varInt.ToString());
+        await Assert.That(varInt.ToString()).IsEqualTo("-12345");
     }
 
-    [Fact]
-    public void VarIntZigZag_ImplicitConversions_Work()
+    [Test]
+    public async Task VarIntZigZag_ImplicitConversions_Work()
     {
         // Arrange & Act
         VarIntZigZag fromLong = -12345L;
@@ -1650,14 +1736,14 @@ public class VarIntZigZagTests
         VarIntZigZag fromSbyte = (sbyte)-123;
 
         // Assert
-        Assert.Equal(-12345L, fromLong.Value);
-        Assert.Equal(-12345L, fromInt.Value);
-        Assert.Equal(-12345L, fromShort.Value);
-        Assert.Equal(-123L, fromSbyte.Value);
+        await Assert.That(fromLong.Value).IsEqualTo(-12345L);
+        await Assert.That(fromInt.Value).IsEqualTo(-12345L);
+        await Assert.That(fromShort.Value).IsEqualTo(-12345L);
+        await Assert.That(fromSbyte.Value).IsEqualTo(-123L);
     }
 
-    [Fact]
-    public void VarIntZigZag_RoundTrip_PreservesValue()
+    [Test]
+    public async Task VarIntZigZag_RoundTrip_PreservesValue()
     {
         // Arrange
         long[] testValues = [0, 1, -1, 63, -64, 64, -65, 8191, -8192, 8192, -8193,
@@ -1675,10 +1761,10 @@ public class VarIntZigZagTests
             bool readSuccess = VarIntZigZag.TryParse(buffer[..bytesWritten], out VarIntZigZag parsed, out int bytesConsumed);
 
             // Assert
-            Assert.True(writeSuccess, $"Failed to write {expected}");
-            Assert.True(readSuccess, $"Failed to read {expected}");
-            Assert.Equal(expected, parsed.Value);
-            Assert.Equal(bytesWritten, bytesConsumed);
+            await Assert.That(writeSuccess).IsTrue().Because($"Failed to write {expected}");
+            await Assert.That(readSuccess).IsTrue().Because($"Failed to read {expected}");
+            await Assert.That(parsed.Value).IsEqualTo(expected);
+            await Assert.That(bytesConsumed).IsEqualTo(bytesWritten);
         }
     }
 }

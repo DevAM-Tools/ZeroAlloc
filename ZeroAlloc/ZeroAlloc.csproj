@@ -41,8 +41,17 @@
       ReferenceOutputAssembly="false" />
   </ItemGroup>
 
-  <ItemGroup Condition="Exists('..\ZeroAlloc.Generator\bin\$(Configuration)\netstandard2.0\ZeroAlloc.Generator.dll')">
-    <None Include="..\ZeroAlloc.Generator\bin\$(Configuration)\netstandard2.0\ZeroAlloc.Generator.dll" Pack="true" PackagePath="analyzers/dotnet/cs/netstandard2.0" Visible="false" />
-  </ItemGroup>
+  <!-- Resolve the generator's actual output path and include it in the NuGet package under analyzers/dotnet/cs.
+       Relies on the ProjectReference above having already built the generator before packing. -->
+  <Target Name="_IncludeGeneratorInPackage" BeforeTargets="_GetPackageFiles">
+    <MSBuild Projects="..\ZeroAlloc.Generator\ZeroAlloc.Generator.csproj"
+             Targets="GetTargetPath"
+             Properties="Configuration=$(Configuration)">
+      <Output TaskParameter="TargetOutputs" ItemName="_GeneratorDll" />
+    </MSBuild>
+    <ItemGroup>
+      <None Include="@(_GeneratorDll)" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    </ItemGroup>
+  </Target>
 
 </Project>

@@ -1,27 +1,4 @@
-/*
-MIT License
-SPDX-License-Identifier: MIT
-
-Copyright (c) 2025 ZeroAlloc Contributors
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
+// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
 namespace ZeroAlloc.Tests;
 
@@ -29,300 +6,357 @@ namespace ZeroAlloc.Tests;
 /// Tests for <see cref="TempStringBuilder"/> and <see cref="TempBytesBuilder"/>.
 /// Covers create, append, clear, seek operations, and disposal behavior.
 /// </summary>
-public class BuilderTests
+public sealed class BuilderTests
 {
     // ========================================================================
     // TEMPSTRINGBUILDER - CREATION AND PROPERTIES
     // ========================================================================
-
-    [Fact]
-    public void TempStringBuilder_Create_ReturnsEmptyBuilder()
+    [Test]
+    public async Task TempStringBuilder_Create_ReturnsEmptyBuilder()
     {
         // Act
-        using TempStringBuilder builder = TempStringBuilder.Create();
+        int length;
+        bool isEmpty;
+        bool capacityPositive;
+        {
+            using TempStringBuilder builder = TempStringBuilder.Create();
+            length = builder.Length;
+            isEmpty = builder.IsEmpty;
+            capacityPositive = builder.Capacity > 0;
+        }
 
         // Assert
-        Assert.Equal(0, builder.Length);
-        Assert.True(builder.IsEmpty);
-        Assert.True(builder.Capacity > 0);
+        await Assert.That(length).IsEqualTo(0);
+        await Assert.That(isEmpty).IsTrue();
+        await Assert.That(capacityPositive).IsTrue();
     }
 
-    [Fact]
-    public void TempStringBuilder_Capacity_IsPositive()
+    [Test]
+    public async Task TempStringBuilder_Capacity_IsPositive()
     {
         // Act
-        using TempStringBuilder builder = TempStringBuilder.Create();
+        int capacity;
+        int remaining;
+        {
+            using TempStringBuilder builder = TempStringBuilder.Create();
+            capacity = builder.Capacity;
+            remaining = builder.Remaining;
+        }
 
         // Assert
-        Assert.True(builder.Capacity > 0);
-        Assert.Equal(builder.Capacity, builder.Remaining);
+        await Assert.That(capacity > 0).IsTrue();
+        await Assert.That(remaining).IsEqualTo(capacity);
     }
 
     // ========================================================================
     // TEMPSTRINGBUILDER - APPEND OPERATIONS
     // ========================================================================
 
-    [Fact]
-    public void TempStringBuilder_AppendChar_IncreasesLength()
+    [Test]
+    public async Task TempStringBuilder_AppendChar_IncreasesLength()
     {
-        // Arrange
-        using TempStringBuilder builder = TempStringBuilder.Create();
-
-        // Act
-        builder.Append('A');
-        builder.Append('B');
-        builder.Append('C');
+        // Arrange & Act
+        int length;
+        string content;
+        {
+            using TempStringBuilder builder = TempStringBuilder.Create();
+            builder.Append('A');
+            builder.Append('B');
+            builder.Append('C');
+            length = builder.Length;
+            content = builder.AsSpan().ToString();
+        }
 
         // Assert
-        Assert.Equal(3, builder.Length);
-        Assert.Equal("ABC", builder.AsSpan().ToString());
+        await Assert.That(length).IsEqualTo(3);
+        await Assert.That(content).IsEqualTo("ABC");
     }
 
-    [Fact]
-    public void TempStringBuilder_AppendString_IncreasesLength()
+    [Test]
+    public async Task TempStringBuilder_AppendString_IncreasesLength()
     {
-        // Arrange
-        using TempStringBuilder builder = TempStringBuilder.Create();
-
-        // Act
-        builder.Append("Hello");
-        builder.Append(" ");
-        builder.Append("World");
+        // Arrange & Act
+        int length;
+        string content;
+        {
+            using TempStringBuilder builder = TempStringBuilder.Create();
+            builder.Append("Hello");
+            builder.Append(" ");
+            builder.Append("World");
+            length = builder.Length;
+            content = builder.AsSpan().ToString();
+        }
 
         // Assert
-        Assert.Equal(11, builder.Length);
-        Assert.Equal("Hello World", builder.AsSpan().ToString());
+        await Assert.That(length).IsEqualTo(11);
+        await Assert.That(content).IsEqualTo("Hello World");
     }
 
-    [Fact]
-    public void TempStringBuilder_AppendSpan_IncreasesLength()
+    [Test]
+    public async Task TempStringBuilder_AppendSpan_IncreasesLength()
     {
-        // Arrange
-        using TempStringBuilder builder = TempStringBuilder.Create();
-        ReadOnlySpan<char> span = "Test".AsSpan();
-
-        // Act
-        builder.Append(span);
+        // Arrange & Act
+        int length;
+        string content;
+        {
+            using TempStringBuilder builder = TempStringBuilder.Create();
+            ReadOnlySpan<char> span = "Test".AsSpan();
+            builder.Append(span);
+            length = builder.Length;
+            content = builder.AsSpan().ToString();
+        }
 
         // Assert
-        Assert.Equal(4, builder.Length);
-        Assert.Equal("Test", builder.AsSpan().ToString());
+        await Assert.That(length).IsEqualTo(4);
+        await Assert.That(content).IsEqualTo("Test");
     }
 
-    [Fact]
-    public void TempStringBuilder_AppendInt_FormatsCorrectly()
+    [Test]
+    public async Task TempStringBuilder_AppendInt_FormatsCorrectly()
     {
-        // Arrange
-        using TempStringBuilder builder = TempStringBuilder.Create();
-
-        // Act
-        builder.Append(12345);
+        // Arrange & Act
+        string content;
+        {
+            using TempStringBuilder builder = TempStringBuilder.Create();
+            builder.Append(12345);
+            content = builder.AsSpan().ToString();
+        }
 
         // Assert
-        Assert.Equal("12345", builder.AsSpan().ToString());
+        await Assert.That(content).IsEqualTo("12345");
     }
 
-    [Fact]
-    public void TempStringBuilder_AppendNegativeInt_FormatsCorrectly()
+    [Test]
+    public async Task TempStringBuilder_AppendNegativeInt_FormatsCorrectly()
     {
-        // Arrange
-        using TempStringBuilder builder = TempStringBuilder.Create();
-
-        // Act
-        builder.Append(-12345);
+        // Arrange & Act
+        string content;
+        {
+            using TempStringBuilder builder = TempStringBuilder.Create();
+            builder.Append(-12345);
+            content = builder.AsSpan().ToString();
+        }
 
         // Assert
-        Assert.Equal("-12345", builder.AsSpan().ToString());
+        await Assert.That(content).IsEqualTo("-12345");
     }
 
-    [Fact]
-    public void TempStringBuilder_AppendDouble_FormatsCorrectly()
+    [Test]
+    public async Task TempStringBuilder_AppendDouble_FormatsCorrectly()
     {
-        // Arrange
-        using TempStringBuilder builder = TempStringBuilder.Create();
-
-        // Act
-        builder.Append(123.456);
+        // Arrange & Act
+        string content;
+        {
+            using TempStringBuilder builder = TempStringBuilder.Create();
+            builder.Append(123.456);
+            content = builder.AsSpan().ToString();
+        }
 
         // Assert
-        Assert.Contains("123", builder.AsSpan().ToString());
-        Assert.Contains("456", builder.AsSpan().ToString());
+        await Assert.That(content).Contains("123");
+        await Assert.That(content).Contains("456");
     }
 
-    [Fact]
-    public void TempStringBuilder_AppendBool_FormatsCorrectly()
+    [Test]
+    public async Task TempStringBuilder_AppendBool_FormatsCorrectly()
     {
-        // Arrange
-        using TempStringBuilder builder = TempStringBuilder.Create();
-
-        // Act
-        builder.Append(true);
-        builder.Append(' ');
-        builder.Append(false);
+        // Arrange & Act
+        string content;
+        {
+            using TempStringBuilder builder = TempStringBuilder.Create();
+            builder.Append(true);
+            builder.Append(' ');
+            builder.Append(false);
+            content = builder.AsSpan().ToString();
+        }
 
         // Assert
-        Assert.Equal("True False", builder.AsSpan().ToString());
+        await Assert.That(content).IsEqualTo("True False");
     }
 
-    [Fact]
-    public void TempStringBuilder_AppendGuid_FormatsCorrectly()
+    [Test]
+    public async Task TempStringBuilder_AppendGuid_FormatsCorrectly()
     {
-        // Arrange
-        using TempStringBuilder builder = TempStringBuilder.Create();
-        Guid guid = Guid.Parse("12345678-1234-1234-1234-123456789abc");
-
-        // Act
-        builder.Append(guid);
+        // Arrange & Act
+        string content;
+        {
+            using TempStringBuilder builder = TempStringBuilder.Create();
+            Guid guid = Guid.Parse("12345678-1234-1234-1234-123456789abc");
+            builder.Append(guid);
+            content = builder.AsSpan().ToString();
+        }
 
         // Assert
-        Assert.Equal("12345678-1234-1234-1234-123456789abc", builder.AsSpan().ToString());
+        await Assert.That(content).IsEqualTo("12345678-1234-1234-1234-123456789abc");
     }
 
-    [Fact]
-    public void TempStringBuilder_AppendNull_DoesNothing()
+    [Test]
+    public async Task TempStringBuilder_AppendNull_DoesNothing()
     {
-        // Arrange
-        using TempStringBuilder builder = TempStringBuilder.Create();
-        string? nullString = null;
-
-        // Act
-        builder.Append(nullString);
+        // Arrange & Act
+        int length;
+        bool isEmpty;
+        {
+            using TempStringBuilder builder = TempStringBuilder.Create();
+            string? nullString = null;
+            builder.Append(nullString);
+            length = builder.Length;
+            isEmpty = builder.IsEmpty;
+        }
 
         // Assert
-        Assert.Equal(0, builder.Length);
-        Assert.True(builder.IsEmpty);
+        await Assert.That(length).IsEqualTo(0);
+        await Assert.That(isEmpty).IsTrue();
     }
 
     // ========================================================================
     // TEMPSTRINGBUILDER - CLEAR AND SEEKBACK
     // ========================================================================
 
-    [Fact]
-    public void TempStringBuilder_Clear_ResetsLength()
+    [Test]
+    public async Task TempStringBuilder_Clear_ResetsLength()
     {
-        // Arrange
-        using TempStringBuilder builder = TempStringBuilder.Create();
-        builder.Append("Hello World");
-
-        // Act
-        builder.Clear();
-
-        // Assert
-        Assert.Equal(0, builder.Length);
-        Assert.True(builder.IsEmpty);
-    }
-
-    [Fact]
-    public void TempStringBuilder_SeekBack_DecreasesLength()
-    {
-        // Arrange
-        using TempStringBuilder builder = TempStringBuilder.Create();
-        builder.Append("Hello World");
-
-        // Act
-        builder.SeekBack(6); // Remove " World"
-
-        // Assert
-        Assert.Equal(5, builder.Length);
-        Assert.Equal("Hello", builder.AsSpan().ToString());
-    }
-
-    [Fact]
-    public void TempStringBuilder_SeekBack_FullLength_Clears()
-    {
-        // Arrange
-        using TempStringBuilder builder = TempStringBuilder.Create();
-        builder.Append("Hello");
-
-        // Act
-        builder.SeekBack(5);
-
-        // Assert
-        Assert.Equal(0, builder.Length);
-        Assert.True(builder.IsEmpty);
-    }
-
-    [Fact]
-    public void TempStringBuilder_SeekBack_Zero_DoesNothing()
-    {
-        // Arrange
-        using TempStringBuilder builder = TempStringBuilder.Create();
-        builder.Append("Hello");
-
-        // Act
-        builder.SeekBack(0);
-
-        // Assert
-        Assert.Equal(5, builder.Length);
-    }
-
-    [Fact]
-    public void TempStringBuilder_SeekBack_TooMuch_ThrowsException()
-    {
-        // Arrange
-        using TempStringBuilder builder = TempStringBuilder.Create();
-        builder.Append("Hi");
-
-        // Act & Assert - use try-catch because ref struct can't be in lambda
-        try
+        // Arrange & Act
+        int length;
+        bool isEmpty;
         {
-            builder.SeekBack(10);
-            Assert.Fail("Expected ArgumentOutOfRangeException");
+            using TempStringBuilder builder = TempStringBuilder.Create();
+            builder.Append("Hello World");
+            builder.Clear();
+            length = builder.Length;
+            isEmpty = builder.IsEmpty;
         }
-        catch (ArgumentOutOfRangeException)
+
+        // Assert
+        await Assert.That(length).IsEqualTo(0);
+        await Assert.That(isEmpty).IsTrue();
+    }
+
+    [Test]
+    public async Task TempStringBuilder_SeekBack_DecreasesLength()
+    {
+        // Arrange & Act
+        int length;
+        string content;
         {
-            // Expected
+            using TempStringBuilder builder = TempStringBuilder.Create();
+            builder.Append("Hello World");
+            builder.SeekBack(6); // Remove " World"
+            length = builder.Length;
+            content = builder.AsSpan().ToString();
         }
-    }
-
-    [Fact]
-    public void TempStringBuilder_TrySeekBack_Valid_ReturnsTrue()
-    {
-        // Arrange
-        using TempStringBuilder builder = TempStringBuilder.Create();
-        builder.Append("Hello");
-
-        // Act
-        bool result = builder.TrySeekBack(2);
 
         // Assert
-        Assert.True(result);
-        Assert.Equal(3, builder.Length);
-        Assert.Equal("Hel", builder.AsSpan().ToString());
+        await Assert.That(length).IsEqualTo(5);
+        await Assert.That(content).IsEqualTo("Hello");
     }
 
-    [Fact]
-    public void TempStringBuilder_TrySeekBack_Invalid_ReturnsFalse()
+    [Test]
+    public async Task TempStringBuilder_SeekBack_FullLength_Clears()
     {
-        // Arrange
-        using TempStringBuilder builder = TempStringBuilder.Create();
-        builder.Append("Hi");
-
-        // Act
-        bool result = builder.TrySeekBack(10);
+        // Arrange & Act
+        int length;
+        bool isEmpty;
+        {
+            using TempStringBuilder builder = TempStringBuilder.Create();
+            builder.Append("Hello");
+            builder.SeekBack(5);
+            length = builder.Length;
+            isEmpty = builder.IsEmpty;
+        }
 
         // Assert
-        Assert.False(result);
-        Assert.Equal(2, builder.Length); // Unchanged
+        await Assert.That(length).IsEqualTo(0);
+        await Assert.That(isEmpty).IsTrue();
+    }
+
+    [Test]
+    public async Task TempStringBuilder_SeekBack_Zero_DoesNothing()
+    {
+        // Arrange & Act
+        int length;
+        {
+            using TempStringBuilder builder = TempStringBuilder.Create();
+            builder.Append("Hello");
+            builder.SeekBack(0);
+            length = builder.Length;
+        }
+
+        // Assert
+        await Assert.That(length).IsEqualTo(5);
+    }
+
+    [Test]
+    public async Task TempStringBuilder_SeekBack_TooMuch_ThrowsException()
+    {
+        bool threw = false;
+        {
+            // Act & Assert - try-catch because TempStringBuilder is a ref struct and cannot be captured in a lambda
+            using TempStringBuilder builder = TempStringBuilder.Create();
+            builder.Append("Hi");
+            try { builder.SeekBack(10); }
+            catch (ArgumentOutOfRangeException) { threw = true; }
+        }
+        await Assert.That(threw).IsTrue();
+    }
+
+    [Test]
+    public async Task TempStringBuilder_TrySeekBack_Valid_ReturnsTrue()
+    {
+        // Arrange & Act
+        bool result;
+        int length;
+        string content;
+        {
+            using TempStringBuilder builder = TempStringBuilder.Create();
+            builder.Append("Hello");
+            result = builder.TrySeekBack(2);
+            length = builder.Length;
+            content = builder.AsSpan().ToString();
+        }
+
+        // Assert
+        await Assert.That(result).IsTrue();
+        await Assert.That(length).IsEqualTo(3);
+        await Assert.That(content).IsEqualTo("Hel");
+    }
+
+    [Test]
+    public async Task TempStringBuilder_TrySeekBack_Invalid_ReturnsFalse()
+    {
+        // Arrange & Act
+        bool result;
+        int length;
+        {
+            using TempStringBuilder builder = TempStringBuilder.Create();
+            builder.Append("Hi");
+            result = builder.TrySeekBack(10);
+            length = builder.Length;
+        }
+
+        // Assert
+        await Assert.That(result).IsFalse();
+        await Assert.That(length).IsEqualTo(2); // Unchanged
     }
 
     // ========================================================================
     // TEMPSTRINGBUILDER - DISPOSAL
     // ========================================================================
 
-    [Fact]
-    public void TempStringBuilder_Dispose_ReleasesBuffer()
+    [Test]
+    public async Task TempStringBuilder_Dispose_ReleasesBuffer()
     {
-        // Arrange
-        TempStringBuilder builder = TempStringBuilder.Create();
-        builder.Append("Test");
+        // Arrange & Act
+        int length;
+        {
+            TempStringBuilder builder = TempStringBuilder.Create();
+            builder.Append("Test");
+            length = builder.Length;
+            builder.Dispose();
+        }
 
         // Assert - capture values before dispose
-        Assert.Equal(4, builder.Length);
-
-        // Act
-        builder.Dispose();
-
+        await Assert.That(length).IsEqualTo(4);
         // Assert - dispose completes without exception
     }
 
@@ -330,368 +364,452 @@ public class BuilderTests
     // TEMPBYTESBUILDER - CREATION AND PROPERTIES
     // ========================================================================
 
-    [Fact]
-    public void TempBytesBuilder_Create_ReturnsEmptyBuilder()
+    [Test]
+    public async Task TempBytesBuilder_Create_ReturnsEmptyBuilder()
     {
         // Act
-        using TempBytesBuilder builder = TempBytesBuilder.Create();
+        int length;
+        bool isEmpty;
+        bool capacityPositive;
+        {
+            using TempBytesBuilder builder = TempBytesBuilder.Create();
+            length = builder.Length;
+            isEmpty = builder.IsEmpty;
+            capacityPositive = builder.Capacity > 0;
+        }
 
         // Assert
-        Assert.Equal(0, builder.Length);
-        Assert.True(builder.IsEmpty);
-        Assert.True(builder.Capacity > 0);
+        await Assert.That(length).IsEqualTo(0);
+        await Assert.That(isEmpty).IsTrue();
+        await Assert.That(capacityPositive).IsTrue();
     }
 
-    [Fact]
-    public void TempBytesBuilder_Capacity_IsPositive()
+    [Test]
+    public async Task TempBytesBuilder_Capacity_IsPositive()
     {
         // Act
-        using TempBytesBuilder builder = TempBytesBuilder.Create();
+        int capacity;
+        int remaining;
+        {
+            using TempBytesBuilder builder = TempBytesBuilder.Create();
+            capacity = builder.Capacity;
+            remaining = builder.Remaining;
+        }
 
         // Assert
-        Assert.True(builder.Capacity > 0);
-        Assert.Equal(builder.Capacity, builder.Remaining);
+        await Assert.That(capacity > 0).IsTrue();
+        await Assert.That(remaining).IsEqualTo(capacity);
     }
 
     // ========================================================================
     // TEMPBYTESBUILDER - APPEND OPERATIONS
     // ========================================================================
 
-    [Fact]
-    public void TempBytesBuilder_AppendByte_IncreasesLength()
+    [Test]
+    public async Task TempBytesBuilder_AppendByte_IncreasesLength()
     {
-        // Arrange
-        using TempBytesBuilder builder = TempBytesBuilder.Create();
-
-        // Act
-        builder.Append(0x01);
-        builder.Append(0x02);
-        builder.Append(0x03);
+        // Arrange & Act
+        int length;
+        byte[] bytes;
+        {
+            using TempBytesBuilder builder = TempBytesBuilder.Create();
+            builder.Append(0x01);
+            builder.Append(0x02);
+            builder.Append(0x03);
+            length = builder.Length;
+            bytes = builder.AsSpan().ToArray();
+        }
 
         // Assert
-        Assert.Equal(3, builder.Length);
-        Assert.Equal([0x01, 0x02, 0x03], builder.AsSpan().ToArray());
+        await Assert.That(length).IsEqualTo(3);
+        await Assert.That(bytes).IsEquivalentTo((byte[])[0x01, 0x02, 0x03]);
     }
 
-    [Fact]
-    public void TempBytesBuilder_AppendByteArray_IncreasesLength()
+    [Test]
+    public async Task TempBytesBuilder_AppendByteArray_IncreasesLength()
     {
-        // Arrange
-        using TempBytesBuilder builder = TempBytesBuilder.Create();
+        // Arrange & Act
         byte[] data = [0x01, 0x02, 0x03, 0x04];
-
-        // Act
-        builder.Append(data);
+        int length;
+        byte[] bytes;
+        {
+            using TempBytesBuilder builder = TempBytesBuilder.Create();
+            builder.Append(data);
+            length = builder.Length;
+            bytes = builder.AsSpan().ToArray();
+        }
 
         // Assert
-        Assert.Equal(4, builder.Length);
-        Assert.Equal(data, builder.AsSpan().ToArray());
+        await Assert.That(length).IsEqualTo(4);
+        await Assert.That(bytes).IsEquivalentTo(data);
     }
 
-    [Fact]
-    public void TempBytesBuilder_AppendSpan_IncreasesLength()
+    [Test]
+    public async Task TempBytesBuilder_AppendSpan_IncreasesLength()
     {
-        // Arrange
-        using TempBytesBuilder builder = TempBytesBuilder.Create();
-        ReadOnlySpan<byte> span = [0xAA, 0xBB, 0xCC];
-
-        // Act
-        builder.Append(span);
+        // Arrange & Act
+        int length;
+        byte[] bytes;
+        {
+            using TempBytesBuilder builder = TempBytesBuilder.Create();
+            ReadOnlySpan<byte> span = [0xAA, 0xBB, 0xCC];
+            builder.Append(span);
+            length = builder.Length;
+            bytes = builder.AsSpan().ToArray();
+        }
 
         // Assert
-        Assert.Equal(3, builder.Length);
-        Assert.Equal([0xAA, 0xBB, 0xCC], builder.AsSpan().ToArray());
+        await Assert.That(length).IsEqualTo(3);
+        await Assert.That(bytes).IsEquivalentTo((byte[])[0xAA, 0xBB, 0xCC]);
     }
 
-    [Fact]
-    public void TempBytesBuilder_AppendInt16BigEndian_FormatsCorrectly()
+    [Test]
+    public async Task TempBytesBuilder_AppendInt16BigEndian_FormatsCorrectly()
     {
-        // Arrange
-        using TempBytesBuilder builder = TempBytesBuilder.Create();
-
-        // Act
-        builder.AppendInt16BigEndian(0x1234);
+        // Arrange & Act
+        int length;
+        byte[] bytes;
+        {
+            using TempBytesBuilder builder = TempBytesBuilder.Create();
+            builder.AppendInt16BigEndian(0x1234);
+            length = builder.Length;
+            bytes = builder.AsSpan().ToArray();
+        }
 
         // Assert
-        Assert.Equal(2, builder.Length);
-        Assert.Equal([0x12, 0x34], builder.AsSpan().ToArray());
+        await Assert.That(length).IsEqualTo(2);
+        await Assert.That(bytes).IsEquivalentTo((byte[])[0x12, 0x34]);
     }
 
-    [Fact]
-    public void TempBytesBuilder_AppendInt16LittleEndian_FormatsCorrectly()
+    [Test]
+    public async Task TempBytesBuilder_AppendInt16LittleEndian_FormatsCorrectly()
     {
-        // Arrange
-        using TempBytesBuilder builder = TempBytesBuilder.Create();
-
-        // Act
-        builder.AppendInt16LittleEndian(0x1234);
+        // Arrange & Act
+        int length;
+        byte[] bytes;
+        {
+            using TempBytesBuilder builder = TempBytesBuilder.Create();
+            builder.AppendInt16LittleEndian(0x1234);
+            length = builder.Length;
+            bytes = builder.AsSpan().ToArray();
+        }
 
         // Assert
-        Assert.Equal(2, builder.Length);
-        Assert.Equal([0x34, 0x12], builder.AsSpan().ToArray());
+        await Assert.That(length).IsEqualTo(2);
+        await Assert.That(bytes).IsEquivalentTo((byte[])[0x34, 0x12]);
     }
 
-    [Fact]
-    public void TempBytesBuilder_AppendInt32BigEndian_FormatsCorrectly()
+    [Test]
+    public async Task TempBytesBuilder_AppendInt32BigEndian_FormatsCorrectly()
     {
-        // Arrange
-        using TempBytesBuilder builder = TempBytesBuilder.Create();
-
-        // Act
-        builder.AppendInt32BigEndian(0x12345678);
+        // Arrange & Act
+        int length;
+        byte[] bytes;
+        {
+            using TempBytesBuilder builder = TempBytesBuilder.Create();
+            builder.AppendInt32BigEndian(0x12345678);
+            length = builder.Length;
+            bytes = builder.AsSpan().ToArray();
+        }
 
         // Assert
-        Assert.Equal(4, builder.Length);
-        Assert.Equal([0x12, 0x34, 0x56, 0x78], builder.AsSpan().ToArray());
+        await Assert.That(length).IsEqualTo(4);
+        await Assert.That(bytes).IsEquivalentTo((byte[])[0x12, 0x34, 0x56, 0x78]);
     }
 
-    [Fact]
-    public void TempBytesBuilder_AppendInt32LittleEndian_FormatsCorrectly()
+    [Test]
+    public async Task TempBytesBuilder_AppendInt32LittleEndian_FormatsCorrectly()
     {
-        // Arrange
-        using TempBytesBuilder builder = TempBytesBuilder.Create();
-
-        // Act
-        builder.AppendInt32LittleEndian(0x12345678);
+        // Arrange & Act
+        int length;
+        byte[] bytes;
+        {
+            using TempBytesBuilder builder = TempBytesBuilder.Create();
+            builder.AppendInt32LittleEndian(0x12345678);
+            length = builder.Length;
+            bytes = builder.AsSpan().ToArray();
+        }
 
         // Assert
-        Assert.Equal(4, builder.Length);
-        Assert.Equal([0x78, 0x56, 0x34, 0x12], builder.AsSpan().ToArray());
+        await Assert.That(length).IsEqualTo(4);
+        await Assert.That(bytes).IsEquivalentTo((byte[])[0x78, 0x56, 0x34, 0x12]);
     }
 
-    [Fact]
-    public void TempBytesBuilder_AppendInt64BigEndian_FormatsCorrectly()
+    [Test]
+    public async Task TempBytesBuilder_AppendInt64BigEndian_FormatsCorrectly()
     {
-        // Arrange
-        using TempBytesBuilder builder = TempBytesBuilder.Create();
-
-        // Act
-        builder.AppendInt64BigEndian(0x123456789ABCDEF0L);
+        // Arrange & Act
+        int length;
+        byte[] bytes;
+        {
+            using TempBytesBuilder builder = TempBytesBuilder.Create();
+            builder.AppendInt64BigEndian(0x123456789ABCDEF0L);
+            length = builder.Length;
+            bytes = builder.AsSpan().ToArray();
+        }
 
         // Assert
-        Assert.Equal(8, builder.Length);
-        Assert.Equal([0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0], builder.AsSpan().ToArray());
+        await Assert.That(length).IsEqualTo(8);
+        await Assert.That(bytes).IsEquivalentTo((byte[])[0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0]);
     }
 
-    [Fact]
-    public void TempBytesBuilder_AppendUInt16BigEndian_FormatsCorrectly()
+    [Test]
+    public async Task TempBytesBuilder_AppendUInt16BigEndian_FormatsCorrectly()
     {
-        // Arrange
-        using TempBytesBuilder builder = TempBytesBuilder.Create();
-
-        // Act
-        builder.AppendUInt16BigEndian(0xABCD);
+        // Arrange & Act
+        int length;
+        byte[] bytes;
+        {
+            using TempBytesBuilder builder = TempBytesBuilder.Create();
+            builder.AppendUInt16BigEndian(0xABCD);
+            length = builder.Length;
+            bytes = builder.AsSpan().ToArray();
+        }
 
         // Assert
-        Assert.Equal(2, builder.Length);
-        Assert.Equal([0xAB, 0xCD], builder.AsSpan().ToArray());
+        await Assert.That(length).IsEqualTo(2);
+        await Assert.That(bytes).IsEquivalentTo((byte[])[0xAB, 0xCD]);
     }
 
-    [Fact]
-    public void TempBytesBuilder_AppendUInt32BigEndian_FormatsCorrectly()
+    [Test]
+    public async Task TempBytesBuilder_AppendUInt32BigEndian_FormatsCorrectly()
     {
-        // Arrange
-        using TempBytesBuilder builder = TempBytesBuilder.Create();
-
-        // Act
-        builder.AppendUInt32BigEndian(0xDEADBEEF);
+        // Arrange & Act
+        int length;
+        byte[] bytes;
+        {
+            using TempBytesBuilder builder = TempBytesBuilder.Create();
+            builder.AppendUInt32BigEndian(0xDEADBEEF);
+            length = builder.Length;
+            bytes = builder.AsSpan().ToArray();
+        }
 
         // Assert
-        Assert.Equal(4, builder.Length);
-        Assert.Equal([0xDE, 0xAD, 0xBE, 0xEF], builder.AsSpan().ToArray());
+        await Assert.That(length).IsEqualTo(4);
+        await Assert.That(bytes).IsEquivalentTo((byte[])[0xDE, 0xAD, 0xBE, 0xEF]);
     }
 
-    [Fact]
-    public void TempBytesBuilder_AppendNullByteArray_DoesNothing()
+    [Test]
+    public async Task TempBytesBuilder_AppendNullByteArray_DoesNothing()
     {
-        // Arrange
-        using TempBytesBuilder builder = TempBytesBuilder.Create();
-        byte[]? nullArray = null;
-
-        // Act
-        builder.Append(nullArray);
+        // Arrange & Act
+        int length;
+        bool isEmpty;
+        {
+            using TempBytesBuilder builder = TempBytesBuilder.Create();
+            byte[]? nullArray = null;
+            builder.Append(nullArray);
+            length = builder.Length;
+            isEmpty = builder.IsEmpty;
+        }
 
         // Assert
-        Assert.Equal(0, builder.Length);
-        Assert.True(builder.IsEmpty);
+        await Assert.That(length).IsEqualTo(0);
+        await Assert.That(isEmpty).IsTrue();
     }
 
     // ========================================================================
     // TEMPBYTESBUILDER - UTF-8 APPEND
     // ========================================================================
 
-    [Fact]
-    public void TempBytesBuilder_AppendUtf8_EncodesCorrectly()
+    [Test]
+    public async Task TempBytesBuilder_AppendUtf8_EncodesCorrectly()
     {
-        // Arrange
-        using TempBytesBuilder builder = TempBytesBuilder.Create();
-
-        // Act
-        builder.AppendUtf8("Hello");
+        // Arrange & Act
+        int length;
+        byte[] bytes;
+        {
+            using TempBytesBuilder builder = TempBytesBuilder.Create();
+            builder.AppendUtf8("Hello");
+            length = builder.Length;
+            bytes = builder.AsSpan().ToArray();
+        }
 
         // Assert
-        Assert.Equal(5, builder.Length);
-        Assert.Equal("Hello"u8.ToArray(), builder.AsSpan().ToArray());
+        await Assert.That(length).IsEqualTo(5);
+        await Assert.That(bytes).IsEquivalentTo("Hello"u8.ToArray());
     }
 
-    [Fact]
-    public void TempBytesBuilder_AppendUtf8_UnicodeCharacters_EncodesCorrectly()
+    [Test]
+    public async Task TempBytesBuilder_AppendUtf8_UnicodeCharacters_EncodesCorrectly()
     {
-        // Arrange
-        using TempBytesBuilder builder = TempBytesBuilder.Create();
-
-        // Act
-        builder.AppendUtf8("Héllo €");
+        // Arrange & Act
+        byte[] bytes;
+        {
+            using TempBytesBuilder builder = TempBytesBuilder.Create();
+            builder.AppendUtf8("Héllo €");
+            bytes = builder.AsSpan().ToArray();
+        }
 
         // Assert
-        Assert.Equal(System.Text.Encoding.UTF8.GetBytes("Héllo €"), builder.AsSpan().ToArray());
+        await Assert.That(bytes).IsEquivalentTo(System.Text.Encoding.UTF8.GetBytes("Héllo €"));
     }
 
     // ========================================================================
     // TEMPBYTESBUILDER - VARINT
     // ========================================================================
 
-    [Fact]
-    public void TempBytesBuilder_AppendVarInt_SmallValue_SingleByte()
+    [Test]
+    public async Task TempBytesBuilder_AppendVarInt_SmallValue_SingleByte()
     {
-        // Arrange
-        using TempBytesBuilder builder = TempBytesBuilder.Create();
-
-        // Act
-        builder.AppendVarInt(127);
+        // Arrange & Act
+        int length;
+        byte[] bytes;
+        {
+            using TempBytesBuilder builder = TempBytesBuilder.Create();
+            builder.AppendVarInt(127);
+            length = builder.Length;
+            bytes = builder.AsSpan().ToArray();
+        }
 
         // Assert
-        Assert.Equal(1, builder.Length);
-        Assert.Equal([127], builder.AsSpan().ToArray());
+        await Assert.That(length).IsEqualTo(1);
+        await Assert.That(bytes).IsEquivalentTo((byte[])[127]);
     }
 
-    [Fact]
-    public void TempBytesBuilder_AppendVarInt_MediumValue_TwoBytes()
+    [Test]
+    public async Task TempBytesBuilder_AppendVarInt_MediumValue_TwoBytes()
     {
-        // Arrange
-        using TempBytesBuilder builder = TempBytesBuilder.Create();
-
-        // Act
-        builder.AppendVarInt(128);
+        // Arrange & Act
+        int length;
+        byte[] bytes;
+        {
+            using TempBytesBuilder builder = TempBytesBuilder.Create();
+            builder.AppendVarInt(128);
+            length = builder.Length;
+            bytes = builder.AsSpan().ToArray();
+        }
 
         // Assert
-        Assert.Equal(2, builder.Length);
-        Assert.Equal([0x80, 0x01], builder.AsSpan().ToArray());
+        await Assert.That(length).IsEqualTo(2);
+        await Assert.That(bytes).IsEquivalentTo((byte[])[0x80, 0x01]);
     }
 
-    [Fact]
-    public void TempBytesBuilder_AppendVarInt_LargeValue_MultipleBytes()
+    [Test]
+    public async Task TempBytesBuilder_AppendVarInt_LargeValue_MultipleBytes()
     {
-        // Arrange
-        using TempBytesBuilder builder = TempBytesBuilder.Create();
-
-        // Act
-        builder.AppendVarInt(300);
+        // Arrange & Act
+        bool lengthAtLeastTwo;
+        {
+            using TempBytesBuilder builder = TempBytesBuilder.Create();
+            builder.AppendVarInt(300);
+            lengthAtLeastTwo = builder.Length >= 2;
+        }
 
         // Assert
-        Assert.True(builder.Length >= 2);
+        await Assert.That(lengthAtLeastTwo).IsTrue();
     }
 
     // ========================================================================
     // TEMPBYTESBUILDER - CLEAR AND SEEKBACK
     // ========================================================================
 
-    [Fact]
-    public void TempBytesBuilder_Clear_ResetsLength()
+    [Test]
+    public async Task TempBytesBuilder_Clear_ResetsLength()
     {
-        // Arrange
-        using TempBytesBuilder builder = TempBytesBuilder.Create();
-        builder.Append([0x01, 0x02, 0x03, 0x04]);
-
-        // Act
-        builder.Clear();
-
-        // Assert
-        Assert.Equal(0, builder.Length);
-        Assert.True(builder.IsEmpty);
-    }
-
-    [Fact]
-    public void TempBytesBuilder_SeekBack_DecreasesLength()
-    {
-        // Arrange
-        using TempBytesBuilder builder = TempBytesBuilder.Create();
-        builder.Append([0x01, 0x02, 0x03, 0x04]);
-
-        // Act
-        builder.SeekBack(2);
-
-        // Assert
-        Assert.Equal(2, builder.Length);
-        Assert.Equal([0x01, 0x02], builder.AsSpan().ToArray());
-    }
-
-    [Fact]
-    public void TempBytesBuilder_SeekBack_TooMuch_ThrowsException()
-    {
-        // Arrange
-        using TempBytesBuilder builder = TempBytesBuilder.Create();
-        builder.Append([0x01, 0x02]);
-
-        // Act & Assert - use try-catch because ref struct can't be in lambda
-        try
+        // Arrange & Act
+        int length;
+        bool isEmpty;
         {
-            builder.SeekBack(10);
-            Assert.Fail("Expected ArgumentOutOfRangeException");
+            using TempBytesBuilder builder = TempBytesBuilder.Create();
+            builder.Append([0x01, 0x02, 0x03, 0x04]);
+            builder.Clear();
+            length = builder.Length;
+            isEmpty = builder.IsEmpty;
         }
-        catch (ArgumentOutOfRangeException)
+
+        // Assert
+        await Assert.That(length).IsEqualTo(0);
+        await Assert.That(isEmpty).IsTrue();
+    }
+
+    [Test]
+    public async Task TempBytesBuilder_SeekBack_DecreasesLength()
+    {
+        // Arrange & Act
+        int length;
+        byte[] bytes;
         {
-            // Expected
+            using TempBytesBuilder builder = TempBytesBuilder.Create();
+            builder.Append([0x01, 0x02, 0x03, 0x04]);
+            builder.SeekBack(2);
+            length = builder.Length;
+            bytes = builder.AsSpan().ToArray();
         }
-    }
-
-    [Fact]
-    public void TempBytesBuilder_TrySeekBack_Valid_ReturnsTrue()
-    {
-        // Arrange
-        using TempBytesBuilder builder = TempBytesBuilder.Create();
-        builder.Append([0x01, 0x02, 0x03, 0x04]);
-
-        // Act
-        bool result = builder.TrySeekBack(2);
 
         // Assert
-        Assert.True(result);
-        Assert.Equal(2, builder.Length);
+        await Assert.That(length).IsEqualTo(2);
+        await Assert.That(bytes).IsEquivalentTo((byte[])[0x01, 0x02]);
     }
 
-    [Fact]
-    public void TempBytesBuilder_TrySeekBack_Invalid_ReturnsFalse()
+    [Test]
+    public async Task TempBytesBuilder_SeekBack_TooMuch_ThrowsException()
     {
-        // Arrange
-        using TempBytesBuilder builder = TempBytesBuilder.Create();
-        builder.Append([0x01, 0x02]);
+        bool threw = false;
+        {
+            // Act & Assert - try-catch because TempBytesBuilder is a ref struct and cannot be captured in a lambda
+            using TempBytesBuilder builder = TempBytesBuilder.Create();
+            builder.Append([0x01, 0x02]);
+            try { builder.SeekBack(10); }
+            catch (ArgumentOutOfRangeException) { threw = true; }
+        }
+        await Assert.That(threw).IsTrue();
+    }
 
-        // Act
-        bool result = builder.TrySeekBack(10);
+    [Test]
+    public async Task TempBytesBuilder_TrySeekBack_Valid_ReturnsTrue()
+    {
+        // Arrange & Act
+        bool result;
+        int length;
+        {
+            using TempBytesBuilder builder = TempBytesBuilder.Create();
+            builder.Append([0x01, 0x02, 0x03, 0x04]);
+            result = builder.TrySeekBack(2);
+            length = builder.Length;
+        }
 
         // Assert
-        Assert.False(result);
-        Assert.Equal(2, builder.Length); // Unchanged
+        await Assert.That(result).IsTrue();
+        await Assert.That(length).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task TempBytesBuilder_TrySeekBack_Invalid_ReturnsFalse()
+    {
+        // Arrange & Act
+        bool result;
+        int length;
+        {
+            using TempBytesBuilder builder = TempBytesBuilder.Create();
+            builder.Append([0x01, 0x02]);
+            result = builder.TrySeekBack(10);
+            length = builder.Length;
+        }
+
+        // Assert
+        await Assert.That(result).IsFalse();
+        await Assert.That(length).IsEqualTo(2); // Unchanged
     }
 
     // ========================================================================
     // TEMPBYTESBUILDER - DISPOSAL
     // ========================================================================
 
-    [Fact]
-    public void TempBytesBuilder_Dispose_ReleasesBuffer()
+    [Test]
+    public async Task TempBytesBuilder_Dispose_ReleasesBuffer()
     {
-        // Arrange
-        TempBytesBuilder builder = TempBytesBuilder.Create();
-        builder.Append([0x01, 0x02, 0x03, 0x04]);
+        // Arrange & Act
+        int length;
+        {
+            TempBytesBuilder builder = TempBytesBuilder.Create();
+            builder.Append([0x01, 0x02, 0x03, 0x04]);
+            length = builder.Length;
+            builder.Dispose();
+        }
 
         // Assert - capture values before dispose
-        Assert.Equal(4, builder.Length);
-
-        // Act
-        builder.Dispose();
-
+        await Assert.That(length).IsEqualTo(4);
         // Assert - dispose completes without exception
     }
 
@@ -699,150 +817,178 @@ public class BuilderTests
     // TEMPBYTESBUILDER - IHEAPALLOCATED
     // ========================================================================
 
-    [Fact]
-    public void TempBytesBuilder_IsHeapAllocated_FalseForNormalUse()
+    [Test]
+    public async Task TempBytesBuilder_IsHeapAllocated_FalseForNormalUse()
     {
-        // Arrange & Act
-        using TempBytesBuilder builder = TempBytesBuilder.Create();
+        // Arrange & Act - capture value before await; TempBytesBuilder is a ref struct
+        bool isHeapAllocated;
+        {
+            using TempBytesBuilder builder = TempBytesBuilder.Create();
+            isHeapAllocated = builder.IsHeapAllocated;
+        }
 
-        // Assert
-        // In normal single-scope usage, should use ThreadStatic buffer
-        // IsHeapAllocated will be false unless we're in nested context
-        // This tests the property exists and doesn't throw
-        _ = builder.IsHeapAllocated;
+        // Assert - single-scope usage must use the ThreadStatic buffer, not the heap
+        await Assert.That(isHeapAllocated).IsFalse();
     }
 
     // ========================================================================
     // TEMPSTRINGBUILDER - COMPLEX SCENARIOS
     // ========================================================================
 
-    [Fact]
-    public void TempStringBuilder_ChainedAppends_BuildsCorrectString()
+    [Test]
+    public async Task TempStringBuilder_ChainedAppends_BuildsCorrectString()
     {
-        // Arrange
-        using TempStringBuilder builder = TempStringBuilder.Create();
-
-        // Act
-        builder.Append("User: ");
-        builder.Append(12345);
-        builder.Append(", Balance: ");
-        builder.Append(99.99);
+        // Arrange & Act
+        string result;
+        {
+            using TempStringBuilder builder = TempStringBuilder.Create();
+            builder.Append("User: ");
+            builder.Append(12345);
+            builder.Append(", Balance: ");
+            builder.Append(99.99);
+            result = builder.AsSpan().ToString();
+        }
 
         // Assert
-        string result = builder.AsSpan().ToString();
-        Assert.StartsWith("User: 12345, Balance:", result);
+        await Assert.That(result).StartsWith("User: 12345, Balance:");
     }
 
-    [Fact]
-    public void TempStringBuilder_ClearAndReuse_Works()
+    [Test]
+    public async Task TempStringBuilder_ClearAndReuse_Works()
     {
-        // Arrange
-        using TempStringBuilder builder = TempStringBuilder.Create();
-
-        // Act
-        builder.Append("First");
-        Assert.Equal("First", builder.AsSpan().ToString());
-
-        builder.Clear();
-        builder.Append("Second");
+        // Arrange & Act
+        string firstContent;
+        string secondContent;
+        {
+            using TempStringBuilder builder = TempStringBuilder.Create();
+            builder.Append("First");
+            firstContent = builder.AsSpan().ToString();
+            builder.Clear();
+            builder.Append("Second");
+            secondContent = builder.AsSpan().ToString();
+        }
 
         // Assert
-        Assert.Equal("Second", builder.AsSpan().ToString());
+        await Assert.That(firstContent).IsEqualTo("First");
+        await Assert.That(secondContent).IsEqualTo("Second");
     }
 
     // ========================================================================
     // TEMPBYTESBUILDER - COMPLEX SCENARIOS
     // ========================================================================
 
-    [Fact]
-    public void TempBytesBuilder_BuildPacket_ProducesCorrectBytes()
+    [Test]
+    public async Task TempBytesBuilder_BuildPacket_ProducesCorrectBytes()
     {
-        // Arrange
-        using TempBytesBuilder builder = TempBytesBuilder.Create();
-
-        // Act - Build a simple packet: [magic][length][data]
-        builder.AppendUInt16BigEndian(0xCAFE); // Magic
-        builder.AppendUInt16BigEndian(5);      // Length
-        builder.AppendUtf8("Hello");           // Data
+        // Arrange & Act
+        byte[] packet;
+        {
+            using TempBytesBuilder builder = TempBytesBuilder.Create();
+            builder.AppendUInt16BigEndian(0xCAFE); // Magic
+            builder.AppendUInt16BigEndian(5);      // Length
+            builder.AppendUtf8("Hello");           // Data
+            packet = builder.AsSpan().ToArray();
+        }
 
         // Assert
         byte[] expected = [0xCA, 0xFE, 0x00, 0x05, .. "Hello"u8.ToArray()];
-        Assert.Equal(expected, builder.AsSpan().ToArray());
+        await Assert.That(packet).IsEquivalentTo(expected);
     }
 
-    [Fact]
-    public void TempBytesBuilder_ClearAndReuse_Works()
+    [Test]
+    public async Task TempBytesBuilder_ClearAndReuse_Works()
     {
-        // Arrange
-        using TempBytesBuilder builder = TempBytesBuilder.Create();
-
-        // Act
-        builder.Append([0x01, 0x02, 0x03]);
-        Assert.Equal([0x01, 0x02, 0x03], builder.AsSpan().ToArray());
-
-        builder.Clear();
-        builder.Append([0xAA, 0xBB]);
+        // Arrange & Act
+        byte[] firstBytes;
+        byte[] secondBytes;
+        {
+            using TempBytesBuilder builder = TempBytesBuilder.Create();
+            builder.Append([0x01, 0x02, 0x03]);
+            firstBytes = builder.AsSpan().ToArray();
+            builder.Clear();
+            builder.Append([0xAA, 0xBB]);
+            secondBytes = builder.AsSpan().ToArray();
+        }
 
         // Assert
-        Assert.Equal([0xAA, 0xBB], builder.AsSpan().ToArray());
+        await Assert.That(firstBytes).IsEquivalentTo((byte[])[0x01, 0x02, 0x03]);
+        await Assert.That(secondBytes).IsEquivalentTo((byte[])[0xAA, 0xBB]);
     }
 
     // ========================================================================
     // EDGE CASES
     // ========================================================================
 
-    [Fact]
-    public void TempStringBuilder_EmptyString_Works()
+    [Test]
+    public async Task TempStringBuilder_EmptyString_Works()
     {
-        // Arrange
-        using TempStringBuilder builder = TempStringBuilder.Create();
-
-        // Act
-        builder.Append("");
+        // Arrange & Act
+        bool isEmpty;
+        int length;
+        {
+            using TempStringBuilder builder = TempStringBuilder.Create();
+            builder.Append("");
+            isEmpty = builder.IsEmpty;
+            length = builder.Length;
+        }
 
         // Assert
-        Assert.True(builder.IsEmpty);
-        Assert.Equal(0, builder.Length);
+        await Assert.That(isEmpty).IsTrue();
+        await Assert.That(length).IsEqualTo(0);
     }
 
-    [Fact]
-    public void TempBytesBuilder_EmptySpan_Works()
+    [Test]
+    public async Task TempBytesBuilder_EmptySpan_Works()
     {
-        // Arrange
-        using TempBytesBuilder builder = TempBytesBuilder.Create();
-
-        // Act
-        builder.Append(ReadOnlySpan<byte>.Empty);
+        // Arrange & Act
+        bool isEmpty;
+        int length;
+        {
+            using TempBytesBuilder builder = TempBytesBuilder.Create();
+            builder.Append(ReadOnlySpan<byte>.Empty);
+            isEmpty = builder.IsEmpty;
+            length = builder.Length;
+        }
 
         // Assert
-        Assert.True(builder.IsEmpty);
-        Assert.Equal(0, builder.Length);
+        await Assert.That(isEmpty).IsTrue();
+        await Assert.That(length).IsEqualTo(0);
     }
 
-    [Fact]
-    public void TempStringBuilder_AsSpan_ReturnsCorrectContent()
+    [Test]
+    public async Task TempStringBuilder_AsSpan_ReturnsCorrectContent()
     {
-        // Arrange
-        using TempStringBuilder builder = TempStringBuilder.Create();
-        builder.Append("Hello");
-
-        // Act
-        ReadOnlySpan<char> span = builder.AsSpan();
+        // Arrange & Act
+        int spanLength;
+        string spanContent;
+        {
+            using TempStringBuilder builder = TempStringBuilder.Create();
+            builder.Append("Hello");
+            ReadOnlySpan<char> span = builder.AsSpan();
+            spanLength = span.Length;
+            spanContent = span.ToString();
+        }
 
         // Assert
-        Assert.Equal(5, span.Length);
-        Assert.Equal("Hello", span.ToString());
+        await Assert.That(spanLength).IsEqualTo(5);
+        await Assert.That(spanContent).IsEqualTo("Hello");
     }
 
-    [Fact]
-    public void TempBytesBuilder_WrittenSpan_MatchesAsSpan()
+    [Test]
+    public async Task TempBytesBuilder_WrittenSpan_MatchesAsSpan()
     {
-        // Arrange
-        using TempBytesBuilder builder = TempBytesBuilder.Create();
-        builder.Append([0x01, 0x02, 0x03]);
+        // Arrange & Act
+        byte[] writtenBytes;
+        byte[] asSpanBytes;
+        {
+            using TempBytesBuilder builder = TempBytesBuilder.Create();
+            builder.Append([0x01, 0x02, 0x03]);
+            writtenBytes = builder.WrittenSpan.ToArray();
+            asSpanBytes = builder.AsSpan().ToArray();
+        }
 
-        // Act & Assert
-        Assert.Equal(builder.AsSpan().ToArray(), builder.WrittenSpan.ToArray());
+        // Assert
+        await Assert.That(writtenBytes).IsEquivalentTo(asSpanBytes);
     }
 
     // ========================================================================
@@ -851,153 +997,184 @@ public class BuilderTests
 
     #region TryAppend
 
-    [Fact]
-    public void TempStringBuilder_TryAppend_String_ReturnsTrue()
+    [Test]
+    public async Task TempStringBuilder_TryAppend_String_ReturnsTrue()
     {
-        // Arrange
-        using TempStringBuilder builder = TempStringBuilder.Create();
-
-        // Act
-        bool result = builder.TryAppend("Hello");
+        // Arrange & Act
+        bool result;
+        string content;
+        {
+            using TempStringBuilder builder = TempStringBuilder.Create();
+            result = builder.TryAppend("Hello");
+            content = builder.AsSpan().ToString();
+        }
 
         // Assert
-        Assert.True(result);
-        Assert.Equal("Hello", builder.AsSpan().ToString());
+        await Assert.That(result).IsTrue();
+        await Assert.That(content).IsEqualTo("Hello");
     }
 
-    [Fact]
-    public void TempStringBuilder_TryAppend_Span_ReturnsTrue()
+    [Test]
+    public async Task TempStringBuilder_TryAppend_Span_ReturnsTrue()
     {
-        // Arrange
-        using TempStringBuilder builder = TempStringBuilder.Create();
-
-        // Act
-        bool result = builder.TryAppend("World".AsSpan());
+        // Arrange & Act
+        bool result;
+        string content;
+        {
+            using TempStringBuilder builder = TempStringBuilder.Create();
+            result = builder.TryAppend("World".AsSpan());
+            content = builder.AsSpan().ToString();
+        }
 
         // Assert
-        Assert.True(result);
-        Assert.Equal("World", builder.AsSpan().ToString());
+        await Assert.That(result).IsTrue();
+        await Assert.That(content).IsEqualTo("World");
     }
 
-    [Fact]
-    public void TempStringBuilder_TryAppend_Char_ReturnsTrue()
+    [Test]
+    public async Task TempStringBuilder_TryAppend_Char_ReturnsTrue()
     {
-        // Arrange
-        using TempStringBuilder builder = TempStringBuilder.Create();
-
-        // Act
-        bool result1 = builder.TryAppend('A');
-        bool result2 = builder.TryAppend('B');
+        // Arrange & Act
+        bool result1;
+        bool result2;
+        string content;
+        {
+            using TempStringBuilder builder = TempStringBuilder.Create();
+            result1 = builder.TryAppend('A');
+            result2 = builder.TryAppend('B');
+            content = builder.AsSpan().ToString();
+        }
 
         // Assert
-        Assert.True(result1);
-        Assert.True(result2);
-        Assert.Equal("AB", builder.AsSpan().ToString());
+        await Assert.That(result1).IsTrue();
+        await Assert.That(result2).IsTrue();
+        await Assert.That(content).IsEqualTo("AB");
     }
 
-    [Fact]
-    public void TempStringBuilder_TryAppend_Int_ReturnsTrue()
+    [Test]
+    public async Task TempStringBuilder_TryAppend_Int_ReturnsTrue()
     {
-        // Arrange
-        using TempStringBuilder builder = TempStringBuilder.Create();
-
-        // Act
-        bool result = builder.TryAppend(42);
+        // Arrange & Act
+        bool result;
+        string content;
+        {
+            using TempStringBuilder builder = TempStringBuilder.Create();
+            result = builder.TryAppend(42);
+            content = builder.AsSpan().ToString();
+        }
 
         // Assert
-        Assert.True(result);
-        Assert.Equal("42", builder.AsSpan().ToString());
+        await Assert.That(result).IsTrue();
+        await Assert.That(content).IsEqualTo("42");
     }
 
-    [Fact]
-    public void TempStringBuilder_TryAppend_Long_ReturnsTrue()
+    [Test]
+    public async Task TempStringBuilder_TryAppend_Long_ReturnsTrue()
     {
-        // Arrange
-        using TempStringBuilder builder = TempStringBuilder.Create();
-
-        // Act
-        bool result = builder.TryAppend(123456789012345L);
+        // Arrange & Act
+        bool result;
+        string content;
+        {
+            using TempStringBuilder builder = TempStringBuilder.Create();
+            result = builder.TryAppend(123456789012345L);
+            content = builder.AsSpan().ToString();
+        }
 
         // Assert
-        Assert.True(result);
-        Assert.Equal("123456789012345", builder.AsSpan().ToString());
+        await Assert.That(result).IsTrue();
+        await Assert.That(content).IsEqualTo("123456789012345");
     }
 
-    [Fact]
-    public void TempStringBuilder_TryAppend_Bool_ReturnsTrue()
+    [Test]
+    public async Task TempStringBuilder_TryAppend_Bool_ReturnsTrue()
     {
-        // Arrange
-        using TempStringBuilder builder = TempStringBuilder.Create();
-
-        // Act
-        bool result1 = builder.TryAppend(true);
-        builder.TryAppend(" ");
-        bool result2 = builder.TryAppend(false);
+        // Arrange & Act
+        bool result1;
+        bool result2;
+        string content;
+        {
+            using TempStringBuilder builder = TempStringBuilder.Create();
+            result1 = builder.TryAppend(true);
+            builder.TryAppend(" ");
+            result2 = builder.TryAppend(false);
+            content = builder.AsSpan().ToString();
+        }
 
         // Assert
-        Assert.True(result1);
-        Assert.True(result2);
-        Assert.Equal("True False", builder.AsSpan().ToString());
+        await Assert.That(result1).IsTrue();
+        await Assert.That(result2).IsTrue();
+        await Assert.That(content).IsEqualTo("True False");
     }
 
-    [Fact]
-    public void TempStringBuilder_TryAppend_DateTime_ReturnsTrue()
+    [Test]
+    public async Task TempStringBuilder_TryAppend_DateTime_ReturnsTrue()
     {
-        // Arrange
-        using TempStringBuilder builder = TempStringBuilder.Create();
-        DateTime dt = new(2025, 1, 15, 10, 30, 0);
-
-        // Act
-        bool result = builder.TryAppend(dt);
+        // Arrange & Act
+        bool result;
+        string content;
+        {
+            using TempStringBuilder builder = TempStringBuilder.Create();
+            DateTime dt = new(2025, 1, 15, 10, 30, 0);
+            result = builder.TryAppend(dt);
+            content = builder.AsSpan().ToString();
+        }
 
         // Assert
-        Assert.True(result);
-        Assert.Contains("2025", builder.AsSpan().ToString());
+        await Assert.That(result).IsTrue();
+        await Assert.That(content).Contains("2025");
     }
 
-    [Fact]
-    public void TempStringBuilder_TryAppend_Guid_ReturnsTrue()
+    [Test]
+    public async Task TempStringBuilder_TryAppend_Guid_ReturnsTrue()
     {
-        // Arrange
-        using TempStringBuilder builder = TempStringBuilder.Create();
-        Guid guid = Guid.Parse("12345678-1234-1234-1234-123456789012");
-
-        // Act
-        bool result = builder.TryAppend(guid);
+        // Arrange & Act
+        bool result;
+        string content;
+        {
+            using TempStringBuilder builder = TempStringBuilder.Create();
+            Guid guid = Guid.Parse("12345678-1234-1234-1234-123456789012");
+            result = builder.TryAppend(guid);
+            content = builder.AsSpan().ToString();
+        }
 
         // Assert
-        Assert.True(result);
-        Assert.Equal("12345678-1234-1234-1234-123456789012", builder.AsSpan().ToString());
+        await Assert.That(result).IsTrue();
+        await Assert.That(content).IsEqualTo("12345678-1234-1234-1234-123456789012");
     }
 
-    [Fact]
-    public void TempStringBuilder_TryAppend_Null_ReturnsTrue()
+    [Test]
+    public async Task TempStringBuilder_TryAppend_Null_ReturnsTrue()
     {
-        // Arrange
-        using TempStringBuilder builder = TempStringBuilder.Create();
-
-        // Act
-        bool result = builder.TryAppend((string?)null);
+        // Arrange & Act
+        bool result;
+        bool isEmpty;
+        {
+            using TempStringBuilder builder = TempStringBuilder.Create();
+            result = builder.TryAppend((string?)null);
+            isEmpty = builder.IsEmpty;
+        }
 
         // Assert
-        Assert.True(result);
-        Assert.True(builder.IsEmpty);
+        await Assert.That(result).IsTrue();
+        await Assert.That(isEmpty).IsTrue();
     }
 
-    [Fact]
-    public void TempStringBuilder_TryAppend_MultipleValues_ReturnsTrue()
+    [Test]
+    public async Task TempStringBuilder_TryAppend_MultipleValues_ReturnsTrue()
     {
-        // Arrange
-        using TempStringBuilder builder = TempStringBuilder.Create();
-
-        // Act
-        builder.TryAppend("Value: ");
-        builder.TryAppend(42);
-        builder.TryAppend(", Active: ");
-        builder.TryAppend(true);
+        // Arrange & Act
+        string content;
+        {
+            using TempStringBuilder builder = TempStringBuilder.Create();
+            builder.TryAppend("Value: ");
+            builder.TryAppend(42);
+            builder.TryAppend(", Active: ");
+            builder.TryAppend(true);
+            content = builder.AsSpan().ToString();
+        }
 
         // Assert
-        Assert.Equal("Value: 42, Active: True", builder.AsSpan().ToString());
+        await Assert.That(content).IsEqualTo("Value: 42, Active: True");
     }
 
     #endregion

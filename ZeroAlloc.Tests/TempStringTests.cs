@@ -1,27 +1,4 @@
-/*
-MIT License
-SPDX-License-Identifier: MIT
-
-Copyright (c) 2025 ZeroAlloc Contributors
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
+// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
 // ============================================================================
 // TempString Tests - Comprehensive String Formatting Tests
@@ -35,62 +12,91 @@ namespace ZeroAlloc.Tests;
 /// <summary>
 /// Comprehensive tests for <see cref="TempString"/> and <see cref="ZA.String"/> methods.
 /// </summary>
-public class TempStringTests
+public sealed class TempStringTests
 {
     // ========================================================================
     // BASIC FORMATTING TESTS
     // Tests for fundamental string formatting operations
     // ========================================================================
-
     #region Basic Formatting
 
-    [Fact]
-    public void String_SimpleString_ReturnsCorrectContent()
+    [Test]
+    public async Task String_SimpleString_ReturnsCorrectContent()
     {
-        using TempString temp = ZA.String("Hello");
-        Assert.Equal("Hello", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("Hello");
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("Hello");
     }
 
-    [Fact]
-    public void String_IntValue_FormatsCorrectly()
+    [Test]
+    public async Task String_IntValue_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("Value: ", 42);
-        Assert.Equal("Value: 42", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("Value: ", 42);
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("Value: 42");
     }
 
-    [Fact]
-    public void String_MultipleStrings_ConcatenatesCorrectly()
+    [Test]
+    public async Task String_MultipleStrings_ConcatenatesCorrectly()
     {
-        using TempString temp = ZA.String("Hello", " ", "World");
-        Assert.Equal("Hello World", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("Hello", " ", "World");
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("Hello World");
     }
 
-    [Fact]
-    public void String_MixedTypes_FormatsCorrectly()
+    [Test]
+    public async Task String_MixedTypes_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("User ", 12345, " logged in");
-        Assert.Equal("User 12345 logged in", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("User ", 12345, " logged in");
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("User 12345 logged in");
     }
 
-    [Fact]
-    public void String_Length_ReturnsCorrectLength()
+    [Test]
+    public async Task String_Length_ReturnsCorrectLength()
     {
-        using TempString temp = ZA.String("Test", 123);
-        Assert.Equal(7, temp.Length); // "Test123"
+        int length;
+        {
+            using TempString temp = ZA.String("Test", 123);
+            length = temp.Length;
+        }
+        await Assert.That(length).IsEqualTo(7); // "Test123"
     }
 
-    [Fact]
-    public void String_ToString_ReturnsCorrectString()
+    [Test]
+    public async Task String_ToString_ReturnsCorrectString()
     {
-        using TempString temp = ZA.String("Hello ", "World");
-        Assert.Equal("Hello World", temp.ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("Hello ", "World");
+            content = temp.ToString();
+        }
+        await Assert.That(content).IsEqualTo("Hello World");
     }
 
-    [Fact]
-    public void String_AsSpan_ReturnsSameAsToString()
+    [Test]
+    public async Task String_AsSpan_ReturnsSameAsToString()
     {
-        using TempString temp = ZA.String("Test", 123, "abc");
-        Assert.Equal(temp.ToString(), temp.AsSpan().ToString());
+        string spanContent;
+        string content;
+        {
+            using TempString temp = ZA.String("Test", 123, "abc");
+            spanContent = temp.AsSpan().ToString();
+            content = temp.ToString();
+        }
+        await Assert.That(spanContent).IsEqualTo(content);
     }
 
     #endregion
@@ -102,174 +108,262 @@ public class TempStringTests
 
     #region Boolean Formatting
 
-    [Fact]
-    public void String_BooleanTrue_FormatsAsTrue()
+    [Test]
+    public async Task String_BooleanTrue_FormatsAsTrue()
     {
-        using TempString temp = ZA.String("Result: ", true);
-        Assert.Equal("Result: True", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("Result: ", true);
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("Result: True");
     }
 
-    [Fact]
-    public void String_BooleanFalse_FormatsAsFalse()
+    [Test]
+    public async Task String_BooleanFalse_FormatsAsFalse()
     {
-        using TempString temp = ZA.String("Result: ", false);
-        Assert.Equal("Result: False", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("Result: ", false);
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("Result: False");
     }
 
-    [Fact]
-    public void String_MultipleBooleans_FormatsCorrectly()
+    [Test]
+    public async Task String_MultipleBooleans_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("T=", true, " F=", false);
-        Assert.Equal("T=True F=False", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("T=", true, " F=", false);
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("T=True F=False");
     }
 
     #endregion
 
     #region Character Formatting
 
-    [Fact]
-    public void String_Char_FormatsCorrectly()
+    [Test]
+    public async Task String_Char_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("Letter: ", 'X');
-        Assert.Equal("Letter: X", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("Letter: ", 'X');
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("Letter: X");
     }
 
-    [Fact]
-    public void String_MultipleChars_FormatsCorrectly()
+    [Test]
+    public async Task String_MultipleChars_FormatsCorrectly()
     {
-        using TempString temp = ZA.String('A', 'B', 'C');
-        Assert.Equal("ABC", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String('A', 'B', 'C');
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("ABC");
     }
 
-    [Fact]
-    public void String_UnicodeChar_FormatsCorrectly()
+    [Test]
+    public async Task String_UnicodeChar_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("Euro: ", '€');
-        Assert.Equal("Euro: €", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("Euro: ", '€');
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("Euro: €");
     }
 
     #endregion
 
     #region Numeric Types Formatting
 
-    [Fact]
-    public void String_Int32_FormatsCorrectly()
+    [Test]
+    public async Task String_Int32_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("Int: ", 42);
-        Assert.Equal("Int: 42", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("Int: ", 42);
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("Int: 42");
     }
 
-    [Fact]
-    public void String_Int64_FormatsCorrectly()
+    [Test]
+    public async Task String_Int64_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("ID: ", 9876543210L);
-        Assert.Equal("ID: 9876543210", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("ID: ", 9876543210L);
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("ID: 9876543210");
     }
 
-    [Fact]
-    public void String_Double_FormatsCorrectly()
+    [Test]
+    public async Task String_Double_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("Value: ", 3.14159);
-        Assert.Equal("Value: 3.14159", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("Value: ", 3.14159);
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("Value: 3.14159");
     }
 
-    [Fact]
-    public void String_Float_FormatsCorrectly()
+    [Test]
+    public async Task String_Float_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("Value: ", 1.5f);
-        Assert.Equal("Value: 1.5", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("Value: ", 1.5f);
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("Value: 1.5");
     }
 
-    [Fact]
-    public void String_Decimal_FormatsCorrectly()
+    [Test]
+    public async Task String_Decimal_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("Price: ", 99.99m);
-        Assert.Equal("Price: 99.99", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("Price: ", 99.99m);
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("Price: 99.99");
     }
 
-    [Fact]
-    public void String_Byte_FormatsCorrectly()
+    [Test]
+    public async Task String_Byte_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("Byte: ", (byte)255);
-        Assert.Equal("Byte: 255", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("Byte: ", (byte)255);
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("Byte: 255");
     }
 
-    [Fact]
-    public void String_SByte_FormatsCorrectly()
+    [Test]
+    public async Task String_SByte_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("SByte: ", (sbyte)-128);
-        Assert.Equal("SByte: -128", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("SByte: ", (sbyte)-128);
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("SByte: -128");
     }
 
-    [Fact]
-    public void String_Int16_FormatsCorrectly()
+    [Test]
+    public async Task String_Int16_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("Short: ", (short)-32768);
-        Assert.Equal("Short: -32768", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("Short: ", (short)-32768);
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("Short: -32768");
     }
 
-    [Fact]
-    public void String_UInt16_FormatsCorrectly()
+    [Test]
+    public async Task String_UInt16_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("UShort: ", (ushort)65535);
-        Assert.Equal("UShort: 65535", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("UShort: ", (ushort)65535);
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("UShort: 65535");
     }
 
-    [Fact]
-    public void String_UInt32_FormatsCorrectly()
+    [Test]
+    public async Task String_UInt32_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("UInt: ", uint.MaxValue);
-        Assert.Equal($"UInt: {uint.MaxValue}", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("UInt: ", uint.MaxValue);
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo($"UInt: {uint.MaxValue}");
     }
 
-    [Fact]
-    public void String_UInt64_FormatsCorrectly()
+    [Test]
+    public async Task String_UInt64_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("ULong: ", ulong.MaxValue);
-        Assert.Equal($"ULong: {ulong.MaxValue}", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("ULong: ", ulong.MaxValue);
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo($"ULong: {ulong.MaxValue}");
     }
 
     #endregion
 
     #region Guid and DateTime Formatting
 
-    [Fact]
-    public void String_Guid_FormatsCorrectly()
+    [Test]
+    public async Task String_Guid_FormatsCorrectly()
     {
         Guid guid = Guid.Parse("12345678-1234-1234-1234-123456789012");
-        using TempString temp = ZA.String("GUID: ", guid);
-        Assert.Equal("GUID: 12345678-1234-1234-1234-123456789012", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("GUID: ", guid);
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("GUID: 12345678-1234-1234-1234-123456789012");
     }
 
-    [Fact]
-    public void String_GuidEmpty_FormatsCorrectly()
+    [Test]
+    public async Task String_GuidEmpty_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("GUID: ", Guid.Empty);
-        Assert.Equal("GUID: 00000000-0000-0000-0000-000000000000", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("GUID: ", Guid.Empty);
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("GUID: 00000000-0000-0000-0000-000000000000");
     }
 
-    [Fact]
-    public void String_DateTime_FormatsCorrectly()
+    [Test]
+    public async Task String_DateTime_FormatsCorrectly()
     {
         DateTime dt = new(2025, 6, 15, 14, 30, 45);
-        using TempString temp = ZA.String("Date: ", dt);
-        Assert.Contains("2025", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("Date: ", dt);
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).Contains("2025");
     }
 
-    [Fact]
-    public void String_DateTimeOffset_FormatsCorrectly()
+    [Test]
+    public async Task String_DateTimeOffset_FormatsCorrectly()
     {
         DateTimeOffset dto = new(2025, 6, 15, 14, 30, 45, TimeSpan.Zero);
-        using TempString temp = ZA.String("Offset: ", dto);
-        Assert.Contains("2025", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("Offset: ", dto);
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).Contains("2025");
     }
 
-    [Fact]
-    public void String_TimeSpan_FormatsCorrectly()
+    [Test]
+    public async Task String_TimeSpan_FormatsCorrectly()
     {
         TimeSpan ts = new(1, 23, 45);
-        using TempString temp = ZA.String("Time: ", ts);
-        Assert.Contains("23", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("Time: ", ts);
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).Contains("23");
     }
 
     #endregion
@@ -281,41 +375,57 @@ public class TempStringTests
 
     #region CultureInfo Tests
 
-    [Fact]
-    public void String_GermanCulture_FormatsWithComma()
+    [Test]
+    public async Task String_GermanCulture_FormatsWithComma()
     {
         CultureInfo german = CultureInfo.GetCultureInfo("de-DE");
         double value = 1234.56;
-        using TempString temp = ZA.String(german, "Preis: ", value);
-        Assert.Equal("Preis: 1234,56", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String(german, "Preis: ", value);
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("Preis: 1234,56");
     }
 
-    [Fact]
-    public void String_USCulture_FormatsWithDot()
+    [Test]
+    public async Task String_USCulture_FormatsWithDot()
     {
         CultureInfo us = CultureInfo.GetCultureInfo("en-US");
         double value = 1234.56;
-        using TempString temp = ZA.String(us, "Price: ", value);
-        Assert.Equal("Price: 1234.56", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String(us, "Price: ", value);
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("Price: 1234.56");
     }
 
-    [Fact]
-    public void String_FrenchCulture_FormatsDecimalCorrectly()
+    [Test]
+    public async Task String_FrenchCulture_FormatsDecimalCorrectly()
     {
         CultureInfo french = CultureInfo.GetCultureInfo("fr-FR");
         decimal value = 9876.54m;
-        using TempString temp = ZA.String(french, "Prix: ", value);
-        Assert.Contains(",", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String(french, "Prix: ", value);
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).Contains(",");
     }
 
-    [Fact]
-    public void String_CultureWithMultipleArgs_AllUseCorrectCulture()
+    [Test]
+    public async Task String_CultureWithMultipleArgs_AllUseCorrectCulture()
     {
         CultureInfo german = CultureInfo.GetCultureInfo("de-DE");
         double d1 = 1.5;
         double d2 = 2.5;
-        using TempString temp = ZA.String(german, "A=", d1, " B=", d2);
-        Assert.Equal("A=1,5 B=2,5", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String(german, "A=", d1, " B=", d2);
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("A=1,5 B=2,5");
     }
 
     #endregion
@@ -327,77 +437,124 @@ public class TempStringTests
 
     #region Nested Call Tests
 
-    [Fact]
-    public void String_NestedCalls_OuterUsesThreadStatic()
+    [Test]
+    public async Task String_NestedCalls_OuterUsesThreadStatic()
     {
-        using TempString outer = ZA.String("Outer: ", 1);
-        Assert.False(outer.IsHeapAllocated);
+        bool isHeapAllocated;
+        {
+            using TempString outer = ZA.String("Outer: ", 1);
+            isHeapAllocated = outer.IsHeapAllocated;
+        }
+        await Assert.That(isHeapAllocated).IsFalse();
     }
 
-    [Fact]
-    public void String_NestedCalls_InnerUsesHeapFallback()
+    [Test]
+    public async Task String_NestedCalls_InnerUsesHeapFallback()
     {
-        using TempString outer = ZA.String("Outer: ", 1);
-        using TempString inner = ZA.String("Inner: ", 2);
-
-        Assert.False(outer.IsHeapAllocated);
-        Assert.True(inner.IsHeapAllocated);
+        bool outerIsHeapAllocated;
+        bool innerIsHeapAllocated;
+        {
+            using TempString outer = ZA.String("Outer: ", 1);
+            using TempString inner = ZA.String("Inner: ", 2);
+            outerIsHeapAllocated = outer.IsHeapAllocated;
+            innerIsHeapAllocated = inner.IsHeapAllocated;
+        }
+        await Assert.That(outerIsHeapAllocated).IsFalse();
+        await Assert.That(innerIsHeapAllocated).IsTrue();
     }
 
-    [Fact]
-    public void String_NestedCalls_BothReturnCorrectContent()
+    [Test]
+    public async Task String_NestedCalls_BothReturnCorrectContent()
     {
-        using TempString outer = ZA.String("Outer: ", 100);
-        using TempString inner = ZA.String("Inner: ", 200);
-
-        Assert.Equal("Outer: 100", outer.AsSpan().ToString());
-        Assert.Equal("Inner: 200", inner.AsSpan().ToString());
+        string outerContent;
+        string innerContent;
+        {
+            using TempString outer = ZA.String("Outer: ", 100);
+            using TempString inner = ZA.String("Inner: ", 200);
+            outerContent = outer.AsSpan().ToString();
+            innerContent = inner.AsSpan().ToString();
+        }
+        await Assert.That(outerContent).IsEqualTo("Outer: 100");
+        await Assert.That(innerContent).IsEqualTo("Inner: 200");
     }
 
-    [Fact]
-    public void String_TripleNested_AllReturnCorrectContent()
+    [Test]
+    public async Task String_TripleNested_AllReturnCorrectContent()
     {
-        using TempString first = ZA.String("First: ", 1);
-        using TempString second = ZA.String("Second: ", 2);
-        using TempString third = ZA.String("Third: ", 3);
-
-        Assert.Equal("First: 1", first.AsSpan().ToString());
-        Assert.Equal("Second: 2", second.AsSpan().ToString());
-        Assert.Equal("Third: 3", third.AsSpan().ToString());
-
-        Assert.False(first.IsHeapAllocated);
-        Assert.True(second.IsHeapAllocated);
-        Assert.True(third.IsHeapAllocated);
+        string firstContent;
+        string secondContent;
+        string thirdContent;
+        bool firstIsHeapAllocated;
+        bool secondIsHeapAllocated;
+        bool thirdIsHeapAllocated;
+        {
+            using TempString first = ZA.String("First: ", 1);
+            using TempString second = ZA.String("Second: ", 2);
+            using TempString third = ZA.String("Third: ", 3);
+            firstContent = first.AsSpan().ToString();
+            secondContent = second.AsSpan().ToString();
+            thirdContent = third.AsSpan().ToString();
+            firstIsHeapAllocated = first.IsHeapAllocated;
+            secondIsHeapAllocated = second.IsHeapAllocated;
+            thirdIsHeapAllocated = third.IsHeapAllocated;
+        }
+        await Assert.That(firstContent).IsEqualTo("First: 1");
+        await Assert.That(secondContent).IsEqualTo("Second: 2");
+        await Assert.That(thirdContent).IsEqualTo("Third: 3");
+        await Assert.That(firstIsHeapAllocated).IsFalse();
+        await Assert.That(secondIsHeapAllocated).IsTrue();
+        await Assert.That(thirdIsHeapAllocated).IsTrue();
     }
 
-    [Fact]
-    public void String_DeepNesting_AllWork()
+    [Test]
+    public async Task String_DeepNesting_AllWork()
     {
-        using TempString a = ZA.String("A");
-        using TempString b = ZA.String("B");
-        using TempString c = ZA.String("C");
-        using TempString d = ZA.String("D");
-        using TempString e = ZA.String("E");
-
-        Assert.False(a.IsHeapAllocated);
-        Assert.True(b.IsHeapAllocated);
-        Assert.True(c.IsHeapAllocated);
-        Assert.True(d.IsHeapAllocated);
-        Assert.True(e.IsHeapAllocated);
-
-        Assert.Equal("A", a.AsSpan().ToString());
-        Assert.Equal("E", e.AsSpan().ToString());
+        bool aIsHeapAllocated;
+        bool bIsHeapAllocated;
+        bool cIsHeapAllocated;
+        bool dIsHeapAllocated;
+        bool eIsHeapAllocated;
+        string aContent;
+        string eContent;
+        {
+            using TempString a = ZA.String("A");
+            using TempString b = ZA.String("B");
+            using TempString c = ZA.String("C");
+            using TempString d = ZA.String("D");
+            using TempString e = ZA.String("E");
+            aIsHeapAllocated = a.IsHeapAllocated;
+            bIsHeapAllocated = b.IsHeapAllocated;
+            cIsHeapAllocated = c.IsHeapAllocated;
+            dIsHeapAllocated = d.IsHeapAllocated;
+            eIsHeapAllocated = e.IsHeapAllocated;
+            aContent = a.AsSpan().ToString();
+            eContent = e.AsSpan().ToString();
+        }
+        await Assert.That(aIsHeapAllocated).IsFalse();
+        await Assert.That(bIsHeapAllocated).IsTrue();
+        await Assert.That(cIsHeapAllocated).IsTrue();
+        await Assert.That(dIsHeapAllocated).IsTrue();
+        await Assert.That(eIsHeapAllocated).IsTrue();
+        await Assert.That(aContent).IsEqualTo("A");
+        await Assert.That(eContent).IsEqualTo("E");
     }
 
-    [Fact]
-    public void String_AfterDispose_ThreadStaticReusable()
+    [Test]
+    public async Task String_AfterDispose_ThreadStaticReusable()
     {
-        TempString temp = ZA.String("Test: ", 123);
-        Assert.False(temp.IsHeapAllocated);
-        temp.Dispose();
-
-        using TempString temp2 = ZA.String("Test2: ", 456);
-        Assert.False(temp2.IsHeapAllocated);
+        bool isHeapAllocated;
+        {
+            TempString temp = ZA.String("Test: ", 123);
+            isHeapAllocated = temp.IsHeapAllocated;
+            temp.Dispose();
+        }
+        await Assert.That(isHeapAllocated).IsFalse();
+        bool temp2IsHeapAllocated;
+        {
+            using TempString temp2 = ZA.String("Test2: ", 456);
+            temp2IsHeapAllocated = temp2.IsHeapAllocated;
+        }
+        await Assert.That(temp2IsHeapAllocated).IsFalse();
     }
 
     #endregion
@@ -409,42 +566,49 @@ public class TempStringTests
 
     #region TryString Tests
 
-    [Fact]
-    public void TryString_ValidInput_ReturnsTrue()
+    [Test]
+    public async Task TryString_ValidInput_ReturnsTrue()
     {
         bool success = ZA.TryString(out TempString result, "Test: ", 42);
+        string content;
         using (result)
         {
-            Assert.True(success);
-            Assert.Equal("Test: 42", result.AsSpan().ToString());
+            content = result.AsSpan().ToString();
         }
+        await Assert.That(success).IsTrue();
+        await Assert.That(content).IsEqualTo("Test: 42");
     }
 
-    [Fact]
-    public void TryString_NestedCalls_GracefullyFallsBack()
+    [Test]
+    public async Task TryString_NestedCalls_GracefullyFallsBack()
     {
         bool success1 = ZA.TryString(out TempString result1, "First");
         bool success2 = ZA.TryString(out TempString result2, "Second");
-
+        bool result1IsHeapAllocated;
+        bool result2IsHeapAllocated;
         using (result1)
         using (result2)
         {
-            Assert.True(success1);
-            Assert.True(success2);
-            Assert.False(result1.IsHeapAllocated);
-            Assert.True(result2.IsHeapAllocated);
+            result1IsHeapAllocated = result1.IsHeapAllocated;
+            result2IsHeapAllocated = result2.IsHeapAllocated;
         }
+        await Assert.That(success1).IsTrue();
+        await Assert.That(success2).IsTrue();
+        await Assert.That(result1IsHeapAllocated).IsFalse();
+        await Assert.That(result2IsHeapAllocated).IsTrue();
     }
 
-    [Fact]
-    public void TryString_EmptyString_ReturnsSuccess()
+    [Test]
+    public async Task TryString_EmptyString_ReturnsSuccess()
     {
         bool success = ZA.TryString(out TempString result, "");
+        int length;
         using (result)
         {
-            Assert.True(success);
-            Assert.Equal(0, result.Length);
+            length = result.Length;
         }
+        await Assert.That(success).IsTrue();
+        await Assert.That(length).IsEqualTo(0);
     }
 
     #endregion
@@ -456,74 +620,114 @@ public class TempStringTests
 
     #region Hex Formatter Tests
 
-    [Fact]
-    public void String_Hex2_FormatsAsUppercaseHex()
+    [Test]
+    public async Task String_Hex2_FormatsAsUppercaseHex()
     {
-        using TempString temp = ZA.String("Byte: ", new Hex2(0xFF));
-        Assert.Equal("Byte: FF", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("Byte: ", new Hex2(0xFF));
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("Byte: FF");
     }
 
-    [Fact]
-    public void String_Hex2_LeadingZero()
+    [Test]
+    public async Task String_Hex2_LeadingZero()
     {
-        using TempString temp = ZA.String("Byte: ", new Hex2(0x0A));
-        Assert.Equal("Byte: 0A", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("Byte: ", new Hex2(0x0A));
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("Byte: 0A");
     }
 
-    [Fact]
-    public void String_Hex2_Zero()
+    [Test]
+    public async Task String_Hex2_Zero()
     {
-        using TempString temp = ZA.String(new Hex2(0x00));
-        Assert.Equal("00", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String(new Hex2(0x00));
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("00");
     }
 
-    [Fact]
-    public void String_Hex4_FormatsCorrectly()
+    [Test]
+    public async Task String_Hex4_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("Short: ", new Hex4(0x1234));
-        Assert.Equal("Short: 1234", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("Short: ", new Hex4(0x1234));
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("Short: 1234");
     }
 
-    [Fact]
-    public void String_Hex4_Zero()
+    [Test]
+    public async Task String_Hex4_Zero()
     {
-        using TempString temp = ZA.String(new Hex4(0x0000));
-        Assert.Equal("0000", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String(new Hex4(0x0000));
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("0000");
     }
 
-    [Fact]
-    public void String_Hex8_FormatsCorrectly()
+    [Test]
+    public async Task String_Hex8_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("Int: ", new Hex8(0xDEADBEEF));
-        Assert.Equal("Int: DEADBEEF", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("Int: ", new Hex8(0xDEADBEEF));
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("Int: DEADBEEF");
     }
 
-    [Fact]
-    public void String_Hex8_Zero()
+    [Test]
+    public async Task String_Hex8_Zero()
     {
-        using TempString temp = ZA.String(new Hex8(0x00000000));
-        Assert.Equal("00000000", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String(new Hex8(0x00000000));
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("00000000");
     }
 
-    [Fact]
-    public void String_Hex16_FormatsCorrectly()
+    [Test]
+    public async Task String_Hex16_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("Long: ", new Hex16(0x123456789ABCDEF0));
-        Assert.Equal("Long: 123456789ABCDEF0", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("Long: ", new Hex16(0x123456789ABCDEF0));
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("Long: 123456789ABCDEF0");
     }
 
-    [Fact]
-    public void String_Hex16_Zero()
+    [Test]
+    public async Task String_Hex16_Zero()
     {
-        using TempString temp = ZA.String(new Hex16(0x0000000000000000));
-        Assert.Equal("0000000000000000", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String(new Hex16(0x0000000000000000));
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("0000000000000000");
     }
 
-    [Fact]
-    public void String_MultipleHexValues_FormatsCorrectly()
+    [Test]
+    public async Task String_MultipleHexValues_FormatsCorrectly()
     {
-        using TempString temp = ZA.String(new Hex2(0xAB), new Hex2(0xCD));
-        Assert.Equal("ABCD", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String(new Hex2(0xAB), new Hex2(0xCD));
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("ABCD");
     }
 
     #endregion
@@ -535,78 +739,115 @@ public class TempStringTests
 
     #region Numeric Boundary Tests
 
-    [Fact]
-    public void String_MaxInt_FormatsCorrectly()
+    [Test]
+    public async Task String_MaxInt_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("Max: ", int.MaxValue);
-        Assert.Equal("Max: 2147483647", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("Max: ", int.MaxValue);
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("Max: 2147483647");
     }
 
-    [Fact]
-    public void String_MinInt_FormatsCorrectly()
+    [Test]
+    public async Task String_MinInt_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("Min: ", int.MinValue);
-        Assert.Equal("Min: -2147483648", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("Min: ", int.MinValue);
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("Min: -2147483648");
     }
 
-    [Fact]
-    public void String_MaxLong_FormatsCorrectly()
+    [Test]
+    public async Task String_MaxLong_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("Max: ", long.MaxValue);
-        Assert.Equal("Max: 9223372036854775807", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("Max: ", long.MaxValue);
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("Max: 9223372036854775807");
     }
 
-    [Fact]
-    public void String_MinLong_FormatsCorrectly()
+    [Test]
+    public async Task String_MinLong_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("Min: ", long.MinValue);
-        Assert.Equal("Min: -9223372036854775808", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("Min: ", long.MinValue);
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("Min: -9223372036854775808");
     }
 
-    [Fact]
-    public void String_PositiveInfinity_FormatsCorrectly()
+    [Test]
+    public async Task String_PositiveInfinity_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("Infinity: ", double.PositiveInfinity);
-        string result = temp.AsSpan().ToString();
-        Assert.Contains("Infinity", result);
+        string result;
+        {
+            using TempString temp = ZA.String("Infinity: ", double.PositiveInfinity);
+            result = temp.AsSpan().ToString();
+        }
+        await Assert.That(result).Contains("Infinity");
     }
 
-    [Fact]
-    public void String_NegativeInfinity_FormatsCorrectly()
+    [Test]
+    public async Task String_NegativeInfinity_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("NegInf: ", double.NegativeInfinity);
-        string result = temp.AsSpan().ToString();
-        Assert.Contains("Infinity", result);
+        string result;
+        {
+            using TempString temp = ZA.String("NegInf: ", double.NegativeInfinity);
+            result = temp.AsSpan().ToString();
+        }
+        await Assert.That(result).Contains("Infinity");
     }
 
-    [Fact]
-    public void String_NaN_FormatsCorrectly()
+    [Test]
+    public async Task String_NaN_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("NaN: ", double.NaN);
-        string result = temp.AsSpan().ToString();
-        Assert.Contains("NaN", result);
+        string result;
+        {
+            using TempString temp = ZA.String("NaN: ", double.NaN);
+            result = temp.AsSpan().ToString();
+        }
+        await Assert.That(result).Contains("NaN");
     }
 
-    [Fact]
-    public void String_Epsilon_FormatsNonEmpty()
+    [Test]
+    public async Task String_Epsilon_FormatsNonEmpty()
     {
-        using TempString temp = ZA.String("Epsilon: ", double.Epsilon);
-        Assert.True(temp.Length > 9); // "Epsilon: " + some value
+        bool lengthCheck;
+        {
+            using TempString temp = ZA.String("Epsilon: ", double.Epsilon);
+            lengthCheck = temp.Length > 9;
+        }
+        await Assert.That(lengthCheck).IsTrue(); // "Epsilon: " + some value
     }
 
-    [Fact]
-    public void String_ZeroValues_FormatsCorrectly()
+    [Test]
+    public async Task String_ZeroValues_FormatsCorrectly()
     {
-        using TempString temp = ZA.String(0, 0L, 0.0, 0f);
-        Assert.Equal("0000", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String(0, 0L, 0.0, 0f);
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("0000");
     }
 
-    [Fact]
-    public void String_NegativeZero_FormatsCorrectly()
+    [Test]
+    public async Task String_NegativeZero_FormatsCorrectly()
     {
-        using TempString temp = ZA.String(-0.0);
+        string content;
+        {
+            using TempString temp = ZA.String(-0.0);
+            content = temp.AsSpan().ToString();
+        }
         // .NET formats -0.0 as "-0"
-        Assert.Equal("-0", temp.AsSpan().ToString());
+        await Assert.That(content).IsEqualTo("-0");
     }
 
     #endregion
@@ -618,61 +859,93 @@ public class TempStringTests
 
     #region Unicode Tests
 
-    [Fact]
-    public void String_Emoji_FormatsCorrectly()
+    [Test]
+    public async Task String_Emoji_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("Emoji: ", "🎉🎊🎈");
-        Assert.Equal("Emoji: 🎉🎊🎈", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("Emoji: ", "🎉🎊🎈");
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("Emoji: 🎉🎊🎈");
     }
 
-    [Fact]
-    public void String_SurrogatePair_FormatsCorrectly()
+    [Test]
+    public async Task String_SurrogatePair_FormatsCorrectly()
     {
         // Musical G clef: U+1D11E (surrogate pair in UTF-16)
-        using TempString temp = ZA.String("Music: ", "𝄞");
-        Assert.Equal("Music: 𝄞", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("Music: ", "𝄞");
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("Music: 𝄞");
     }
 
-    [Fact]
-    public void String_GermanUmlauts_FormatsCorrectly()
+    [Test]
+    public async Task String_GermanUmlauts_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("German: äöüÄÖÜß");
-        Assert.Equal("German: äöüÄÖÜß", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("German: äöüÄÖÜß");
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("German: äöüÄÖÜß");
     }
 
-    [Fact]
-    public void String_ChineseCharacters_FormatsCorrectly()
+    [Test]
+    public async Task String_ChineseCharacters_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("Chinese: 你好世界");
-        Assert.Equal("Chinese: 你好世界", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("Chinese: 你好世界");
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("Chinese: 你好世界");
     }
 
-    [Fact]
-    public void String_ArabicCharacters_FormatsCorrectly()
+    [Test]
+    public async Task String_ArabicCharacters_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("Arabic: مرحبا");
-        Assert.Equal("Arabic: مرحبا", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("Arabic: مرحبا");
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("Arabic: مرحبا");
     }
 
-    [Fact]
-    public void String_MixedScripts_FormatsCorrectly()
+    [Test]
+    public async Task String_MixedScripts_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("Mixed: Hello 你好 مرحبا 🌍");
-        Assert.Equal("Mixed: Hello 你好 مرحبا 🌍", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("Mixed: Hello 你好 مرحبا 🌍");
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("Mixed: Hello 你好 مرحبا 🌍");
     }
 
-    [Fact]
-    public void String_Newlines_FormatsCorrectly()
+    [Test]
+    public async Task String_Newlines_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("Line1\nLine2\r\nLine3");
-        Assert.Equal("Line1\nLine2\r\nLine3", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("Line1\nLine2\r\nLine3");
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("Line1\nLine2\r\nLine3");
     }
 
-    [Fact]
-    public void String_Tabs_FormatsCorrectly()
+    [Test]
+    public async Task String_Tabs_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("Col1\tCol2\tCol3");
-        Assert.Equal("Col1\tCol2\tCol3", temp.AsSpan().ToString());
+        string content;
+        {
+            using TempString temp = ZA.String("Col1\tCol2\tCol3");
+            content = temp.AsSpan().ToString();
+        }
+        await Assert.That(content).IsEqualTo("Col1\tCol2\tCol3");
     }
 
     #endregion
@@ -684,23 +957,31 @@ public class TempStringTests
 
     #region Sequential Call Tests
 
-    [Fact]
-    public void String_SequentialCalls_WorkCorrectly()
+    [Test]
+    public async Task String_SequentialCalls_WorkCorrectly()
     {
         for (int i = 0; i < 100; i++)
         {
-            using TempString temp = ZA.String("Iteration: ", i);
-            Assert.Equal($"Iteration: {i}", temp.AsSpan().ToString());
+            string content;
+            {
+                using TempString temp = ZA.String("Iteration: ", i);
+                content = temp.AsSpan().ToString();
+            }
+            await Assert.That(content).IsEqualTo($"Iteration: {i}");
         }
     }
 
-    [Fact]
-    public void String_SequentialCalls_AllUseThreadStatic()
+    [Test]
+    public async Task String_SequentialCalls_AllUseThreadStatic()
     {
         for (int i = 0; i < 10; i++)
         {
-            using TempString temp = ZA.String("Test: ", i);
-            Assert.False(temp.IsHeapAllocated);
+            bool isHeapAllocated;
+            {
+                using TempString temp = ZA.String("Test: ", i);
+                isHeapAllocated = temp.IsHeapAllocated;
+            }
+            await Assert.That(isHeapAllocated).IsFalse();
         }
     }
 
@@ -713,34 +994,49 @@ public class TempStringTests
 
     #region DateTime Boundary Tests
 
-    [Fact]
-    public void String_DateTimeMin_FormatsCorrectly()
+    [Test]
+    public async Task String_DateTimeMin_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("Date: ", DateTime.MinValue);
-        Assert.True(temp.Length > 6);
+        bool lengthCheck;
+        {
+            using TempString temp = ZA.String("Date: ", DateTime.MinValue);
+            lengthCheck = temp.Length > 6;
+        }
+        await Assert.That(lengthCheck).IsTrue();
     }
 
-    [Fact]
-    public void String_DateTimeMax_FormatsCorrectly()
+    [Test]
+    public async Task String_DateTimeMax_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("Date: ", DateTime.MaxValue);
-        Assert.True(temp.Length > 6);
+        bool lengthCheck;
+        {
+            using TempString temp = ZA.String("Date: ", DateTime.MaxValue);
+            lengthCheck = temp.Length > 6;
+        }
+        await Assert.That(lengthCheck).IsTrue();
     }
 
-    [Fact]
-    public void String_TimeSpanMax_FormatsCorrectly()
+    [Test]
+    public async Task String_TimeSpanMax_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("Max: ", TimeSpan.MaxValue);
-        Assert.True(temp.Length > 5);
+        bool lengthCheck;
+        {
+            using TempString temp = ZA.String("Max: ", TimeSpan.MaxValue);
+            lengthCheck = temp.Length > 5;
+        }
+        await Assert.That(lengthCheck).IsTrue();
     }
 
-    [Fact]
-    public void String_TimeSpanMin_FormatsCorrectly()
+    [Test]
+    public async Task String_TimeSpanMin_FormatsCorrectly()
     {
-        using TempString temp = ZA.String("Min: ", TimeSpan.MinValue);
-        Assert.True(temp.Length > 5);
+        bool lengthCheck;
+        {
+            using TempString temp = ZA.String("Min: ", TimeSpan.MinValue);
+            lengthCheck = temp.Length > 5;
+        }
+        await Assert.That(lengthCheck).IsTrue();
     }
 
     #endregion
 }
-

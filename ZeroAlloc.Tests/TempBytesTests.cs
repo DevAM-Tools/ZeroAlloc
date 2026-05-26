@@ -1,27 +1,4 @@
-/*
-MIT License
-SPDX-License-Identifier: MIT
-
-Copyright (c) 2025 ZeroAlloc Contributors
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
+// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
 // ============================================================================
 // TempBytes Tests - Comprehensive UTF-8 and Binary Formatting Tests
@@ -35,67 +12,89 @@ namespace ZeroAlloc.Tests;
 /// <summary>
 /// Comprehensive tests for <see cref="TempBytes"/>, <see cref="ZA.Utf8"/>, and <see cref="ZA.Bytes"/> methods.
 /// </summary>
-public class TempBytesTests
+public sealed class TempBytesTests
 {
     // ========================================================================
     // BASIC UTF-8 TESTS
     // Tests for fundamental UTF-8 encoding operations
     // ========================================================================
-
     #region Basic UTF-8 Tests
 
-    [Fact]
-    public void Utf8_SimpleString_ReturnsCorrectBytes()
+    [Test]
+    public async Task Utf8_SimpleString_ReturnsCorrectBytes()
     {
-        using TempBytes temp = ZA.Utf8("Hello");
-        string result = Encoding.UTF8.GetString(temp.AsSpan());
-        Assert.Equal("Hello", result);
+        string content;
+        {
+            using TempBytes temp = ZA.Utf8("Hello");
+            content = Encoding.UTF8.GetString(temp.AsSpan());
+        }
+        await Assert.That(content).IsEqualTo("Hello");
     }
 
-    [Fact]
-    public void Utf8_IntValue_FormatsCorrectly()
+    [Test]
+    public async Task Utf8_IntValue_FormatsCorrectly()
     {
-        using TempBytes temp = ZA.Utf8("Value: ", 42);
-        string result = Encoding.UTF8.GetString(temp.AsSpan());
-        Assert.Equal("Value: 42", result);
+        string content;
+        {
+            using TempBytes temp = ZA.Utf8("Value: ", 42);
+            content = Encoding.UTF8.GetString(temp.AsSpan());
+        }
+        await Assert.That(content).IsEqualTo("Value: 42");
     }
 
-    [Fact]
-    public void Utf8_MixedTypes_FormatsCorrectly()
+    [Test]
+    public async Task Utf8_MixedTypes_FormatsCorrectly()
     {
-        using TempBytes temp = ZA.Utf8("User ", 12345, " logged in");
-        string result = Encoding.UTF8.GetString(temp.AsSpan());
-        Assert.Equal("User 12345 logged in", result);
+        string content;
+        {
+            using TempBytes temp = ZA.Utf8("User ", 12345, " logged in");
+            content = Encoding.UTF8.GetString(temp.AsSpan());
+        }
+        await Assert.That(content).IsEqualTo("User 12345 logged in");
     }
 
-    [Fact]
-    public void Utf8_Length_ReturnsCorrectByteCount()
+    [Test]
+    public async Task Utf8_Length_ReturnsCorrectByteCount()
     {
-        using TempBytes temp = ZA.Utf8("Test", 123);
-        Assert.Equal(7, temp.Length); // "Test123" = 7 ASCII bytes
+        int length;
+        {
+            using TempBytes temp = ZA.Utf8("Test", 123);
+            length = temp.Length;
+        }
+        await Assert.That(length).IsEqualTo(7); // "Test123" = 7 ASCII bytes
     }
 
-    [Fact]
-    public void Utf8_EmptyString_ReturnsEmpty()
+    [Test]
+    public async Task Utf8_EmptyString_ReturnsEmpty()
     {
-        using TempBytes temp = ZA.Utf8("");
-        Assert.Equal(0, temp.Length);
+        int length;
+        {
+            using TempBytes temp = ZA.Utf8("");
+            length = temp.Length;
+        }
+        await Assert.That(length).IsEqualTo(0);
     }
 
-    [Fact]
-    public void Utf8_BooleanTrue_FormatsCorrectly()
+    [Test]
+    public async Task Utf8_BooleanTrue_FormatsCorrectly()
     {
-        using TempBytes temp = ZA.Utf8("Result: ", true);
-        string result = Encoding.UTF8.GetString(temp.AsSpan());
-        Assert.Equal("Result: True", result);
+        string content;
+        {
+            using TempBytes temp = ZA.Utf8("Result: ", true);
+            content = Encoding.UTF8.GetString(temp.AsSpan());
+        }
+        await Assert.That(content).IsEqualTo("Result: True");
     }
 
-    [Fact]
-    public void Utf8_BooleanFalse_FormatsCorrectly()
+    [Test]
+    public async Task Utf8_BooleanFalse_FormatsCorrectly()
     {
-        using TempBytes temp = ZA.Utf8("Result: ", false);
-        string result = Encoding.UTF8.GetString(temp.AsSpan());
-        Assert.Equal("Result: False", result);
+        string content;
+        {
+            using TempBytes temp = ZA.Utf8("Result: ", false);
+            content = Encoding.UTF8.GetString(temp.AsSpan());
+        }
+        await Assert.That(content).IsEqualTo("Result: False");
     }
 
     #endregion
@@ -107,42 +106,63 @@ public class TempBytesTests
 
     #region Nested Call Tests
 
-    [Fact]
-    public void Utf8_NestedCalls_OuterUsesThreadStatic()
+    [Test]
+    public async Task Utf8_NestedCalls_OuterUsesThreadStatic()
     {
-        using TempBytes outer = ZA.Utf8("Outer");
-        Assert.False(outer.IsHeapAllocated);
+        bool isHeapAllocated;
+        {
+            using TempBytes outer = ZA.Utf8("Outer");
+            isHeapAllocated = outer.IsHeapAllocated;
+        }
+        await Assert.That(isHeapAllocated).IsFalse();
     }
 
-    [Fact]
-    public void Utf8_NestedCalls_InnerUsesHeapFallback()
+    [Test]
+    public async Task Utf8_NestedCalls_InnerUsesHeapFallback()
     {
-        using TempBytes outer = ZA.Utf8("Outer");
-        using TempBytes inner = ZA.Utf8("Inner");
-
-        Assert.False(outer.IsHeapAllocated);
-        Assert.True(inner.IsHeapAllocated);
+        bool outerIsHeapAllocated;
+        bool innerIsHeapAllocated;
+        {
+            using TempBytes outer = ZA.Utf8("Outer");
+            using TempBytes inner = ZA.Utf8("Inner");
+            outerIsHeapAllocated = outer.IsHeapAllocated;
+            innerIsHeapAllocated = inner.IsHeapAllocated;
+        }
+        await Assert.That(outerIsHeapAllocated).IsFalse();
+        await Assert.That(innerIsHeapAllocated).IsTrue();
     }
 
-    [Fact]
-    public void Utf8_NestedCalls_BothReturnCorrectContent()
+    [Test]
+    public async Task Utf8_NestedCalls_BothReturnCorrectContent()
     {
-        using TempBytes outer = ZA.Utf8("Outer: ", 100);
-        using TempBytes inner = ZA.Utf8("Inner: ", 200);
-
-        Assert.Equal("Outer: 100", Encoding.UTF8.GetString(outer.AsSpan()));
-        Assert.Equal("Inner: 200", Encoding.UTF8.GetString(inner.AsSpan()));
+        string outerContent;
+        string innerContent;
+        {
+            using TempBytes outer = ZA.Utf8("Outer: ", 100);
+            using TempBytes inner = ZA.Utf8("Inner: ", 200);
+            outerContent = Encoding.UTF8.GetString(outer.AsSpan());
+            innerContent = Encoding.UTF8.GetString(inner.AsSpan());
+        }
+        await Assert.That(outerContent).IsEqualTo("Outer: 100");
+        await Assert.That(innerContent).IsEqualTo("Inner: 200");
     }
 
-    [Fact]
-    public void Utf8_AfterDispose_ThreadStaticReusable()
+    [Test]
+    public async Task Utf8_AfterDispose_ThreadStaticReusable()
     {
-        TempBytes temp = ZA.Utf8("Test");
-        Assert.False(temp.IsHeapAllocated);
-        temp.Dispose();
-
-        using TempBytes temp2 = ZA.Utf8("Test2");
-        Assert.False(temp2.IsHeapAllocated);
+        bool isHeapAllocated1;
+        {
+            TempBytes temp = ZA.Utf8("Test");
+            isHeapAllocated1 = temp.IsHeapAllocated;
+            temp.Dispose();
+        }
+        bool isHeapAllocated2;
+        {
+            using TempBytes temp2 = ZA.Utf8("Test2");
+            isHeapAllocated2 = temp2.IsHeapAllocated;
+        }
+        await Assert.That(isHeapAllocated1).IsFalse();
+        await Assert.That(isHeapAllocated2).IsFalse();
     }
 
     #endregion
@@ -154,32 +174,37 @@ public class TempBytesTests
 
     #region TryUtf8 Tests
 
-    [Fact]
-    public void TryUtf8_ValidInput_ReturnsTrue()
+    [Test]
+    public async Task TryUtf8_ValidInput_ReturnsTrue()
     {
         bool success = ZA.TryUtf8(out TempBytes result, "Test: ", 42);
+        string str;
         using (result)
         {
-            Assert.True(success);
-            string str = Encoding.UTF8.GetString(result.AsSpan());
-            Assert.Equal("Test: 42", str);
+            str = Encoding.UTF8.GetString(result.AsSpan());
         }
+        await Assert.That(success).IsTrue();
+        await Assert.That(str).IsEqualTo("Test: 42");
     }
 
-    [Fact]
-    public void TryUtf8_NestedCalls_GracefullyFallsBack()
+    [Test]
+    public async Task TryUtf8_NestedCalls_GracefullyFallsBack()
     {
         bool success1 = ZA.TryUtf8(out TempBytes result1, "First");
         bool success2 = ZA.TryUtf8(out TempBytes result2, "Second");
 
+        bool isHeapAllocated1;
+        bool isHeapAllocated2;
         using (result1)
         using (result2)
         {
-            Assert.True(success1);
-            Assert.True(success2);
-            Assert.False(result1.IsHeapAllocated);
-            Assert.True(result2.IsHeapAllocated);
+            isHeapAllocated1 = result1.IsHeapAllocated;
+            isHeapAllocated2 = result2.IsHeapAllocated;
         }
+        await Assert.That(success1).IsTrue();
+        await Assert.That(success2).IsTrue();
+        await Assert.That(isHeapAllocated1).IsFalse();
+        await Assert.That(isHeapAllocated2).IsTrue();
     }
 
     #endregion
@@ -191,56 +216,86 @@ public class TempBytesTests
 
     #region Unicode Encoding Tests
 
-    [Fact]
-    public void Utf8_Emoji_EncodesCorrectly()
+    [Test]
+    public async Task Utf8_Emoji_EncodesCorrectly()
     {
-        using TempBytes temp = ZA.Utf8("🎉");
-        // Emoji 🎉 is 4 bytes in UTF-8 (F0 9F 8E 89)
-        Assert.Equal(4, temp.Length);
-        Assert.Equal("🎉", Encoding.UTF8.GetString(temp.AsSpan()));
+        int length;
+        string content;
+        {
+            using TempBytes temp = ZA.Utf8("🎉");
+            // Emoji 🎉 is 4 bytes in UTF-8 (F0 9F 8E 89)
+            length = temp.Length;
+            content = Encoding.UTF8.GetString(temp.AsSpan());
+        }
+        await Assert.That(length).IsEqualTo(4);
+        await Assert.That(content).IsEqualTo("🎉");
     }
 
-    [Fact]
-    public void Utf8_GermanUmlauts_EncodesCorrectly()
+    [Test]
+    public async Task Utf8_GermanUmlauts_EncodesCorrectly()
     {
-        using TempBytes temp = ZA.Utf8("German: äöü");
-        string result = Encoding.UTF8.GetString(temp.AsSpan());
-        Assert.Equal("German: äöü", result);
+        string content;
+        {
+            using TempBytes temp = ZA.Utf8("German: äöü");
+            content = Encoding.UTF8.GetString(temp.AsSpan());
+        }
+        await Assert.That(content).IsEqualTo("German: äöü");
     }
 
-    [Fact]
-    public void Utf8_ChineseCharacters_EncodesCorrectly()
+    [Test]
+    public async Task Utf8_ChineseCharacters_EncodesCorrectly()
     {
-        using TempBytes temp = ZA.Utf8("你好");
-        // Chinese characters are 3 bytes each in UTF-8
-        Assert.Equal(6, temp.Length);
-        Assert.Equal("你好", Encoding.UTF8.GetString(temp.AsSpan()));
+        int length;
+        string content;
+        {
+            using TempBytes temp = ZA.Utf8("你好");
+            // Chinese characters are 3 bytes each in UTF-8
+            length = temp.Length;
+            content = Encoding.UTF8.GetString(temp.AsSpan());
+        }
+        await Assert.That(length).IsEqualTo(6);
+        await Assert.That(content).IsEqualTo("你好");
     }
 
-    [Fact]
-    public void Utf8_SurrogatePair_EncodesCorrectly()
+    [Test]
+    public async Task Utf8_SurrogatePair_EncodesCorrectly()
     {
-        // Musical G clef: U+1D11E
-        using TempBytes temp = ZA.Utf8("𝄞");
-        Assert.Equal(4, temp.Length); // 4-byte UTF-8 sequence
-        Assert.Equal("𝄞", Encoding.UTF8.GetString(temp.AsSpan()));
+        int length;
+        string content;
+        {
+            // Musical G clef: U+1D11E
+            using TempBytes temp = ZA.Utf8("𝄞");
+            length = temp.Length;
+            content = Encoding.UTF8.GetString(temp.AsSpan());
+        }
+        await Assert.That(length).IsEqualTo(4); // 4-byte UTF-8 sequence
+        await Assert.That(content).IsEqualTo("𝄞");
     }
 
-    [Fact]
-    public void Utf8_Euro_EncodesCorrectly()
+    [Test]
+    public async Task Utf8_Euro_EncodesCorrectly()
     {
-        using TempBytes temp = ZA.Utf8("€");
-        // Euro sign is 3 bytes in UTF-8 (E2 82 AC)
-        Assert.Equal(3, temp.Length);
-        Assert.Equal("€", Encoding.UTF8.GetString(temp.AsSpan()));
+        int length;
+        string content;
+        {
+            using TempBytes temp = ZA.Utf8("€");
+            // Euro sign is 3 bytes in UTF-8 (E2 82 AC)
+            length = temp.Length;
+            content = Encoding.UTF8.GetString(temp.AsSpan());
+        }
+        await Assert.That(length).IsEqualTo(3);
+        await Assert.That(content).IsEqualTo("€");
     }
 
-    [Fact]
-    public void Utf8_MixedContent_EncodesCorrectly()
+    [Test]
+    public async Task Utf8_MixedContent_EncodesCorrectly()
     {
-        using TempBytes temp = ZA.Utf8("Hello 你好 🌍");
-        string result = Encoding.UTF8.GetString(temp.AsSpan());
-        Assert.Equal("Hello 你好 🌍", result);
+        string content;
+        {
+            using TempBytes temp = ZA.Utf8("Hello 你好 🌍");
+            content = Encoding.UTF8.GetString(temp.AsSpan());
+        }
+        await Assert.That(content).IsEqualTo("Hello 你好 🌍");
     }
 
     #endregion
@@ -252,101 +307,133 @@ public class TempBytesTests
 
     #region Endian Wrapper Tests
 
-    [Fact]
-    public void Bytes_U16BE_SerializesCorrectly()
+    [Test]
+    public async Task Bytes_U16BE_SerializesCorrectly()
     {
-        using TempBytes temp = ZA.Bytes(new U16BE(0x1234));
-        ReadOnlySpan<byte> bytes = temp.AsSpan();
-        Assert.Equal(2, bytes.Length);
-        Assert.Equal(0x12, bytes[0]);
-        Assert.Equal(0x34, bytes[1]);
+        byte[] bytes;
+        {
+            using TempBytes temp = ZA.Bytes(new U16BE(0x1234));
+            bytes = temp.AsSpan().ToArray();
+        }
+        await Assert.That(bytes.Length).IsEqualTo(2);
+        await Assert.That((int)bytes[0]).IsEqualTo(0x12);
+        await Assert.That((int)bytes[1]).IsEqualTo(0x34);
     }
 
-    [Fact]
-    public void Bytes_U16LE_SerializesCorrectly()
+    [Test]
+    public async Task Bytes_U16LE_SerializesCorrectly()
     {
-        using TempBytes temp = ZA.Bytes(new U16LE(0x1234));
-        ReadOnlySpan<byte> bytes = temp.AsSpan();
-        Assert.Equal(2, bytes.Length);
-        Assert.Equal(0x34, bytes[0]);
-        Assert.Equal(0x12, bytes[1]);
+        byte[] bytes;
+        {
+            using TempBytes temp = ZA.Bytes(new U16LE(0x1234));
+            bytes = temp.AsSpan().ToArray();
+        }
+        await Assert.That(bytes.Length).IsEqualTo(2);
+        await Assert.That((int)bytes[0]).IsEqualTo(0x34);
+        await Assert.That((int)bytes[1]).IsEqualTo(0x12);
     }
 
-    [Fact]
-    public void Bytes_U32BE_SerializesCorrectly()
+    [Test]
+    public async Task Bytes_U32BE_SerializesCorrectly()
     {
-        using TempBytes temp = ZA.Bytes(new U32BE(0x12345678));
-        ReadOnlySpan<byte> bytes = temp.AsSpan();
-        Assert.Equal(4, bytes.Length);
-        Assert.Equal(0x12, bytes[0]);
-        Assert.Equal(0x34, bytes[1]);
-        Assert.Equal(0x56, bytes[2]);
-        Assert.Equal(0x78, bytes[3]);
+        byte[] bytes;
+        {
+            using TempBytes temp = ZA.Bytes(new U32BE(0x12345678));
+            bytes = temp.AsSpan().ToArray();
+        }
+        await Assert.That(bytes.Length).IsEqualTo(4);
+        await Assert.That((int)bytes[0]).IsEqualTo(0x12);
+        await Assert.That((int)bytes[1]).IsEqualTo(0x34);
+        await Assert.That((int)bytes[2]).IsEqualTo(0x56);
+        await Assert.That((int)bytes[3]).IsEqualTo(0x78);
     }
 
-    [Fact]
-    public void Bytes_U32LE_SerializesCorrectly()
+    [Test]
+    public async Task Bytes_U32LE_SerializesCorrectly()
     {
-        using TempBytes temp = ZA.Bytes(new U32LE(0x12345678));
-        ReadOnlySpan<byte> bytes = temp.AsSpan();
-        Assert.Equal(4, bytes.Length);
-        Assert.Equal(0x78, bytes[0]);
-        Assert.Equal(0x56, bytes[1]);
-        Assert.Equal(0x34, bytes[2]);
-        Assert.Equal(0x12, bytes[3]);
+        byte[] bytes;
+        {
+            using TempBytes temp = ZA.Bytes(new U32LE(0x12345678));
+            bytes = temp.AsSpan().ToArray();
+        }
+        await Assert.That(bytes.Length).IsEqualTo(4);
+        await Assert.That((int)bytes[0]).IsEqualTo(0x78);
+        await Assert.That((int)bytes[1]).IsEqualTo(0x56);
+        await Assert.That((int)bytes[2]).IsEqualTo(0x34);
+        await Assert.That((int)bytes[3]).IsEqualTo(0x12);
     }
 
-    [Fact]
-    public void Bytes_U64BE_SerializesCorrectly()
+    [Test]
+    public async Task Bytes_U64BE_SerializesCorrectly()
     {
-        using TempBytes temp = ZA.Bytes(new U64BE(0x123456789ABCDEF0));
-        ReadOnlySpan<byte> bytes = temp.AsSpan();
-        Assert.Equal(8, bytes.Length);
-        Assert.Equal(0x12, bytes[0]);
-        Assert.Equal(0xF0, bytes[7]);
+        byte[] bytes;
+        {
+            using TempBytes temp = ZA.Bytes(new U64BE(0x123456789ABCDEF0));
+            bytes = temp.AsSpan().ToArray();
+        }
+        await Assert.That(bytes.Length).IsEqualTo(8);
+        await Assert.That((int)bytes[0]).IsEqualTo(0x12);
+        await Assert.That((int)bytes[7]).IsEqualTo(0xF0);
     }
 
-    [Fact]
-    public void Bytes_U64LE_SerializesCorrectly()
+    [Test]
+    public async Task Bytes_U64LE_SerializesCorrectly()
     {
-        using TempBytes temp = ZA.Bytes(new U64LE(0x123456789ABCDEF0));
-        ReadOnlySpan<byte> bytes = temp.AsSpan();
-        Assert.Equal(8, bytes.Length);
-        Assert.Equal(0xF0, bytes[0]);
-        Assert.Equal(0x12, bytes[7]);
+        byte[] bytes;
+        {
+            using TempBytes temp = ZA.Bytes(new U64LE(0x123456789ABCDEF0));
+            bytes = temp.AsSpan().ToArray();
+        }
+        await Assert.That(bytes.Length).IsEqualTo(8);
+        await Assert.That((int)bytes[0]).IsEqualTo(0xF0);
+        await Assert.That((int)bytes[7]).IsEqualTo(0x12);
     }
 
-    [Fact]
-    public void Bytes_I16BE_SerializesNegativeCorrectly()
+    [Test]
+    public async Task Bytes_I16BE_SerializesNegativeCorrectly()
     {
-        using TempBytes temp = ZA.Bytes(new I16BE(-1));
-        ReadOnlySpan<byte> bytes = temp.AsSpan();
-        Assert.Equal(2, bytes.Length);
-        Assert.Equal(0xFF, bytes[0]);
-        Assert.Equal(0xFF, bytes[1]);
+        byte[] bytes;
+        {
+            using TempBytes temp = ZA.Bytes(new I16BE(-1));
+            bytes = temp.AsSpan().ToArray();
+        }
+        await Assert.That(bytes.Length).IsEqualTo(2);
+        await Assert.That((int)bytes[0]).IsEqualTo(0xFF);
+        await Assert.That((int)bytes[1]).IsEqualTo(0xFF);
     }
 
-    [Fact]
-    public void Bytes_I32BE_SerializesNegativeCorrectly()
+    [Test]
+    public async Task Bytes_I32BE_SerializesNegativeCorrectly()
     {
-        using TempBytes temp = ZA.Bytes(new I32BE(-1));
-        ReadOnlySpan<byte> bytes = temp.AsSpan();
-        Assert.Equal(4, bytes.Length);
-        Assert.All(bytes.ToArray(), b => Assert.Equal(0xFF, b));
+        byte[] bytes;
+        {
+            using TempBytes temp = ZA.Bytes(new I32BE(-1));
+            bytes = temp.AsSpan().ToArray();
+        }
+        await Assert.That(bytes.Length).IsEqualTo(4);
+        await Assert.That((int)bytes[0]).IsEqualTo(0xFF);
     }
 
-    [Fact]
-    public void Bytes_F32BE_SerializesCorrectly()
+    [Test]
+    public async Task Bytes_F32BE_SerializesCorrectly()
     {
-        using TempBytes temp = ZA.Bytes(new F32BE(1.0f));
-        Assert.Equal(4, temp.Length);
+        int length;
+        {
+            using TempBytes temp = ZA.Bytes(new F32BE(1.0f));
+            length = temp.Length;
+        }
+        await Assert.That(length).IsEqualTo(4);
     }
 
-    [Fact]
-    public void Bytes_F64BE_SerializesCorrectly()
+    [Test]
+    public async Task Bytes_F64BE_SerializesCorrectly()
     {
-        using TempBytes temp = ZA.Bytes(new F64BE(1.0));
-        Assert.Equal(8, temp.Length);
+        int length;
+        {
+            using TempBytes temp = ZA.Bytes(new F64BE(1.0));
+            length = temp.Length;
+        }
+        await Assert.That(length).IsEqualTo(8);
     }
 
     #endregion
@@ -358,38 +445,47 @@ public class TempBytesTests
 
     #region Raw Bytes Tests
 
-    [Fact]
-    public void Bytes_Raw_CopiesCorrectly()
+    [Test]
+    public async Task Bytes_Raw_CopiesCorrectly()
     {
         byte[] data = [0x01, 0x02, 0x03, 0x04];
-        using TempBytes temp = ZA.Bytes(new Raw(data));
-        ReadOnlySpan<byte> bytes = temp.AsSpan();
-
-        Assert.Equal(4, bytes.Length);
-        Assert.Equal(0x01, bytes[0]);
-        Assert.Equal(0x04, bytes[3]);
+        byte[] bytes;
+        {
+            using TempBytes temp = ZA.Bytes(new Raw(data));
+            bytes = temp.AsSpan().ToArray();
+        }
+        await Assert.That(bytes.Length).IsEqualTo(4);
+        await Assert.That((int)bytes[0]).IsEqualTo(0x01);
+        await Assert.That((int)bytes[3]).IsEqualTo(0x04);
     }
 
-    [Fact]
-    public void Bytes_RawEmpty_ReturnsEmpty()
+    [Test]
+    public async Task Bytes_RawEmpty_ReturnsEmpty()
     {
         byte[] data = [];
-        using TempBytes temp = ZA.Bytes(new Raw(data));
-        Assert.Equal(0, temp.Length);
+        int length;
+        {
+            using TempBytes temp = ZA.Bytes(new Raw(data));
+            length = temp.Length;
+        }
+        await Assert.That(length).IsEqualTo(0);
     }
 
-    [Fact]
-    public void Bytes_RawAndEndian_CombineCorrectly()
+    [Test]
+    public async Task Bytes_RawAndEndian_CombineCorrectly()
     {
         byte[] rawData = [0xFF, 0xFE];
-        using TempBytes temp = ZA.Bytes(new Raw(rawData), new U16BE(0x1234));
-        ReadOnlySpan<byte> bytes = temp.AsSpan();
+        byte[] bytes;
+        {
+            using TempBytes temp = ZA.Bytes(new Raw(rawData), new U16BE(0x1234));
+            bytes = temp.AsSpan().ToArray();
+        }
 
-        Assert.Equal(4, bytes.Length);
-        Assert.Equal(0xFF, bytes[0]);
-        Assert.Equal(0xFE, bytes[1]);
-        Assert.Equal(0x12, bytes[2]);
-        Assert.Equal(0x34, bytes[3]);
+        await Assert.That(bytes.Length).IsEqualTo(4);
+        await Assert.That((int)bytes[0]).IsEqualTo(0xFF);
+        await Assert.That((int)bytes[1]).IsEqualTo(0xFE);
+        await Assert.That((int)bytes[2]).IsEqualTo(0x12);
+        await Assert.That((int)bytes[3]).IsEqualTo(0x34);
     }
 
     #endregion
@@ -401,48 +497,76 @@ public class TempBytesTests
 
     #region VarInt Tests
 
-    [Fact]
-    public void Bytes_VarInt_SmallValue_SingleByte()
+    [Test]
+    public async Task Bytes_VarInt_SmallValue_SingleByte()
     {
-        using TempBytes temp = ZA.Bytes(new VarInt(127));
-        Assert.Equal(1, temp.Length);
-        Assert.Equal(127, temp.AsSpan()[0]);
+        int length;
+        byte firstByte;
+        {
+            using TempBytes temp = ZA.Bytes(new VarInt(127));
+            length = temp.Length;
+            firstByte = temp.AsSpan()[0];
+        }
+        await Assert.That(length).IsEqualTo(1);
+        await Assert.That((int)firstByte).IsEqualTo(127);
     }
 
-    [Fact]
-    public void Bytes_VarInt_TwoByteValue()
+    [Test]
+    public async Task Bytes_VarInt_TwoByteValue()
     {
-        using TempBytes temp = ZA.Bytes(new VarInt(128));
-        Assert.Equal(2, temp.Length);
+        int length;
+        {
+            using TempBytes temp = ZA.Bytes(new VarInt(128));
+            length = temp.Length;
+        }
+        await Assert.That(length).IsEqualTo(2);
     }
 
-    [Fact]
-    public void Bytes_VarInt_LargeValue()
+    [Test]
+    public async Task Bytes_VarInt_LargeValue()
     {
-        using TempBytes temp = ZA.Bytes(new VarInt(int.MaxValue));
-        Assert.True(temp.Length <= 5);
+        int length;
+        {
+            using TempBytes temp = ZA.Bytes(new VarInt(int.MaxValue));
+            length = temp.Length;
+        }
+        await Assert.That(length <= 5).IsTrue();
     }
 
-    [Fact]
-    public void Bytes_VarIntZigZag_PositiveValue()
+    [Test]
+    public async Task Bytes_VarIntZigZag_PositiveValue()
     {
-        using TempBytes temp = ZA.Bytes(new VarIntZigZag(1));
-        Assert.Equal(2, temp.AsSpan()[0]); // 1 encodes as 2 in ZigZag
+        byte firstByte;
+        {
+            using TempBytes temp = ZA.Bytes(new VarIntZigZag(1));
+            firstByte = temp.AsSpan()[0];
+        }
+        await Assert.That((int)firstByte).IsEqualTo(2); // 1 encodes as 2 in ZigZag
     }
 
-    [Fact]
-    public void Bytes_VarIntZigZag_NegativeValue()
+    [Test]
+    public async Task Bytes_VarIntZigZag_NegativeValue()
     {
-        using TempBytes temp = ZA.Bytes(new VarIntZigZag(-1));
-        Assert.Equal(1, temp.AsSpan()[0]); // -1 encodes as 1 in ZigZag
+        byte firstByte;
+        {
+            using TempBytes temp = ZA.Bytes(new VarIntZigZag(-1));
+            firstByte = temp.AsSpan()[0];
+        }
+        await Assert.That((int)firstByte).IsEqualTo(1); // -1 encodes as 1 in ZigZag
     }
 
-    [Fact]
-    public void Bytes_VarIntZigZag_Zero()
+    [Test]
+    public async Task Bytes_VarIntZigZag_Zero()
     {
-        using TempBytes temp = ZA.Bytes(new VarIntZigZag(0));
-        Assert.Equal(1, temp.Length);
-        Assert.Equal(0, temp.AsSpan()[0]);
+        int length;
+        byte firstByte;
+        {
+            using TempBytes temp = ZA.Bytes(new VarIntZigZag(0));
+            length = temp.Length;
+            firstByte = temp.AsSpan()[0];
+        }
+        await Assert.That(length).IsEqualTo(1);
+        await Assert.That((int)firstByte).IsEqualTo(0);
     }
 
     #endregion
@@ -454,23 +578,31 @@ public class TempBytesTests
 
     #region Sequential Call Tests
 
-    [Fact]
-    public void Utf8_SequentialCalls_WorkCorrectly()
+    [Test]
+    public async Task Utf8_SequentialCalls_WorkCorrectly()
     {
         for (int i = 0; i < 100; i++)
         {
-            using TempBytes temp = ZA.Utf8("Iteration: ", i);
-            Assert.Equal($"Iteration: {i}", Encoding.UTF8.GetString(temp.AsSpan()));
+            string content;
+            {
+                using TempBytes temp = ZA.Utf8("Iteration: ", i);
+                content = Encoding.UTF8.GetString(temp.AsSpan());
+            }
+            await Assert.That(content).IsEqualTo($"Iteration: {i}");
         }
     }
 
-    [Fact]
-    public void Bytes_SequentialCalls_AllUseThreadStatic()
+    [Test]
+    public async Task Bytes_SequentialCalls_AllUseThreadStatic()
     {
         for (int i = 0; i < 10; i++)
         {
-            using TempBytes temp = ZA.Bytes(new U32BE((uint)i));
-            Assert.False(temp.IsHeapAllocated);
+            bool isHeapAllocated;
+            {
+                using TempBytes temp = ZA.Bytes(new U32BE((uint)i));
+                isHeapAllocated = temp.IsHeapAllocated;
+            }
+            await Assert.That(isHeapAllocated).IsFalse();
         }
     }
 
@@ -483,21 +615,31 @@ public class TempBytesTests
 
     #region Encoding Wrapper Tests
 
-    [Fact]
-    public void Bytes_Ascii_EncodesCorrectly()
+    [Test]
+    public async Task Bytes_Ascii_EncodesCorrectly()
     {
-        using TempBytes temp = ZA.Bytes(new Ascii("Hello"));
-        Assert.Equal(5, temp.Length);
-        Assert.Equal((byte)'H', temp.AsSpan()[0]);
-        Assert.Equal((byte)'o', temp.AsSpan()[4]);
+        int length;
+        byte[] bytes;
+        {
+            using TempBytes temp = ZA.Bytes(new Ascii("Hello"));
+            length = temp.Length;
+            bytes = temp.AsSpan().ToArray();
+        }
+        await Assert.That(length).IsEqualTo(5);
+        await Assert.That(bytes[0]).IsEqualTo((byte)'H');
+        await Assert.That(bytes[4]).IsEqualTo((byte)'o');
     }
 
-    [Fact]
-    public void Bytes_Utf8Encoded_EncodesCorrectly()
+    [Test]
+    public async Task Bytes_Utf8Encoded_EncodesCorrectly()
     {
-        using TempBytes temp = ZA.Bytes(new Utf8("äöü"));
-        // Each umlaut is 2 bytes in UTF-8
-        Assert.Equal(6, temp.Length);
+        int length;
+        {
+            using TempBytes temp = ZA.Bytes(new Utf8("äöü"));
+            // Each umlaut is 2 bytes in UTF-8
+            length = temp.Length;
+        }
+        await Assert.That(length).IsEqualTo(6);
     }
 
     #endregion
@@ -509,46 +651,49 @@ public class TempBytesTests
 
     #region Combined Formatting Tests
 
-    [Fact]
-    public void Bytes_MultipleWrappers_SerializeInOrder()
+    [Test]
+    public async Task Bytes_MultipleWrappers_SerializeInOrder()
     {
-        using TempBytes temp = ZA.Bytes(
-            new U16BE(0x0001),   // 2 bytes
-            new U32BE(0x12345678), // 4 bytes
-            new Raw([0xAB, 0xCD])  // 2 bytes
-        );
-
-        ReadOnlySpan<byte> bytes = temp.AsSpan();
-        Assert.Equal(8, bytes.Length);
+        byte[] bytes;
+        {
+            using TempBytes temp = ZA.Bytes(
+                new U16BE(0x0001),   // 2 bytes
+                new U32BE(0x12345678), // 4 bytes
+                new Raw([0xAB, 0xCD])  // 2 bytes
+            );
+            bytes = temp.AsSpan().ToArray();
+        }
+        await Assert.That(bytes.Length).IsEqualTo(8);
 
         // First U16BE
-        Assert.Equal(0x00, bytes[0]);
-        Assert.Equal(0x01, bytes[1]);
+        await Assert.That((int)bytes[0]).IsEqualTo(0x00);
+        await Assert.That((int)bytes[1]).IsEqualTo(0x01);
 
         // Then U32BE
-        Assert.Equal(0x12, bytes[2]);
-        Assert.Equal(0x78, bytes[5]);
+        await Assert.That((int)bytes[2]).IsEqualTo(0x12);
+        await Assert.That((int)bytes[5]).IsEqualTo(0x78);
 
         // Finally Raw
-        Assert.Equal(0xAB, bytes[6]);
-        Assert.Equal(0xCD, bytes[7]);
+        await Assert.That((int)bytes[6]).IsEqualTo(0xAB);
+        await Assert.That((int)bytes[7]).IsEqualTo(0xCD);
     }
 
-    [Fact]
-    public void Bytes_StringWithBinaryPrefix_WorksCorrectly()
+    [Test]
+    public async Task Bytes_StringWithBinaryPrefix_WorksCorrectly()
     {
-        using TempBytes temp = ZA.Bytes(
-            new U16BE(5),        // Length prefix
-            new Ascii("Hello")     // String data
-        );
-
-        ReadOnlySpan<byte> bytes = temp.AsSpan();
-        Assert.Equal(7, bytes.Length);
-        Assert.Equal(0x00, bytes[0]); // High byte of length
-        Assert.Equal(0x05, bytes[1]); // Low byte of length
-        Assert.Equal((byte)'H', bytes[2]);
+        byte[] bytes;
+        {
+            using TempBytes temp = ZA.Bytes(
+                new U16BE(5),        // Length prefix
+                new Ascii("Hello")     // String data
+            );
+            bytes = temp.AsSpan().ToArray();
+        }
+        await Assert.That(bytes.Length).IsEqualTo(7);
+        await Assert.That((int)bytes[0]).IsEqualTo(0x00); // High byte of length
+        await Assert.That((int)bytes[1]).IsEqualTo(0x05); // Low byte of length
+        await Assert.That(bytes[2]).IsEqualTo((byte)'H');
     }
 
     #endregion
 }
-

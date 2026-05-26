@@ -1,27 +1,4 @@
-/*
-MIT License
-SPDX-License-Identifier: MIT
-
-Copyright (c) 2025 ZeroAlloc Contributors
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
+﻿// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
 // ============================================================================
 // ZeroAlloc - Binary Parser
@@ -305,6 +282,11 @@ public ref struct BinaryParser
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<byte> ReadBytes(int length)
     {
+        if (length < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(length), "Length must be non-negative");
+        }
+
         if (_Position + length > _Buffer.Length)
         {
             ThrowInsufficientData(length);
@@ -321,6 +303,11 @@ public ref struct BinaryParser
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Skip(int count)
     {
+        if (count < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(count), "Count must be non-negative");
+        }
+
         if (_Position + count > _Buffer.Length)
         {
             ThrowInsufficientData(count);
@@ -348,7 +335,14 @@ public ref struct BinaryParser
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<byte> ReadUtf8Var()
     {
-        int length = (int)ReadVarInt();
+        ulong rawLength = ReadVarInt();
+        if (rawLength > int.MaxValue)
+        {
+            throw new InvalidOperationException(
+                $"VarInt length prefix {rawLength} exceeds the maximum allowed value of {int.MaxValue}");
+        }
+
+        int length = (int)rawLength;
         return ReadBytes(length);
     }
 
@@ -370,7 +364,14 @@ public ref struct BinaryParser
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<byte> ReadUtf8FixedBE32()
     {
-        int length = (int)ReadUInt32BE();
+        uint rawLength = ReadUInt32BE();
+        if (rawLength > int.MaxValue)
+        {
+            throw new InvalidOperationException(
+                $"BE32 length prefix {rawLength} exceeds the maximum allowed value of {int.MaxValue}");
+        }
+
+        int length = (int)rawLength;
         return ReadBytes(length);
     }
 
@@ -469,6 +470,11 @@ public ref struct BinaryParser
     /// <exception cref="ArgumentException">Thrown when T has variable size.</exception>
     public int ReadArray<T>(int count, Span<T> destination) where T : IBinaryParsable<T>
     {
+        if (count < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(count), "Count must be non-negative");
+        }
+
         if (!T.TryGetSerializedSize(out int size) || size < 0)
         {
             throw new ArgumentException($"Type {typeof(T).Name} has variable size and cannot be read as a fixed-size array. Use ReadList<T> instead.");
@@ -499,7 +505,14 @@ public ref struct BinaryParser
     /// <returns>Number of elements actually read.</returns>
     public int ReadArrayVarInt<T>(Span<T> destination) where T : IBinaryParsable<T>
     {
-        int count = (int)ReadVarInt();
+        ulong rawCount = ReadVarInt();
+        if (rawCount > int.MaxValue)
+        {
+            throw new InvalidOperationException(
+                $"VarInt count prefix {rawCount} exceeds the maximum allowed value of {int.MaxValue}");
+        }
+
+        int count = (int)rawCount;
         return ReadArray(count, destination);
     }
 
@@ -523,7 +536,14 @@ public ref struct BinaryParser
     /// <returns>Number of elements actually read.</returns>
     public int ReadArrayBE32<T>(Span<T> destination) where T : IBinaryParsable<T>
     {
-        int count = (int)ReadUInt32BE();
+        uint rawCount = ReadUInt32BE();
+        if (rawCount > int.MaxValue)
+        {
+            throw new InvalidOperationException(
+                $"BE32 count prefix {rawCount} exceeds the maximum allowed value of {int.MaxValue}");
+        }
+
+        int count = (int)rawCount;
         return ReadArray(count, destination);
     }
 

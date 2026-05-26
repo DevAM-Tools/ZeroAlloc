@@ -1,27 +1,4 @@
-/*
-MIT License
-SPDX-License-Identifier: MIT
-
-Copyright (c) 2025 ZeroAlloc Contributors
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
+﻿// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
 namespace ZeroAlloc;
 
@@ -89,6 +66,24 @@ public ref struct BitWriter
             throw new ArgumentOutOfRangeException(nameof(bitCount), "BitCount must be between 1 and 64");
         }
 
+        if (bitCount > RemainingBits)
+        {
+            throw new InvalidOperationException(
+                $"Insufficient buffer capacity: need {bitCount} bits at offset {_BitOffset}, "
+                + $"but only {RemainingBits} bits remaining (buffer length: {_Buffer.Length} bytes).");
+        }
+
+        WriteBitsCore(value, bitCount);
+    }
+
+    /// <summary>
+    /// Writes <paramref name="bitCount"/> bits without performing any validation.
+    /// Callers must ensure <paramref name="bitCount"/> is in range (1–64) and that
+    /// sufficient buffer capacity remains before calling this method.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void WriteBitsCore(ulong value, int bitCount)
+    {
         int bytePos = _BitOffset >> 3;
         int bitPos = _BitOffset & 7;
 
@@ -185,6 +180,13 @@ public ref struct BitWriter
     {
         if (IsByteAligned)
         {
+            if (RemainingBits < 8)
+            {
+                throw new InvalidOperationException(
+                    $"Insufficient buffer capacity: need 8 bits at offset {_BitOffset}, "
+                    + $"but only {RemainingBits} bits remaining (buffer length: {_Buffer.Length} bytes).");
+            }
+
             _Buffer[BytePosition] = value;
             _BitOffset += 8;
         }
@@ -231,6 +233,29 @@ public ref struct BitWriter
     public void WriteInt64(long value) => WriteBits((ulong)value, 64);
 
     /// <summary>
+    /// Writes a 128-bit unsigned integer in big-endian bit order.
+    /// Writes the upper 64 bits first, then the lower 64 bits.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void WriteUInt128(UInt128 value)
+    {
+        WriteBits((ulong)(value >> 64), 64);
+        WriteBits((ulong)value, 64);
+    }
+
+    /// <summary>
+    /// Writes a 128-bit signed integer in big-endian bit order.
+    /// Writes the upper 64 bits first, then the lower 64 bits.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void WriteInt128(Int128 value)
+    {
+        UInt128 bits = (UInt128)value;
+        WriteBits((ulong)(bits >> 64), 64);
+        WriteBits((ulong)bits, 64);
+    }
+
+    /// <summary>
     /// Aligns the writer to the next byte boundary by writing zero bits.
     /// If already aligned, does nothing.
     /// </summary>
@@ -249,7 +274,22 @@ public ref struct BitWriter
     /// </summary>
     /// <param name="bitCount">Number of bits to skip.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void SkipBits(int bitCount) => _BitOffset += bitCount;
+    public void SkipBits(int bitCount)
+    {
+        if (bitCount < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(bitCount), "BitCount must be non-negative");
+        }
+
+        if (bitCount > RemainingBits)
+        {
+            throw new InvalidOperationException(
+                $"Insufficient buffer capacity: need {bitCount} bits at offset {_BitOffset}, "
+                + $"but only {RemainingBits} bits remaining (buffer length: {_Buffer.Length} bytes).");
+        }
+
+        _BitOffset += bitCount;
+    }
 
     /// <summary>
     /// Writes a byte array. Must be byte-aligned.
@@ -260,6 +300,13 @@ public ref struct BitWriter
         if ((_BitOffset & 7) != 0)
         {
             throw new InvalidOperationException("WriteBytes requires byte alignment. Call AlignToNextByte() first.");
+        }
+
+        if (data.Length > RemainingBytes)
+        {
+            throw new InvalidOperationException(
+                $"Insufficient buffer capacity: need {data.Length} bytes at byte offset {BytePosition}, "
+                + $"but only {RemainingBytes} bytes remaining (buffer length: {_Buffer.Length} bytes).");
         }
 
         int byteOffset = _BitOffset >> 3;
@@ -276,6 +323,196 @@ public ref struct BitWriter
     /// Gets the remaining bytes available in the buffer (rounded down).
     /// </summary>
     public readonly int RemainingBytes => ((_Buffer.Length << 3) - _BitOffset) >> 3;
+
+    #region Try-Write Methods
+
+    /// <summary>
+    /// Attempts to write up to 64 bits from an unsigned integer.
+    /// Returns <see langword="false"/> without modifying the buffer if fewer than <paramref name="bitCount"/> bits remain.
+    /// Throws <see cref="ArgumentOutOfRangeException"/> for invalid <paramref name="bitCount"/> values (programming error).
+    /// </summary>
+    /// <param name="value">The value to write (only the lower <paramref name="bitCount"/> bits are used).</param>
+    /// <param name="bitCount">Number of bits to write (1–64).</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryWriteBits(ulong value, int bitCount)
+    {
+        if (bitCount is < 1 or > 64)
+        {
+            throw new ArgumentOutOfRangeException(nameof(bitCount), "BitCount must be between 1 and 64");
+        }
+
+        if (bitCount > RemainingBits)
+        {
+            return false;
+        }
+
+        WriteBitsCore(value, bitCount);
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to write a single byte.
+    /// Returns <see langword="false"/> without modifying the buffer if fewer than 8 bits remain.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryWriteByte(byte value)
+    {
+        if (RemainingBits < 8)
+        {
+            return false;
+        }
+
+        // Replicate WriteByte's aligned fast path — avoids a second RemainingBits check.
+        if (IsByteAligned)
+        {
+            _Buffer[BytePosition] = value;
+            _BitOffset += 8;
+        }
+        else
+        {
+            WriteBitsCore(value, 8);
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to write a 16-bit unsigned integer in big-endian order.
+    /// Returns <see langword="false"/> without modifying the buffer if fewer than 16 bits remain.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryWriteUInt16(ushort value)
+    {
+        if (RemainingBits < 16)
+        {
+            return false;
+        }
+
+        WriteBitsCore(value, 16);
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to write a 32-bit unsigned integer in big-endian order.
+    /// Returns <see langword="false"/> without modifying the buffer if fewer than 32 bits remain.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryWriteUInt32(uint value)
+    {
+        if (RemainingBits < 32)
+        {
+            return false;
+        }
+
+        WriteBitsCore(value, 32);
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to write a 64-bit unsigned integer in big-endian order.
+    /// Returns <see langword="false"/> without modifying the buffer if fewer than 64 bits remain.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryWriteUInt64(ulong value)
+    {
+        if (RemainingBits < 64)
+        {
+            return false;
+        }
+
+        WriteBitsCore(value, 64);
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to write a 16-bit signed integer in big-endian order.
+    /// Returns <see langword="false"/> without modifying the buffer if fewer than 16 bits remain.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryWriteInt16(short value)
+    {
+        if (RemainingBits < 16)
+        {
+            return false;
+        }
+
+        WriteBitsCore((ulong)(ushort)value, 16);
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to write a 32-bit signed integer in big-endian order.
+    /// Returns <see langword="false"/> without modifying the buffer if fewer than 32 bits remain.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryWriteInt32(int value)
+    {
+        if (RemainingBits < 32)
+        {
+            return false;
+        }
+
+        WriteBitsCore((ulong)(uint)value, 32);
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to write a 64-bit signed integer in big-endian order.
+    /// Returns <see langword="false"/> without modifying the buffer if fewer than 64 bits remain.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryWriteInt64(long value)
+    {
+        if (RemainingBits < 64)
+        {
+            return false;
+        }
+
+        WriteBitsCore((ulong)value, 64);
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to skip (zero-fill) the specified number of bits.
+    /// Returns <see langword="false"/> without modifying the buffer if fewer bits remain.
+    /// Throws <see cref="ArgumentOutOfRangeException"/> if <paramref name="bitCount"/> is negative.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TrySkipBits(int bitCount)
+    {
+        if (bitCount < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(bitCount), "BitCount must be non-negative");
+        }
+
+        if (bitCount > RemainingBits)
+        {
+            return false;
+        }
+
+        _BitOffset += bitCount;
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to write a byte span. Must be byte-aligned.
+    /// Returns <see langword="false"/> without modifying the buffer if the writer is not byte-aligned
+    /// or insufficient bytes remain.
+    /// </summary>
+    public bool TryWriteBytes(ReadOnlySpan<byte> data)
+    {
+        if ((_BitOffset & 7) != 0 || data.Length > RemainingBytes)
+        {
+            return false;
+        }
+
+        int byteOffset = _BitOffset >> 3;
+        data.CopyTo(_Buffer.Slice(byteOffset));
+        _BitOffset += data.Length << 3;
+        return true;
+    }
+
+    #endregion
 }
 
 #endregion

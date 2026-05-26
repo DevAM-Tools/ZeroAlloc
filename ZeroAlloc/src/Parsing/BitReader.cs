@@ -1,27 +1,4 @@
-/*
-MIT License
-SPDX-License-Identifier: MIT
-
-Copyright (c) 2025 ZeroAlloc Contributors
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
+﻿// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
 namespace ZeroAlloc;
 
@@ -88,22 +65,20 @@ public ref struct BitReader
                 $"Cannot read {bitCount} bits: only {totalBits - _BitOffset} bits remaining");
         }
 
+        return ReadBitsCore(bitCount);
+    }
+
+    /// <summary>
+    /// Reads <paramref name="bitCount"/> bits without performing any validation.
+    /// Callers must ensure <paramref name="bitCount"/> is in range (1–64) and that
+    /// sufficient bits remain before calling this method.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private ulong ReadBitsCore(int bitCount)
+    {
         int bytePos = _BitOffset >> 3;
         int bitPos = _BitOffset & 7;
-
-        ulong value;
-
-        // Fast path: byte-aligned reads
-        if (bitPos == 0)
-        {
-            value = ReadBitsAligned(bytePos, bitCount);
-        }
-        else
-        {
-            // General path: non-aligned reads
-            value = ReadBitsUnaligned(bytePos, bitPos, bitCount);
-        }
-
+        ulong value = bitPos == 0 ? ReadBitsAligned(bytePos, bitCount) : ReadBitsUnaligned(bytePos, bitPos, bitCount);
         _BitOffset += bitCount;
         return value;
     }
@@ -165,6 +140,11 @@ public ref struct BitReader
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Bit1 ReadBit1()
     {
+        if (RemainingBits < 1)
+        {
+            throw new InvalidOperationException("Cannot read 1 bit: no bits remaining");
+        }
+
         int bytePos = _BitOffset >> 3;
         int bitPos = _BitOffset & 7;
         bool bit = ((_Buffer[bytePos] >> (7 - bitPos)) & 1) == 1;
@@ -245,6 +225,12 @@ public ref struct BitReader
     {
         if (IsByteAligned)
         {
+            if (RemainingBits < 8)
+            {
+                throw new InvalidOperationException(
+                    $"Cannot read 8 bits: only {RemainingBits} bits remaining");
+            }
+
             byte value = _Buffer[BytePosition];
             _BitOffset += 8;
             return value;
@@ -277,6 +263,30 @@ public ref struct BitReader
     public long ReadInt64() => (long)ReadBits(64);
 
     /// <summary>
+    /// Reads a 128-bit unsigned integer in big-endian bit order.
+    /// Reads the upper 64 bits first, then the lower 64 bits.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public UInt128 ReadUInt128()
+    {
+        ulong high = ReadBits(64);
+        ulong low = ReadBits(64);
+        return new UInt128(high, low);
+    }
+
+    /// <summary>
+    /// Reads a 128-bit signed integer in big-endian bit order.
+    /// Reads the upper 64 bits first, then the lower 64 bits.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Int128 ReadInt128()
+    {
+        ulong high = ReadBits(64);
+        ulong low = ReadBits(64);
+        return (Int128)new UInt128(high, low);
+    }
+
+    /// <summary>
     /// Aligns the reader to the next byte boundary.
     /// If already aligned, does nothing.
     /// </summary>
@@ -294,7 +304,21 @@ public ref struct BitReader
     /// Skips the specified number of bits.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void SkipBits(int bitCount) => _BitOffset += bitCount;
+    public void SkipBits(int bitCount)
+    {
+        if (bitCount < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(bitCount), "BitCount must be non-negative");
+        }
+
+        if (bitCount > RemainingBits)
+        {
+            throw new InvalidOperationException(
+                $"Cannot skip {bitCount} bits: only {RemainingBits} bits remaining");
+        }
+
+        _BitOffset += bitCount;
+    }
 
     /// <summary>
     /// Reads a byte array of the specified length. Must be byte-aligned.
@@ -309,6 +333,18 @@ public ref struct BitReader
             throw new InvalidOperationException("ReadBytes requires byte alignment. Call AlignToNextByte() first.");
         }
 
+        if (byteCount < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(byteCount), "ByteCount must be non-negative");
+        }
+
+        if (byteCount > RemainingBytes)
+        {
+            throw new InvalidOperationException(
+                $"Cannot read {byteCount} bytes: only {RemainingBytes} bytes remaining");
+        }
+
+        // Capture offset before mutation so state is never partially modified on failure
         int byteOffset = _BitOffset >> 3;
         _BitOffset += byteCount << 3;
         return _Buffer.Slice(byteOffset, byteCount);
@@ -323,6 +359,392 @@ public ref struct BitReader
     /// Gets the remaining bytes available in the buffer (rounded down).
     /// </summary>
     public readonly int RemainingBytes => ((_Buffer.Length << 3) - _BitOffset) >> 3;
+
+    #region Try-Read Methods
+
+    /// <summary>
+    /// Attempts to read up to 64 bits as an unsigned integer.
+    /// Returns <see langword="false"/> without advancing the reader if fewer than <paramref name="bitCount"/> bits remain.
+    /// Throws <see cref="ArgumentOutOfRangeException"/> for invalid <paramref name="bitCount"/> values (programming error).
+    /// </summary>
+    /// <param name="bitCount">Number of bits to read (1–64).</param>
+    /// <param name="value">The unsigned integer value read, or <c>default</c> on failure.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryReadBits(int bitCount, out ulong value)
+    {
+        if (bitCount is < 1 or > 64)
+        {
+            throw new ArgumentOutOfRangeException(nameof(bitCount), "BitCount must be between 1 and 64");
+        }
+
+        if (RemainingBits < bitCount)
+        {
+            value = default;
+            return false;
+        }
+
+        value = ReadBitsCore(bitCount);
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to read a single bit.
+    /// Returns <see langword="false"/> without advancing the reader if no bits remain.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryReadBit1(out Bit1 value)
+    {
+        if (RemainingBits < 1)
+        {
+            value = default;
+            return false;
+        }
+
+        // Inline ReadBit1's fast path — avoids a second RemainingBits check.
+        int bytePos = _BitOffset >> 3;
+        int bitPos = _BitOffset & 7;
+        value = new Bit1(((_Buffer[bytePos] >> (7 - bitPos)) & 1) == 1);
+        _BitOffset++;
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to read 2 bits.
+    /// Returns <see langword="false"/> without advancing the reader if fewer than 2 bits remain.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryReadBit2(out Bit2 value)
+    {
+        if (RemainingBits < 2)
+        {
+            value = default;
+            return false;
+        }
+
+        value = new Bit2((byte)ReadBitsCore(2));
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to read 3 bits.
+    /// Returns <see langword="false"/> without advancing the reader if fewer than 3 bits remain.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryReadBit3(out Bit3 value)
+    {
+        if (RemainingBits < 3)
+        {
+            value = default;
+            return false;
+        }
+
+        value = new Bit3((byte)ReadBitsCore(3));
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to read a nibble (4 bits).
+    /// Returns <see langword="false"/> without advancing the reader if fewer than 4 bits remain.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryReadNibble(out Nibble value)
+    {
+        if (RemainingBits < 4)
+        {
+            value = default;
+            return false;
+        }
+
+        value = new Nibble((byte)ReadBitsCore(4));
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to read 5 bits.
+    /// Returns <see langword="false"/> without advancing the reader if fewer than 5 bits remain.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryReadBit5(out Bit5 value)
+    {
+        if (RemainingBits < 5)
+        {
+            value = default;
+            return false;
+        }
+
+        value = new Bit5((byte)ReadBitsCore(5));
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to read 6 bits.
+    /// Returns <see langword="false"/> without advancing the reader if fewer than 6 bits remain.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryReadBit6(out Bit6 value)
+    {
+        if (RemainingBits < 6)
+        {
+            value = default;
+            return false;
+        }
+
+        value = new Bit6((byte)ReadBitsCore(6));
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to read 7 bits.
+    /// Returns <see langword="false"/> without advancing the reader if fewer than 7 bits remain.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryReadBit7(out Bit7 value)
+    {
+        if (RemainingBits < 7)
+        {
+            value = default;
+            return false;
+        }
+
+        value = new Bit7((byte)ReadBitsCore(7));
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to read a variable-length unsigned integer of <paramref name="bitCount"/> bits.
+    /// Returns <see langword="false"/> without advancing the reader if fewer bits remain.
+    /// Throws <see cref="ArgumentOutOfRangeException"/> if <paramref name="bitCount"/> is 0 or greater than 64.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryReadUIntBits(byte bitCount, out UIntBits value)
+    {
+        if (bitCount is 0 or > 64)
+        {
+            throw new ArgumentOutOfRangeException(nameof(bitCount), "BitCount must be between 1 and 64");
+        }
+
+        if (RemainingBits < bitCount)
+        {
+            value = default;
+            return false;
+        }
+
+        value = new UIntBits(ReadBitsCore(bitCount), bitCount);
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to read a variable-length signed integer of <paramref name="bitCount"/> bits.
+    /// Returns <see langword="false"/> without advancing the reader if fewer bits remain.
+    /// Throws <see cref="ArgumentOutOfRangeException"/> if <paramref name="bitCount"/> is 0 or greater than 64.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryReadIntBits(byte bitCount, out IntBits value)
+    {
+        if (bitCount is 0 or > 64)
+        {
+            throw new ArgumentOutOfRangeException(nameof(bitCount), "BitCount must be between 1 and 64");
+        }
+
+        if (RemainingBits < bitCount)
+        {
+            value = default;
+            return false;
+        }
+
+        // Sign-extend after reading — mirrors the behaviour of ReadIntBits, but
+        // calls ReadBitsCore directly to avoid a second RemainingBits check.
+        ulong unsigned = ReadBitsCore(bitCount);
+        if (bitCount < 64)
+        {
+            ulong signBit = 1UL << (bitCount - 1);
+            if ((unsigned & signBit) != 0)
+            {
+                unsigned |= ~((1UL << bitCount) - 1);
+            }
+        }
+
+        value = new IntBits((long)unsigned, bitCount);
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to read a byte.
+    /// Returns <see langword="false"/> without advancing the reader if fewer than 8 bits remain.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryReadByte(out byte value)
+    {
+        if (RemainingBits < 8)
+        {
+            value = default;
+            return false;
+        }
+
+        // Replicate ReadByte's aligned fast path — avoids a second RemainingBits check.
+        if (IsByteAligned)
+        {
+            value = _Buffer[BytePosition];
+            _BitOffset += 8;
+        }
+        else
+        {
+            value = (byte)ReadBitsCore(8);
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to read a 16-bit unsigned integer.
+    /// Returns <see langword="false"/> without advancing the reader if fewer than 16 bits remain.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryReadUInt16(out ushort value)
+    {
+        if (RemainingBits < 16)
+        {
+            value = default;
+            return false;
+        }
+
+        value = (ushort)ReadBitsCore(16);
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to read a 32-bit unsigned integer.
+    /// Returns <see langword="false"/> without advancing the reader if fewer than 32 bits remain.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryReadUInt32(out uint value)
+    {
+        if (RemainingBits < 32)
+        {
+            value = default;
+            return false;
+        }
+
+        value = (uint)ReadBitsCore(32);
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to read a 64-bit unsigned integer.
+    /// Returns <see langword="false"/> without advancing the reader if fewer than 64 bits remain.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryReadUInt64(out ulong value)
+    {
+        if (RemainingBits < 64)
+        {
+            value = default;
+            return false;
+        }
+
+        value = ReadBitsCore(64);
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to read a 16-bit signed integer.
+    /// Returns <see langword="false"/> without advancing the reader if fewer than 16 bits remain.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryReadInt16(out short value)
+    {
+        if (RemainingBits < 16)
+        {
+            value = default;
+            return false;
+        }
+
+        value = (short)ReadBitsCore(16);
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to read a 32-bit signed integer.
+    /// Returns <see langword="false"/> without advancing the reader if fewer than 32 bits remain.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryReadInt32(out int value)
+    {
+        if (RemainingBits < 32)
+        {
+            value = default;
+            return false;
+        }
+
+        value = (int)ReadBitsCore(32);
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to read a 64-bit signed integer.
+    /// Returns <see langword="false"/> without advancing the reader if fewer than 64 bits remain.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryReadInt64(out long value)
+    {
+        if (RemainingBits < 64)
+        {
+            value = default;
+            return false;
+        }
+
+        value = (long)ReadBitsCore(64);
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to skip the specified number of bits.
+    /// Returns <see langword="false"/> without advancing the reader if fewer bits remain.
+    /// Throws <see cref="ArgumentOutOfRangeException"/> if <paramref name="bitCount"/> is negative.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TrySkipBits(int bitCount)
+    {
+        if (bitCount < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(bitCount), "BitCount must be non-negative");
+        }
+
+        if (bitCount > RemainingBits)
+        {
+            return false;
+        }
+
+        _BitOffset += bitCount;
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to read a byte span of the specified length.
+    /// Returns <see langword="false"/> without advancing the reader if the reader is not byte-aligned
+    /// or fewer than <paramref name="byteCount"/> bytes remain.
+    /// Throws <see cref="ArgumentOutOfRangeException"/> if <paramref name="byteCount"/> is negative.
+    /// </summary>
+    public bool TryReadBytes(int byteCount, out ReadOnlySpan<byte> value)
+    {
+        if (byteCount < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(byteCount), "ByteCount must be non-negative");
+        }
+
+        if ((_BitOffset & 7) != 0 || byteCount > RemainingBytes)
+        {
+            value = default;
+            return false;
+        }
+
+        int byteOffset = _BitOffset >> 3;
+        _BitOffset += byteCount << 3;
+        value = _Buffer.Slice(byteOffset, byteCount);
+        return true;
+    }
+
+    #endregion
 }
 
 #endregion

@@ -1,27 +1,4 @@
-/*
-MIT License
-SPDX-License-Identifier: MIT
-
-Copyright (c) 2025 ZeroAlloc Contributors
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
+﻿// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
 namespace ZeroAlloc;
 
@@ -128,13 +105,10 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(string? value)
     {
-        if (value is null)
+        if (!TryAppend(value))
         {
-            return;
+            throw new InvalidOperationException("Buffer too small for string value.");
         }
-
-        value.AsSpan().CopyTo(_Buffer.Slice(_Position));
-        _Position += value.Length;
     }
 
     /// <summary>
@@ -143,15 +117,23 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(ReadOnlySpan<char> value)
     {
-        value.CopyTo(_Buffer.Slice(_Position));
-        _Position += value.Length;
+        if (!TryAppend(value))
+        {
+            throw new InvalidOperationException("Buffer too small for character span value.");
+        }
     }
 
     /// <summary>
     /// Appends a single character to the buffer.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Append(char value) => _Buffer[_Position++] = value;
+    public void Append(char value)
+    {
+        if (!TryAppend(value))
+        {
+            throw new InvalidOperationException("Buffer too small for character value.");
+        }
+    }
 
     #endregion
 
@@ -266,10 +248,10 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(bool value)
     {
-        if (value)
-        { "True".AsSpan().CopyTo(_Buffer.Slice(_Position)); _Position += 4; }
-        else
-        { "False".AsSpan().CopyTo(_Buffer.Slice(_Position)); _Position += 5; }
+        if (!TryAppend(value))
+        {
+            throw new InvalidOperationException("Buffer too small for boolean value.");
+        }
     }
 
     /// <summary>Appends a DateTime value to the buffer.</summary>
@@ -1064,12 +1046,32 @@ public ref struct SpanStringBuilder
     /// <summary>Appends a string followed by a newline to the buffer.</summary>
     /// <param name="value">The string to append.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AppendLine(string? value) { Append(value); AppendLine(); }
+    public void AppendLine(string? value)
+    {
+        int requiredLength = checked((value?.Length ?? 0) + Environment.NewLine.Length);
+        if (Remaining < requiredLength)
+        {
+            throw new InvalidOperationException("Buffer too small for line value.");
+        }
+
+        Append(value);
+        AppendLine();
+    }
 
     /// <summary>Appends a character span followed by a newline to the buffer.</summary>
     /// <param name="value">The span to append.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AppendLine(ReadOnlySpan<char> value) { Append(value); AppendLine(); }
+    public void AppendLine(ReadOnlySpan<char> value)
+    {
+        int requiredLength = checked(value.Length + Environment.NewLine.Length);
+        if (Remaining < requiredLength)
+        {
+            throw new InvalidOperationException("Buffer too small for line span value.");
+        }
+
+        Append(value);
+        AppendLine();
+    }
 
     #endregion
 
@@ -1082,8 +1084,10 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendHex2(byte value)
     {
-        _Buffer[_Position++] = HexChars[value >> 4];
-        _Buffer[_Position++] = HexChars[value & 0xF];
+        if (!TryAppendHex2(value))
+        {
+            throw new InvalidOperationException("Buffer too small for 2-digit hexadecimal byte value.");
+        }
     }
 
     /// <summary>Appends a ushort as 4 hexadecimal characters to the buffer.</summary>
@@ -1091,30 +1095,42 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendHex4(ushort value)
     {
-        _Buffer[_Position++] = HexChars[(value >> 12) & 0xF];
-        _Buffer[_Position++] = HexChars[(value >> 8) & 0xF];
-        _Buffer[_Position++] = HexChars[(value >> 4) & 0xF];
-        _Buffer[_Position++] = HexChars[value & 0xF];
+        if (!TryAppendHex4(value))
+        {
+            throw new InvalidOperationException("Buffer too small for 4-digit hexadecimal ushort value.");
+        }
     }
 
     /// <summary>Appends a uint as 8 hexadecimal characters to the buffer.</summary>
     /// <param name="value">The value to format.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AppendHex8(uint value) { AppendHex4((ushort)(value >> 16)); AppendHex4((ushort)(value & 0xFFFF)); }
+    public void AppendHex8(uint value)
+    {
+        if (!TryAppendHex8(value))
+        {
+            throw new InvalidOperationException("Buffer too small for 8-digit hexadecimal uint value.");
+        }
+    }
 
     /// <summary>Appends a ulong as 16 hexadecimal characters to the buffer.</summary>
     /// <param name="value">The value to format.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AppendHex16(ulong value) { AppendHex8((uint)(value >> 32)); AppendHex8((uint)(value & 0xFFFFFFFF)); }
+    public void AppendHex16(ulong value)
+    {
+        if (!TryAppendHex16(value))
+        {
+            throw new InvalidOperationException("Buffer too small for 16-digit hexadecimal ulong value.");
+        }
+    }
 
     /// <summary>Appends a byte as 8 binary characters to the buffer.</summary>
     /// <param name="value">The byte value to format.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendBinary8(byte value)
     {
-        for (int i = 7; i >= 0; i--)
+        if (!TryAppendBinary8(value))
         {
-            _Buffer[_Position++] = (char)('0' + ((value >> i) & 1));
+            throw new InvalidOperationException("Buffer too small for 8-character binary byte value.");
         }
     }
 
@@ -1123,9 +1139,9 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendBinary16(ushort value)
     {
-        for (int i = 15; i >= 0; i--)
+        if (!TryAppendBinary16(value))
         {
-            _Buffer[_Position++] = (char)('0' + ((value >> i) & 1));
+            throw new InvalidOperationException("Buffer too small for 16-character binary ushort value.");
         }
     }
 
@@ -1134,9 +1150,9 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendBinary32(uint value)
     {
-        for (int i = 31; i >= 0; i--)
+        if (!TryAppendBinary32(value))
         {
-            _Buffer[_Position++] = (char)('0' + ((value >> i) & 1));
+            throw new InvalidOperationException("Buffer too small for 32-character binary uint value.");
         }
     }
 
@@ -1145,9 +1161,9 @@ public ref struct SpanStringBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendBinary64(ulong value)
     {
-        for (int i = 63; i >= 0; i--)
+        if (!TryAppendBinary64(value))
         {
-            _Buffer[_Position++] = (char)('0' + (int)((value >> i) & 1));
+            throw new InvalidOperationException("Buffer too small for 64-character binary ulong value.");
         }
     }
 

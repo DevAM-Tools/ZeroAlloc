@@ -1405,16 +1405,16 @@ ZeroAllocHelper.ReleaseBuffers();
 
 ```bash
 dotnet add package ZeroAlloc
-dotnet add package ZeroAlloc.Generator
 ```
+
+The `ZeroAlloc` package already includes and activates the source generator.
+You do not need to add `ZeroAlloc.Generator` or `Microsoft.CodeAnalysis.*` explicitly.
 
 Or in `.csproj`:
 
 ```xml
 <ItemGroup>
   <PackageReference Include="ZeroAlloc" Version="1.0.0" />
-  <PackageReference Include="ZeroAlloc.Generator" Version="1.0.0" 
-                    OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 </ItemGroup>
 ```
 

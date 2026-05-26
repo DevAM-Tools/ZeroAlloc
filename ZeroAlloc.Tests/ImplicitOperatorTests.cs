@@ -1,27 +1,4 @@
-/*
-MIT License
-SPDX-License-Identifier: MIT
-
-Copyright (c) 2025 ZeroAlloc Contributors
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
+// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
 namespace ZeroAlloc.Tests;
 
@@ -29,24 +6,23 @@ namespace ZeroAlloc.Tests;
 /// Tests for implicit conversion operators on Temp* types.
 /// Validates that implicit conversions work correctly and auto-dispose.
 /// </summary>
-public class ImplicitOperatorTests
+public sealed class ImplicitOperatorTests
 {
     // ========================================================================
     // TEMPSTRING - IMPLICIT TO STRING
     // ========================================================================
-
-    [Fact]
-    public void TempString_ImplicitToString_ReturnsCorrectValue()
+    [Test]
+    public async Task TempString_ImplicitToString_ReturnsCorrectValue()
     {
         // Act - implicit conversion to string
         string result = ZA.String($"Hello World");
 
         // Assert
-        Assert.Equal("Hello World", result);
+        await Assert.That(result).IsEqualTo("Hello World");
     }
 
-    [Fact]
-    public void TempString_ImplicitToString_WithInterpolation_ReturnsCorrectValue()
+    [Test]
+    public async Task TempString_ImplicitToString_WithInterpolation_ReturnsCorrectValue()
     {
         // Arrange
         int value = 42;
@@ -56,11 +32,11 @@ public class ImplicitOperatorTests
         string result = ZA.String($"Name: {name}, Value: {value}");
 
         // Assert
-        Assert.Equal("Name: Test, Value: 42", result);
+        await Assert.That(result).IsEqualTo("Name: Test, Value: 42");
     }
 
-    [Fact]
-    public void TempString_ImplicitToString_FormattedNumbers_ReturnsCorrectValue()
+    [Test]
+    public async Task TempString_ImplicitToString_FormattedNumbers_ReturnsCorrectValue()
     {
         // Arrange - Use non-interpolated call to explicitly control culture
         CultureInfo invariant = CultureInfo.InvariantCulture;
@@ -70,21 +46,21 @@ public class ImplicitOperatorTests
         string result = ZA.String(invariant, "Price: ", price);
 
         // Assert - Invariant culture uses period and comma as thousand separator
-        Assert.Equal("Price: 1234.56", result);
+        await Assert.That(result).IsEqualTo("Price: 1234.56");
     }
 
-    [Fact]
-    public void TempString_ImplicitToString_EmptyInterpolation_ReturnsEmpty()
+    [Test]
+    public async Task TempString_ImplicitToString_EmptyInterpolation_ReturnsEmpty()
     {
         // Act
         string result = ZA.String($"");
 
         // Assert
-        Assert.Equal("", result);
+        await Assert.That(result).IsEqualTo("");
     }
 
-    [Fact]
-    public void TempString_ImplicitToString_LargeContent_Works()
+    [Test]
+    public async Task TempString_ImplicitToString_LargeContent_Works()
     {
         // Arrange
         string largeContent = new('X', 1000);
@@ -93,15 +69,15 @@ public class ImplicitOperatorTests
         string result = ZA.String($"{largeContent}");
 
         // Assert
-        Assert.Equal(largeContent, result);
+        await Assert.That(result).IsEqualTo(largeContent);
     }
 
     // ========================================================================
     // TEMPSTRING - ASSIGNMENT TO STRING VARIABLE
     // ========================================================================
 
-    [Fact]
-    public void TempString_AssignToVariable_Works()
+    [Test]
+    public async Task TempString_AssignToVariable_Works()
     {
         // Arrange
         int count = 5;
@@ -110,35 +86,35 @@ public class ImplicitOperatorTests
         string message = ZA.String($"Count: {count}");
 
         // Assert
-        Assert.Equal("Count: 5", message);
+        await Assert.That(message).IsEqualTo("Count: 5");
     }
 
-    [Fact]
-    public void TempString_PassToMethod_Works()
+    [Test]
+    public async Task TempString_PassToMethod_Works()
     {
-        // Arrange
-        static void AssertMessage(string msg) => Assert.Equal("Test Message", msg);
+        // Act - TempString is implicitly converted to string when passed to a string-accepting method
+        string result = ZA.String($"Test Message");
 
-        // Act - TempString is implicitly converted when passed to method
-        AssertMessage(ZA.String($"Test Message"));
+        // Assert
+        await Assert.That(result).IsEqualTo("Test Message");
     }
 
     // ========================================================================
     // TEMPBYTES - IMPLICIT TO BYTE ARRAY
     // ========================================================================
 
-    [Fact]
-    public void TempBytes_ImplicitToByteArray_ReturnsCorrectValue()
+    [Test]
+    public async Task TempBytes_ImplicitToByteArray_ReturnsCorrectValue()
     {
         // Act - implicit conversion to byte[]
         byte[] result = ZA.Utf8($"Hello");
 
         // Assert
-        Assert.Equal("Hello"u8.ToArray(), result);
+        await Assert.That(result).IsEquivalentTo("Hello"u8.ToArray());
     }
 
-    [Fact]
-    public void TempBytes_ImplicitToByteArray_WithInterpolation_ReturnsCorrectValue()
+    [Test]
+    public async Task TempBytes_ImplicitToByteArray_WithInterpolation_ReturnsCorrectValue()
     {
         // Arrange
         int value = 42;
@@ -147,35 +123,35 @@ public class ImplicitOperatorTests
         byte[] result = ZA.Utf8($"Value: {value}");
 
         // Assert
-        Assert.Equal(System.Text.Encoding.UTF8.GetBytes("Value: 42"), result);
+        await Assert.That(result).IsEquivalentTo(System.Text.Encoding.UTF8.GetBytes("Value: 42"));
     }
 
-    [Fact]
-    public void TempBytes_ImplicitToByteArray_Unicode_ReturnsCorrectValue()
+    [Test]
+    public async Task TempBytes_ImplicitToByteArray_Unicode_ReturnsCorrectValue()
     {
         // Act
         byte[] result = ZA.Utf8($"Héllo €100");
 
         // Assert
-        Assert.Equal(System.Text.Encoding.UTF8.GetBytes("Héllo €100"), result);
+        await Assert.That(result).IsEquivalentTo(System.Text.Encoding.UTF8.GetBytes("Héllo €100"));
     }
 
-    [Fact]
-    public void TempBytes_ImplicitToByteArray_EmptyInterpolation_ReturnsEmpty()
+    [Test]
+    public async Task TempBytes_ImplicitToByteArray_EmptyInterpolation_ReturnsEmpty()
     {
         // Act
         byte[] result = ZA.Utf8($"");
 
         // Assert
-        Assert.Empty(result);
+        await Assert.That(result).IsEmpty();
     }
 
     // ========================================================================
     // TEMPBYTES - ASSIGNMENT TO VARIABLE
     // ========================================================================
 
-    [Fact]
-    public void TempBytes_AssignToVariable_Works()
+    [Test]
+    public async Task TempBytes_AssignToVariable_Works()
     {
         // Arrange
         int id = 123;
@@ -184,17 +160,17 @@ public class ImplicitOperatorTests
         byte[] data = ZA.Utf8($"ID={id}");
 
         // Assert
-        Assert.Equal("ID=123"u8.ToArray(), data);
+        await Assert.That(data).IsEquivalentTo("ID=123"u8.ToArray());
     }
 
-    [Fact]
-    public void TempBytes_PassToMethod_Works()
+    [Test]
+    public async Task TempBytes_PassToMethod_Works()
     {
-        // Arrange
-        static void AssertData(byte[] d) => Assert.Equal("Test"u8.ToArray(), d);
+        // Act - TempBytes is implicitly converted to byte[] when passed to a byte[]-accepting method
+        byte[] result = ZA.Utf8($"Test");
 
-        // Act - TempBytes is implicitly converted when passed to method
-        AssertData(ZA.Utf8($"Test"));
+        // Assert
+        await Assert.That(result).IsEquivalentTo("Test"u8.ToArray());
     }
 
     // ========================================================================
@@ -202,8 +178,8 @@ public class ImplicitOperatorTests
     // Uses ZA.String(culture, ...) which doesn't require generator overloads
     // ========================================================================
 
-    [Fact]
-    public void TempString_ImplicitToString_German_ReturnsCorrectValue()
+    [Test]
+    public async Task TempString_ImplicitToString_German_ReturnsCorrectValue()
     {
         // Arrange
         CultureInfo german = CultureInfo.GetCultureInfo("de-DE");
@@ -213,11 +189,11 @@ public class ImplicitOperatorTests
         string result = ZA.String(german, "Preis: ", value);
 
         // Assert - German uses comma as decimal separator
-        Assert.Equal("Preis: 1234,56", result);
+        await Assert.That(result).IsEqualTo("Preis: 1234,56");
     }
 
-    [Fact]
-    public void TempString_ImplicitToString_English_ReturnsCorrectValue()
+    [Test]
+    public async Task TempString_ImplicitToString_English_ReturnsCorrectValue()
     {
         // Arrange
         CultureInfo english = CultureInfo.GetCultureInfo("en-US");
@@ -227,18 +203,18 @@ public class ImplicitOperatorTests
         string result = ZA.String(english, "Price: ", value);
 
         // Assert - English uses period as decimal separator
-        Assert.Equal("Price: 1234.56", result);
+        await Assert.That(result).IsEqualTo("Price: 1234.56");
     }
 
-    [Fact]
-    public void TempString_WithCulture_PassToMethod_Works()
+    [Test]
+    public async Task TempString_WithCulture_PassToMethod_Works()
     {
-        // Arrange
+        // Act - TempString with culture is implicitly converted to string
         CultureInfo culture = CultureInfo.InvariantCulture;
-        static void AssertMessage(string msg) => Assert.Equal("Test: 42", msg);
+        string result = ZA.String(culture, "Test: ", 42);
 
-        // Act
-        AssertMessage(ZA.String(culture, "Test: ", 42));
+        // Assert
+        await Assert.That(result).IsEqualTo("Test: 42");
     }
 
     // ========================================================================
@@ -246,8 +222,8 @@ public class ImplicitOperatorTests
     // Note: ZA.Utf8() does not have culture-aware overloads
     // ========================================================================
 
-    [Fact]
-    public void TempBytes_ImplicitToByteArray_SimpleValue_ReturnsCorrectValue()
+    [Test]
+    public async Task TempBytes_ImplicitToByteArray_SimpleValue_ReturnsCorrectValue()
     {
         // Arrange
         byte[] expected = System.Text.Encoding.UTF8.GetBytes("Value: 42");
@@ -256,11 +232,11 @@ public class ImplicitOperatorTests
         byte[] result = ZA.Utf8("Value: ", 42);
 
         // Assert
-        Assert.Equal(expected, result);
+        await Assert.That(result).IsEquivalentTo(expected);
     }
 
-    [Fact]
-    public void TempBytes_ImplicitToByteArray_WithUnicode_ReturnsCorrectValue()
+    [Test]
+    public async Task TempBytes_ImplicitToByteArray_WithUnicode_ReturnsCorrectValue()
     {
         // Arrange
         byte[] expected = System.Text.Encoding.UTF8.GetBytes("Price: €100");
@@ -269,25 +245,25 @@ public class ImplicitOperatorTests
         byte[] result = ZA.Utf8("Price: €", 100);
 
         // Assert
-        Assert.Equal(expected, result);
+        await Assert.That(result).IsEquivalentTo(expected);
     }
 
-    [Fact]
-    public void TempBytes_PassToMethodWithNumber_Works()
+    [Test]
+    public async Task TempBytes_PassToMethodWithNumber_Works()
     {
-        // Arrange
-        static void AssertData(byte[] d) => Assert.Equal("42"u8.ToArray(), d);
+        // Act - TempBytes is implicitly converted to byte[] when passed to a byte[]-accepting method
+        byte[] result = ZA.Utf8(42);
 
-        // Act
-        AssertData(ZA.Utf8(42));
+        // Assert
+        await Assert.That(result).IsEquivalentTo("42"u8.ToArray());
     }
 
     // ========================================================================
     // MULTIPLE CONVERSIONS IN SEQUENCE
     // ========================================================================
 
-    [Fact]
-    public void ImplicitOperators_MultipleConversionsInSequence_Work()
+    [Test]
+    public async Task ImplicitOperators_MultipleConversionsInSequence_Work()
     {
         // Act - Multiple implicit conversions in sequence
         string s1 = ZA.String($"First");
@@ -295,13 +271,13 @@ public class ImplicitOperatorTests
         string s3 = ZA.String($"Third");
 
         // Assert
-        Assert.Equal("First", s1);
-        Assert.Equal("Second", s2);
-        Assert.Equal("Third", s3);
+        await Assert.That(s1).IsEqualTo("First");
+        await Assert.That(s2).IsEqualTo("Second");
+        await Assert.That(s3).IsEqualTo("Third");
     }
 
-    [Fact]
-    public void ImplicitOperators_MixedTypes_Work()
+    [Test]
+    public async Task ImplicitOperators_MixedTypes_Work()
     {
         // Act
         string str = ZA.String($"Hello");
@@ -310,18 +286,18 @@ public class ImplicitOperatorTests
         byte[] cultureBytes = ZA.Bytes(CultureInfo.InvariantCulture, "Data: ", 123);
 
         // Assert
-        Assert.Equal("Hello", str);
-        Assert.Equal("World"u8.ToArray(), bytes);
-        Assert.Equal("Test: 42", cultureStr);
-        Assert.Equal("Data: 123"u8.ToArray(), cultureBytes);
+        await Assert.That(str).IsEqualTo("Hello");
+        await Assert.That(bytes).IsEquivalentTo("World"u8.ToArray());
+        await Assert.That(cultureStr).IsEqualTo("Test: 42");
+        await Assert.That(cultureBytes).IsEquivalentTo("Data: 123"u8.ToArray());
     }
 
     // ========================================================================
     // IMPLICIT IN COLLECTIONS/EXPRESSIONS
     // ========================================================================
 
-    [Fact]
-    public void TempString_ImplicitInListInitializer_Works()
+    [Test]
+    public async Task TempString_ImplicitInListInitializer_Works()
     {
         // Act
         List<string> messages =
@@ -332,14 +308,14 @@ public class ImplicitOperatorTests
         ];
 
         // Assert
-        Assert.Equal(3, messages.Count);
-        Assert.Equal("Message 1", messages[0]);
-        Assert.Equal("Message 2", messages[1]);
-        Assert.Equal("Message 3", messages[2]);
+        await Assert.That(messages.Count).IsEqualTo(3);
+        await Assert.That(messages[0]).IsEqualTo("Message 1");
+        await Assert.That(messages[1]).IsEqualTo("Message 2");
+        await Assert.That(messages[2]).IsEqualTo("Message 3");
     }
 
-    [Fact]
-    public void TempBytes_ImplicitInArrayInitializer_Works()
+    [Test]
+    public async Task TempBytes_ImplicitInArrayInitializer_Works()
     {
         // Act
         byte[][] dataArray =
@@ -350,18 +326,18 @@ public class ImplicitOperatorTests
         ];
 
         // Assert
-        Assert.Equal(3, dataArray.Length);
-        Assert.Equal("First"u8.ToArray(), dataArray[0]);
-        Assert.Equal("Second"u8.ToArray(), dataArray[1]);
-        Assert.Equal("Third"u8.ToArray(), dataArray[2]);
+        await Assert.That(dataArray.Length).IsEqualTo(3);
+        await Assert.That(dataArray[0]).IsEquivalentTo("First"u8.ToArray());
+        await Assert.That(dataArray[1]).IsEquivalentTo("Second"u8.ToArray());
+        await Assert.That(dataArray[2]).IsEquivalentTo("Third"u8.ToArray());
     }
 
     // ========================================================================
     // IMPLICIT IN STRING OPERATIONS
     // ========================================================================
 
-    [Fact]
-    public void TempString_ImplicitInStringConcat_Works()
+    [Test]
+    public async Task TempString_ImplicitInStringConcat_Works()
     {
         // Arrange
         int id = 123;
@@ -370,25 +346,25 @@ public class ImplicitOperatorTests
         string result = "Prefix: " + ZA.String($"ID={id}") + " :Suffix";
 
         // Assert
-        Assert.Equal("Prefix: ID=123 :Suffix", result);
+        await Assert.That(result).IsEqualTo("Prefix: ID=123 :Suffix");
     }
 
-    [Fact]
-    public void TempString_ImplicitInStringEquals_Works()
+    [Test]
+    public async Task TempString_ImplicitInStringEquals_Works()
     {
         // Act
         bool isEqual = ZA.String($"Hello") == "Hello";
 
         // Assert
-        Assert.True(isEqual);
+        await Assert.That(isEqual).IsTrue();
     }
 
     // ========================================================================
     // EDGE CASES
     // ========================================================================
 
-    [Fact]
-    public void TempString_ImplicitWithNullValue_Works()
+    [Test]
+    public async Task TempString_ImplicitWithNullValue_Works()
     {
         // Arrange
         string? nullStr = null;
@@ -397,21 +373,21 @@ public class ImplicitOperatorTests
         string result = ZA.String($"Value: {nullStr}");
 
         // Assert
-        Assert.Equal("Value: ", result);
+        await Assert.That(result).IsEqualTo("Value: ");
     }
 
-    [Fact]
-    public void TempBytes_ImplicitWithSpecialChars_Works()
+    [Test]
+    public async Task TempBytes_ImplicitWithSpecialChars_Works()
     {
         // Act
         byte[] result = ZA.Utf8($"Line1\r\nLine2\tTabbed");
 
         // Assert
-        Assert.Equal("Line1\r\nLine2\tTabbed"u8.ToArray(), result);
+        await Assert.That(result).IsEquivalentTo("Line1\r\nLine2\tTabbed"u8.ToArray());
     }
 
-    [Fact]
-    public void TempString_ImplicitWithGuid_Works()
+    [Test]
+    public async Task TempString_ImplicitWithGuid_Works()
     {
         // Arrange
         Guid guid = Guid.Parse("12345678-1234-1234-1234-123456789abc");
@@ -420,11 +396,11 @@ public class ImplicitOperatorTests
         string result = ZA.String($"{guid}");
 
         // Assert
-        Assert.Equal("12345678-1234-1234-1234-123456789abc", result);
+        await Assert.That(result).IsEqualTo("12345678-1234-1234-1234-123456789abc");
     }
 
-    [Fact]
-    public void TempBytes_ImplicitWithDateTime_Works()
+    [Test]
+    public async Task TempBytes_ImplicitWithDateTime_Works()
     {
         // Arrange
         DateTime dt = new(2025, 6, 15, 10, 30, 0);
@@ -433,6 +409,6 @@ public class ImplicitOperatorTests
         byte[] result = ZA.Utf8($"{dt:yyyy-MM-dd}");
 
         // Assert
-        Assert.Equal("2025-06-15"u8.ToArray(), result);
+        await Assert.That(result).IsEquivalentTo("2025-06-15"u8.ToArray());
     }
 }

@@ -1,27 +1,4 @@
-/*
-MIT License
-SPDX-License-Identifier: MIT
-
-Copyright (c) 2025 ZeroAlloc Contributors
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
+// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
 // ============================================================================
 // BinaryWritable Generator Tests
@@ -138,6 +115,113 @@ public readonly partial struct WritableMacAddress
     /// <summary>6-byte MAC address.</summary>
     [BinaryFixedLength(6)]
     public byte[] Address { get; init; }
+}
+
+#endregion
+
+#region Mixed Variable/Fixed Writing Structs
+
+/// <summary>
+/// Variable-size writable struct: VarInt followed by two fixed fields.
+/// Used to verify TryWrite returns false (not throws) on undersized destination.
+/// </summary>
+[BinaryWritable]
+public readonly partial struct WritableVarIntThenFixed
+{
+    /// <summary>Variable-length count.</summary>
+    public VarInt Count { get; init; }
+
+    /// <summary>Fixed 32-bit big-endian value.</summary>
+    public U32BE Value { get; init; }
+
+    /// <summary>Fixed 16-bit big-endian flags.</summary>
+    public U16BE Flags { get; init; }
+}
+
+/// <summary>
+/// Variable-size writable struct: VarInt-length string followed by a fixed field.
+/// </summary>
+[BinaryWritable]
+public readonly partial struct WritableStringThenFixed
+{
+    /// <summary>Variable-length UTF-8 label.</summary>
+    [StringLengthVarInt]
+    public string Label { get; init; }
+
+    /// <summary>Fixed 32-bit big-endian identifier.</summary>
+    public U32BE Id { get; init; }
+}
+
+/// <summary>
+/// Variable-size writable struct with a 2-byte big-endian length-prefixed string.
+/// </summary>
+[BinaryWritable]
+public readonly partial struct WritableFixedBEString
+{
+    /// <summary>Variable-length UTF-8 content.</summary>
+    [StringLengthBE(2)]
+    public string Content { get; init; }
+
+    /// <summary>Fixed 16-bit big-endian CRC.</summary>
+    public U16BE Crc { get; init; }
+}
+
+/// <summary>
+/// Variable-size writable struct with a fixed-width (no length prefix) string slot.
+/// Used to verify that TryWrite returns false (not throws) when the destination is
+/// too short to hold the fixed-length field, and that a string longer than the slot
+/// also returns false rather than throwing.
+/// </summary>
+[BinaryWritable]
+public readonly partial struct WritableFixedLengthString
+{
+    /// <summary>Fixed 8-byte UTF-8 string slot; shorter strings are null-padded.</summary>
+    [StringFixedLength(8)]
+    public string Name { get; init; }
+}
+
+/// <summary>
+/// Variable-size writable struct with a null-terminated string.
+/// Used to verify that TryWrite returns false when the destination cannot fit
+/// the string bytes plus the null terminator.
+/// </summary>
+[BinaryWritable]
+public readonly partial struct WritableNullTermString
+{
+    /// <summary>Null-terminated UTF-8 string.</summary>
+    [StringNullTerminated]
+    public string Label { get; init; }
+}
+
+/// <summary>
+/// Variable-size writable struct: 2-byte BE length field followed by a FromField string.
+/// The caller is responsible for setting NameLength to the UTF-8 byte count of Name.
+/// Used to verify that TryWrite returns false when the destination cannot hold the string data.
+/// </summary>
+[BinaryWritable]
+public readonly partial struct WritableFromFieldString
+{
+    /// <summary>UTF-8 byte count of the Name field.</summary>
+    public U16BE NameLength { get; init; }
+
+    /// <summary>UTF-8 string data; length is determined by NameLength at parse time.</summary>
+    [StringLengthFromField("NameLength")]
+    public string Name { get; init; }
+}
+
+/// <summary>
+/// Variable-size writable struct: 2-byte BE length field followed by a FromField byte array.
+/// Used to verify that TryWrite returns false when the destination cannot hold the byte data.
+/// </summary>
+[BinaryWritable]
+public readonly partial struct WritableFromFieldBytes
+{
+    /// <summary>Byte count of the Data field.</summary>
+    public U16BE DataLength { get; init; }
+
+    /// <summary>Raw byte data; length is determined by DataLength at parse time.</summary>
+    [BytesLengthFromField("DataLength")]
+    public byte[] Data { get; init; }
 }
 
 #endregion
@@ -315,19 +399,18 @@ public readonly partial struct RoundtripBitField
 /// <summary>
 /// Tests for [BinaryWritable] generated serialization methods.
 /// </summary>
-public class BinaryWritableTests
+public sealed class BinaryWritableTests
 {
     // ========================================================================
     // BASIC WRITING TESTS
     // ========================================================================
-
     #region Basic Writing
 
     /// <summary>
     /// Tests writing a simple header with endian wrappers.
     /// </summary>
-    [Fact]
-    public void SimpleHeader_WritesCorrectly()
+    [Test]
+    public async Task SimpleHeader_WritesCorrectly()
     {
         // Arrange
         WritableSimpleHeader header = new()
@@ -342,16 +425,16 @@ public class BinaryWritableTests
         bool success = header.TryWrite(buffer, out int written);
 
         // Assert
-        Assert.True(success);
-        Assert.Equal(8, written);
-        Assert.Equal(new byte[] { 0x01, 0x00, 0x12, 0x34, 0x56, 0x78, 0x00, 0xFF }, buffer);
+        await Assert.That(success).IsTrue();
+        await Assert.That(written).IsEqualTo(8);
+        await Assert.That(buffer).IsEquivalentTo((byte[])[0x01, 0x00, 0x12, 0x34, 0x56, 0x78, 0x00, 0xFF]);
     }
 
     /// <summary>
     /// Tests writing fails with insufficient buffer.
     /// </summary>
-    [Fact]
-    public void SimpleHeader_FailsWithInsufficientBuffer()
+    [Test]
+    public async Task SimpleHeader_FailsWithInsufficientBuffer()
     {
         WritableSimpleHeader header = new()
         {
@@ -363,15 +446,15 @@ public class BinaryWritableTests
 
         bool success = header.TryWrite(buffer, out int written);
 
-        Assert.False(success);
-        Assert.Equal(0, written);
+        await Assert.That(success).IsFalse();
+        await Assert.That(written).IsEqualTo(0);
     }
 
     /// <summary>
     /// Tests writing with mixed endianness.
     /// </summary>
-    [Fact]
-    public void MixedEndian_WritesCorrectly()
+    [Test]
+    public async Task MixedEndian_WritesCorrectly()
     {
         WritableMixedEndian value = new()
         {
@@ -384,36 +467,36 @@ public class BinaryWritableTests
 
         bool success = value.TryWrite(buffer, out int written);
 
-        Assert.True(success);
-        Assert.Equal(12, written);
+        await Assert.That(success).IsTrue();
+        await Assert.That(written).IsEqualTo(12);
         // BE16=0x1234 → 12 34
         // LE16=0x5678 → 78 56
         // BE32=0xAABBCCDD → AA BB CC DD
         // LE32=0x11223344 → 44 33 22 11
-        Assert.Equal(new byte[] { 0x12, 0x34, 0x78, 0x56, 0xAA, 0xBB, 0xCC, 0xDD, 0x44, 0x33, 0x22, 0x11 }, buffer);
+        await Assert.That(buffer).IsEquivalentTo((byte[])[0x12, 0x34, 0x78, 0x56, 0xAA, 0xBB, 0xCC, 0xDD, 0x44, 0x33, 0x22, 0x11]);
     }
 
     /// <summary>
     /// Tests writing byte members.
     /// </summary>
-    [Fact]
-    public void ByteStruct_WritesCorrectly()
+    [Test]
+    public async Task ByteStruct_WritesCorrectly()
     {
         WritableByteStruct value = new() { First = 0xAA, Second = 0xBB, Third = 0xCC };
         byte[] buffer = new byte[3];
 
         bool success = value.TryWrite(buffer, out int written);
 
-        Assert.True(success);
-        Assert.Equal(3, written);
-        Assert.Equal(new byte[] { 0xAA, 0xBB, 0xCC }, buffer);
+        await Assert.That(success).IsTrue();
+        await Assert.That(written).IsEqualTo(3);
+        await Assert.That(buffer).IsEquivalentTo((byte[])[0xAA, 0xBB, 0xCC]);
     }
 
     /// <summary>
     /// Tests that ignored members are not written.
     /// </summary>
-    [Fact]
-    public void IgnoredMember_NotWritten()
+    [Test]
+    public async Task IgnoredMember_NotWritten()
     {
         WritableWithIgnored value = new()
         {
@@ -424,16 +507,16 @@ public class BinaryWritableTests
 
         bool success = value.TryWrite(buffer, out int written);
 
-        Assert.True(success);
-        Assert.Equal(4, written); // Only Type + Length, not IsControl
-        Assert.Equal(new byte[] { 0x00, 42, 0x00, 100 }, buffer);
+        await Assert.That(success).IsTrue();
+        await Assert.That(written).IsEqualTo(4); // Only Type + Length, not IsControl
+        await Assert.That(buffer).IsEquivalentTo((byte[])[0x00, 42, 0x00, 100]);
     }
 
     /// <summary>
     /// Tests explicit member ordering.
     /// </summary>
-    [Fact]
-    public void ReorderedStruct_WritesInSpecifiedOrder()
+    [Test]
+    public async Task ReorderedStruct_WritesInSpecifiedOrder()
     {
         WritableReordered value = new()
         {
@@ -445,17 +528,17 @@ public class BinaryWritableTests
 
         bool success = value.TryWrite(buffer, out int written);
 
-        Assert.True(success);
-        Assert.Equal(6, written);
+        await Assert.That(success).IsTrue();
+        await Assert.That(written).IsEqualTo(6);
         // Written in order: First(0x0001), Second(0x0002), Third(0x0003)
-        Assert.Equal(new byte[] { 0x00, 0x01, 0x00, 0x02, 0x00, 0x03 }, buffer);
+        await Assert.That(buffer).IsEquivalentTo((byte[])[0x00, 0x01, 0x00, 0x02, 0x00, 0x03]);
     }
 
     /// <summary>
     /// Tests writing fixed-length byte array.
     /// </summary>
-    [Fact]
-    public void FixedByteArray_WritesCorrectly()
+    [Test]
+    public async Task FixedByteArray_WritesCorrectly()
     {
         WritableMacAddress mac = new()
         {
@@ -465,9 +548,9 @@ public class BinaryWritableTests
 
         bool success = mac.TryWrite(buffer, out int written);
 
-        Assert.True(success);
-        Assert.Equal(6, written);
-        Assert.Equal(new byte[] { 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF }, buffer);
+        await Assert.That(success).IsTrue();
+        await Assert.That(written).IsEqualTo(6);
+        await Assert.That(buffer).IsEquivalentTo((byte[])[0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF]);
     }
 
     #endregion
@@ -481,8 +564,8 @@ public class BinaryWritableTests
     /// <summary>
     /// Tests fixed-size type returns correct size.
     /// </summary>
-    [Fact]
-    public void TryGetSerializedSize_FixedSize_ReturnsCorrectSize()
+    [Test]
+    public async Task TryGetSerializedSize_FixedSize_ReturnsCorrectSize()
     {
         WritableSimpleHeader header = new()
         {
@@ -493,29 +576,29 @@ public class BinaryWritableTests
 
         bool success = ((IBinarySerializable)header).TryGetSerializedSize(out int size);
 
-        Assert.True(success);
-        Assert.Equal(8, size); // 2 + 4 + 2
+        await Assert.That(success).IsTrue();
+        await Assert.That(size).IsEqualTo(8); // 2 + 4 + 2
     }
 
     /// <summary>
     /// Tests byte struct size calculation.
     /// </summary>
-    [Fact]
-    public void TryGetSerializedSize_ByteStruct_ReturnsCorrectSize()
+    [Test]
+    public async Task TryGetSerializedSize_ByteStruct_ReturnsCorrectSize()
     {
         WritableByteStruct value = new() { First = 1, Second = 2, Third = 3 };
 
         bool success = ((IBinarySerializable)value).TryGetSerializedSize(out int size);
 
-        Assert.True(success);
-        Assert.Equal(3, size);
+        await Assert.That(success).IsTrue();
+        await Assert.That(size).IsEqualTo(3);
     }
 
     /// <summary>
     /// Tests MAC address size calculation.
     /// </summary>
-    [Fact]
-    public void TryGetSerializedSize_ByteArray_ReturnsCorrectSize()
+    [Test]
+    public async Task TryGetSerializedSize_ByteArray_ReturnsCorrectSize()
     {
         WritableMacAddress mac = new()
         {
@@ -524,8 +607,8 @@ public class BinaryWritableTests
 
         bool success = ((IBinarySerializable)mac).TryGetSerializedSize(out int size);
 
-        Assert.True(success);
-        Assert.Equal(6, size);
+        await Assert.That(success).IsTrue();
+        await Assert.That(size).IsEqualTo(6);
     }
 
     #endregion
@@ -539,8 +622,8 @@ public class BinaryWritableTests
     /// <summary>
     /// Tests writing CAN header with bit-level fields.
     /// </summary>
-    [Fact]
-    public void CANHeader_WritesCorrectly()
+    [Test]
+    public async Task CANHeader_WritesCorrectly()
     {
         WritableCANHeader header = new()
         {
@@ -554,23 +637,31 @@ public class BinaryWritableTests
 
         bool success = header.TryWrite(buffer, out int written);
 
-        Assert.True(success);
-        Assert.True(written >= 2); // At least 2 bytes for 18 bits
+        await Assert.That(success).IsTrue();
+        await Assert.That(written >= 2).IsTrue(); // At least 2 bytes for 18 bits
 
         // Verify by reading back
-        BitReader reader = new(buffer);
-        Assert.Equal(0x7FFu, reader.ReadBits(11));
-        Assert.Equal(1u, reader.ReadBits(1));
-        Assert.Equal(0u, reader.ReadBits(1));
-        Assert.Equal(1u, reader.ReadBits(1));
-        Assert.Equal(8u, reader.ReadBits(4));
+        ulong id, rtr, ide, reserved, dlc;
+        {
+            BitReader reader = new(buffer);
+            id = reader.ReadBits(11);
+            rtr = reader.ReadBits(1);
+            ide = reader.ReadBits(1);
+            reserved = reader.ReadBits(1);
+            dlc = reader.ReadBits(4);
+        }
+        await Assert.That(id).IsEqualTo(0x7FFu);
+        await Assert.That(rtr).IsEqualTo(1u);
+        await Assert.That(ide).IsEqualTo(0u);
+        await Assert.That(reserved).IsEqualTo(1u);
+        await Assert.That(dlc).IsEqualTo(8u);
     }
 
     /// <summary>
     /// Tests writing mixed bit field struct.
     /// </summary>
-    [Fact]
-    public void MixedBitField_WritesCorrectly()
+    [Test]
+    public async Task MixedBitField_WritesCorrectly()
     {
         WritableMixedBitField value = new()
         {
@@ -583,22 +674,29 @@ public class BinaryWritableTests
 
         bool success = value.TryWrite(buffer, out int written);
 
-        Assert.True(success);
-        Assert.Equal(3, written);
+        await Assert.That(success).IsTrue();
+        await Assert.That(written).IsEqualTo(3);
 
         // Verify by reading back
-        BitReader reader = new(buffer);
-        Assert.Equal(5u, reader.ReadBits(3));
-        Assert.Equal(19u, reader.ReadBits(5));
-        Assert.Equal(0xABCu, reader.ReadBits(12));
-        Assert.Equal(0xFu, reader.ReadBits(4));
+        ulong f3, f5, f12, f4;
+        {
+            BitReader reader = new(buffer);
+            f3 = reader.ReadBits(3);
+            f5 = reader.ReadBits(5);
+            f12 = reader.ReadBits(12);
+            f4 = reader.ReadBits(4);
+        }
+        await Assert.That(f3).IsEqualTo(5u);
+        await Assert.That(f5).IsEqualTo(19u);
+        await Assert.That(f12).IsEqualTo(0xABCu);
+        await Assert.That(f4).IsEqualTo(0xFu);
     }
 
     /// <summary>
     /// Tests writing single-bit flags.
     /// </summary>
-    [Fact]
-    public void BitFlags_WritesCorrectly()
+    [Test]
+    public async Task BitFlags_WritesCorrectly()
     {
         WritableBitFlags flags = new()
         {
@@ -615,9 +713,9 @@ public class BinaryWritableTests
 
         bool success = flags.TryWrite(buffer, out int written);
 
-        Assert.True(success);
-        Assert.Equal(1, written);
-        Assert.Equal(0b10101101, buffer[0]); // Flags: 1,0,1,0,1,1,0,1
+        await Assert.That(success).IsTrue();
+        await Assert.That(written).IsEqualTo(1);
+        await Assert.That((int)buffer[0]).IsEqualTo(0b10101101); // Flags: 1,0,1,0,1,1,0,1
     }
 
     #endregion
@@ -631,68 +729,68 @@ public class BinaryWritableTests
     /// <summary>
     /// Tests roundtrip: parse then write produces identical bytes.
     /// </summary>
-    [Fact]
-    public void Roundtrip_SimpleHeader()
+    [Test]
+    public async Task Roundtrip_SimpleHeader()
     {
         byte[] original = [0x01, 0x00, 0xDE, 0xAD, 0xBE, 0xEF, 0x00, 0x42];
 
         bool parsed = RoundtripHeader.TryParse(original, out RoundtripHeader header, out int consumed);
-        Assert.True(parsed);
-        Assert.Equal(8, consumed);
+        await Assert.That(parsed).IsTrue();
+        await Assert.That(consumed).IsEqualTo(8);
 
         byte[] output = new byte[8];
         bool written = header.TryWrite(output, out int bytesWritten);
-        Assert.True(written);
-        Assert.Equal(8, bytesWritten);
+        await Assert.That(written).IsTrue();
+        await Assert.That(bytesWritten).IsEqualTo(8);
 
-        Assert.Equal(original, output);
+        await Assert.That(output).IsEquivalentTo(original);
     }
 
     /// <summary>
     /// Tests roundtrip with byte members.
     /// </summary>
-    [Fact]
-    public void Roundtrip_WithByte()
+    [Test]
+    public async Task Roundtrip_WithByte()
     {
         byte[] original = [0x42, 0x01, 0x00, 0xFF];
 
         bool parsed = RoundtripWithByte.TryParse(original, out RoundtripWithByte value, out int consumed);
-        Assert.True(parsed);
-        Assert.Equal(4, consumed);
+        await Assert.That(parsed).IsTrue();
+        await Assert.That(consumed).IsEqualTo(4);
 
         byte[] output = new byte[4];
         bool written = value.TryWrite(output, out int bytesWritten);
-        Assert.True(written);
-        Assert.Equal(4, bytesWritten);
+        await Assert.That(written).IsTrue();
+        await Assert.That(bytesWritten).IsEqualTo(4);
 
-        Assert.Equal(original, output);
+        await Assert.That(output).IsEquivalentTo(original);
     }
 
     /// <summary>
     /// Tests roundtrip with fixed byte array.
     /// </summary>
-    [Fact]
-    public void Roundtrip_MacAddress()
+    [Test]
+    public async Task Roundtrip_MacAddress()
     {
         byte[] original = [0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x08, 0x00];
 
         bool parsed = RoundtripMacAddress.TryParse(original, out RoundtripMacAddress mac, out int consumed);
-        Assert.True(parsed);
-        Assert.Equal(8, consumed);
+        await Assert.That(parsed).IsTrue();
+        await Assert.That(consumed).IsEqualTo(8);
 
         byte[] output = new byte[8];
         bool written = mac.TryWrite(output, out int bytesWritten);
-        Assert.True(written);
-        Assert.Equal(8, bytesWritten);
+        await Assert.That(written).IsTrue();
+        await Assert.That(bytesWritten).IsEqualTo(8);
 
-        Assert.Equal(original, output);
+        await Assert.That(output).IsEquivalentTo(original);
     }
 
     /// <summary>
     /// Tests roundtrip with bit fields.
     /// </summary>
-    [Fact]
-    public void Roundtrip_BitField()
+    [Test]
+    public async Task Roundtrip_BitField()
     {
         // 3 bits (5=101) + 5 bits (19=10011) + 16 bits (0x1234)
         // Binary: 101 10011 0001 0010 0011 0100
@@ -700,13 +798,13 @@ public class BinaryWritableTests
         byte[] original = [0xB3, 0x12, 0x34];
 
         bool parsed = RoundtripBitField.TryParse(original, out RoundtripBitField value, out int consumed);
-        Assert.True(parsed);
+        await Assert.That(parsed).IsTrue();
 
         byte[] output = new byte[3];
         bool written = value.TryWrite(output, out int bytesWritten);
-        Assert.True(written);
+        await Assert.That(written).IsTrue();
 
-        Assert.Equal(original, output);
+        await Assert.That(output).IsEquivalentTo(original);
     }
 
     #endregion
@@ -720,8 +818,8 @@ public class BinaryWritableTests
     /// <summary>
     /// Tests that generated struct implements IBinarySerializable.
     /// </summary>
-    [Fact]
-    public void ImplementsIBinarySerializable()
+    [Test]
+    public async Task ImplementsIBinarySerializable()
     {
         WritableSimpleHeader header = new()
         {
@@ -732,33 +830,33 @@ public class BinaryWritableTests
 
         // Verify it can be used as IBinarySerializable
         IBinarySerializable serializable = header;
-        Assert.True(serializable.TryGetSerializedSize(out int size));
-        Assert.Equal(8, size);
+        await Assert.That(serializable.TryGetSerializedSize(out int size)).IsTrue();
+        await Assert.That(size).IsEqualTo(8);
 
         byte[] buffer = new byte[size];
-        Assert.True(serializable.TryWrite(buffer, out int written));
-        Assert.Equal(8, written);
+        await Assert.That(serializable.TryWrite(buffer, out int written)).IsTrue();
+        await Assert.That(written).IsEqualTo(8);
     }
 
     /// <summary>
     /// Tests WriteTo convenience method.
     /// </summary>
-    [Fact]
-    public void WriteTo_SucceedsWithAdequateBuffer()
+    [Test]
+    public async Task WriteTo_SucceedsWithAdequateBuffer()
     {
         WritableByteStruct value = new() { First = 1, Second = 2, Third = 3 };
         byte[] buffer = new byte[3];
 
         value.WriteTo(buffer);
 
-        Assert.Equal(new byte[] { 1, 2, 3 }, buffer);
+        await Assert.That(buffer).IsEquivalentTo((byte[])[1, 2, 3]);
     }
 
     /// <summary>
     /// Tests WriteTo throws on insufficient buffer.
     /// </summary>
-    [Fact]
-    public void WriteTo_ThrowsOnInsufficientBuffer()
+    [Test]
+    public async Task WriteTo_ThrowsOnInsufficientBuffer()
     {
         WritableSimpleHeader header = new()
         {
@@ -767,7 +865,76 @@ public class BinaryWritableTests
             Length = new U16BE(3)
         };
 
-        Assert.Throws<InvalidOperationException>(() => header.WriteTo(new byte[2]));
+        InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => header.WriteTo(new byte[2]));
+        await Assert.That(ex).IsNotNull();
+    }
+
+    #endregion
+
+    // ========================================================================
+    // MIXED VARIABLE/FIXED WRITING TESTS
+    // ========================================================================
+    #region Mixed Variable/Fixed Writing
+
+    [Test]
+    public async Task WritableVarIntThenFixed_WritesCorrectly()
+    {
+        // Arrange: VarInt(42)=0x2A (1 byte), U32BE=0x01020304, U16BE=0xABCD → 7 bytes total
+        WritableVarIntThenFixed packet = new()
+        {
+            Count = new VarInt(42),
+            Value = new U32BE(0x01020304),
+            Flags = new U16BE(0xABCD)
+        };
+        byte[] destination = new byte[7];
+
+        // Act
+        bool success = packet.TryWrite(destination, out int written);
+
+        // Assert
+        await Assert.That(success).IsTrue();
+        await Assert.That(written).IsEqualTo(7);
+        await Assert.That(destination).IsEquivalentTo((byte[])[0x2A, 0x01, 0x02, 0x03, 0x04, 0xAB, 0xCD]);
+    }
+
+    [Test]
+    public async Task WritableStringThenFixed_WritesCorrectly()
+    {
+        // Arrange: VarInt(2)=0x02 + "hi"=0x68 0x69 + U32BE=0xDEADBEEF → 7 bytes total
+        WritableStringThenFixed packet = new()
+        {
+            Label = "hi",
+            Id = new U32BE(0xDEADBEEF)
+        };
+        byte[] destination = new byte[7];
+
+        // Act
+        bool success = packet.TryWrite(destination, out int written);
+
+        // Assert
+        await Assert.That(success).IsTrue();
+        await Assert.That(written).IsEqualTo(7);
+        await Assert.That(destination).IsEquivalentTo((byte[])[0x02, 0x68, 0x69, 0xDE, 0xAD, 0xBE, 0xEF]);
+    }
+
+    [Test]
+    public async Task WritableFixedBEString_WritesCorrectly()
+    {
+        // Arrange: 2-byte BE length=3 + "abc"=0x61 0x62 0x63 + U16BE=0x1234 → 7 bytes total
+        WritableFixedBEString packet = new()
+        {
+            Content = "abc",
+            Crc = new U16BE(0x1234)
+        };
+        byte[] destination = new byte[7];
+
+        // Act
+        bool success = packet.TryWrite(destination, out int written);
+
+        // Assert
+        await Assert.That(success).IsTrue();
+        await Assert.That(written).IsEqualTo(7);
+        await Assert.That(destination).IsEquivalentTo((byte[])[0x00, 0x03, 0x61, 0x62, 0x63, 0x12, 0x34]);
     }
 
     #endregion
