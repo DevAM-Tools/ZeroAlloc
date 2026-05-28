@@ -1740,6 +1740,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
                             return false;
                         }
                 """);
+                sb.AppendLine();
                 switch (encoding.LengthBytes)
                 {
                     case 1:
@@ -1747,12 +1748,14 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
                                 int {{varName}}ByteLen = source[offset];
                                 offset += 1;
                         """);
+                        sb.AppendLine();
                         break;
                     case 2:
                         sb.Append($$"""
                                 int {{varName}}ByteLen = BinaryPrimitives.ReadUInt16{{endianSuffix}}(source.Slice(offset));
                                 offset += 2;
                         """);
+                        sb.AppendLine();
                         break;
                     case 4:
                     default:
@@ -1760,6 +1763,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
                                 int {{varName}}ByteLen = (int)BinaryPrimitives.ReadUInt32{{endianSuffix}}(source.Slice(offset));
                                 offset += 4;
                         """);
+                        sb.AppendLine();
                         break;
                 }
                 sb.Append($$"""
@@ -1878,6 +1882,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
                             return false;
                         }
                 """);
+                sb.AppendLine();
                 switch (encoding.LengthBytes)
                 {
                     case 1:
@@ -1885,12 +1890,14 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
                                 int {{varName}}ByteLen = source[offset];
                                 offset += 1;
                         """);
+                        sb.AppendLine();
                         break;
                     case 2:
                         sb.Append($$"""
                                 int {{varName}}ByteLen = BinaryPrimitives.ReadUInt16{{endianSuffix}}(source.Slice(offset));
                                 offset += 2;
                         """);
+                        sb.AppendLine();
                         break;
                     case 4:
                     default:
@@ -1898,6 +1905,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
                                 int {{varName}}ByteLen = (int)BinaryPrimitives.ReadUInt32{{endianSuffix}}(source.Slice(offset));
                                 offset += 4;
                         """);
+                        sb.AppendLine();
                         break;
                 }
                 sb.Append($$"""
@@ -1982,6 +1990,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
                             return false;
                         }
                 """);
+                sb.AppendLine();
                 switch (encoding.LengthBytes)
                 {
                     case 1:
@@ -1989,12 +1998,14 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
                                 int {{varName}}ByteLen = source[offset];
                                 offset += 1;
                         """);
+                        sb.AppendLine();
                         break;
                     case 2:
                         sb.Append($$"""
                                 int {{varName}}ByteLen = BinaryPrimitives.ReadUInt16{{endianSuffix}}(source.Slice(offset));
                                 offset += 2;
                         """);
+                        sb.AppendLine();
                         break;
                     case 4:
                     default:
@@ -2002,6 +2013,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
                                 int {{varName}}ByteLen = (int)BinaryPrimitives.ReadUInt32{{endianSuffix}}(source.Slice(offset));
                                 offset += 4;
                         """);
+                        sb.AppendLine();
                         break;
                 }
                 sb.Append($$"""

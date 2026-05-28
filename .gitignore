@@ -7,7 +7,7 @@
 .env
 
 # Local helper files
-CommitMessage.md
+commit_message.md
 
 # Repository metadata (ignored by request)
 .github/

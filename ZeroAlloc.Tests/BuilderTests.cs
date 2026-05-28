@@ -1178,4 +1178,100 @@ public sealed class BuilderTests
     }
 
     #endregion
+
+    // ========================================================================
+    // E1 REGRESSION - NESTED BUILDER + BUFFER OVERFLOW
+    // Verifies that a heap-fallback (nested) TempStringBuilder grows its own
+    // private array on overflow and never corrupts the outer builder's content.
+    // ========================================================================
+    #region Nested Builder Overflow Regression
+
+    /// <summary>
+    /// Regression for E1: a nested TempStringBuilder in heap-fallback mode must grow
+    /// its own private array when the content exceeds the initial 2 MiB buffer.
+    /// The outer builder's content must remain intact after the inner builder grows.
+    /// </summary>
+    [Test]
+    public async Task TempStringBuilder_NestedBuilder_GrowsBeyondDefaultBuffer_InnerContentCorrect()
+    {
+        // Arrange
+        // Each char in the chunk is one char; 1M chars = 1 MiB.
+        // Two appends of 1.5 MiB each exceed the 2 MiB default, forcing the inner builder to grow.
+        string chunk = new string('X', 1_500_000); // 1.5 MiB
+
+        string outerContent;
+        string innerContent;
+        bool innerIsHeap;
+
+        {
+            using TempStringBuilder outer = TempStringBuilder.Create();
+            outer.Append("OUTER_START");
+
+            // Occupy the ThreadStatic buffer; inner must use heap fallback.
+            using TempStringBuilder inner = TempStringBuilder.Create();
+            innerIsHeap = inner.IsHeapAllocated;
+
+            // First append: fits in default 2 MiB.
+            inner.Append(chunk);
+            // Second append: exceeds 2 MiB — triggers grow in heap-fallback path.
+            inner.Append(chunk);
+
+            // Outer content must be untouched.
+            outer.Append("_OUTER_END");
+
+            outerContent = outer.AsSpan().ToString();
+            innerContent = inner.AsSpan().ToString();
+        }
+
+        // Assert: inner used heap fallback
+        await Assert.That(innerIsHeap).IsTrue();
+
+        // Assert: inner content is correct (two chunks, no corruption)
+        await Assert.That(innerContent.Length).IsEqualTo(chunk.Length * 2);
+        await Assert.That(innerContent).IsEqualTo(chunk + chunk);
+
+        // Assert: outer content was not corrupted by the inner grow
+        await Assert.That(outerContent).IsEqualTo("OUTER_START_OUTER_END");
+    }
+
+    /// <summary>
+    /// Regression for E1: a nested TempBytesBuilder in heap-fallback mode must grow
+    /// its own private array when content exceeds the initial 2 MiB buffer.
+    /// </summary>
+    [Test]
+    public async Task TempBytesBuilder_NestedBuilder_GrowsBeyondDefaultBuffer_InnerContentCorrect()
+    {
+        // Arrange: 1.5 MiB byte chunk — two appends exceed the 2 MiB default.
+        byte[] chunk = new byte[1_500_000];
+        Array.Fill(chunk, (byte)0xAB);
+
+        bool innerIsHeap;
+        bool outerIntact;
+        bool innerCorrect;
+
+        {
+            using TempBytesBuilder outer = TempBytesBuilder.Create();
+            outer.Append(0xFF); // marker byte
+
+            using TempBytesBuilder inner = TempBytesBuilder.Create();
+            innerIsHeap = inner.IsHeapAllocated;
+
+            inner.Append(chunk);       // fits in 2 MiB
+            inner.Append(chunk);       // exceeds 2 MiB — triggers grow
+
+            outer.Append(0xFE); // second marker byte
+
+            outerIntact = outer.AsSpan().SequenceEqual((ReadOnlySpan<byte>)[0xFF, 0xFE]);
+            ReadOnlySpan<byte> innerSpan = inner.AsSpan();
+            innerCorrect = innerSpan.Length == chunk.Length * 2
+                && innerSpan[0] == 0xAB
+                && innerSpan[innerSpan.Length - 1] == 0xAB;
+        }
+
+        await Assert.That(innerIsHeap).IsTrue();
+        await Assert.That(innerCorrect).IsTrue();
+        await Assert.That(outerIntact).IsTrue();
+    }
+
+    #endregion
 }

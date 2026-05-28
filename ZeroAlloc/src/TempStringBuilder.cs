@@ -210,7 +210,8 @@ public ref struct TempStringBuilder : IDisposable
 
     /// <summary>
     /// Ensures the buffer has at least the specified capacity.
-    /// Grows the buffer if needed using <see cref="ZeroAllocHelper.GrowCharBuffer"/>.
+    /// When using the ThreadStatic buffer, delegates growth to <see cref="ZeroAllocHelper.GrowCharBuffer"/>.
+    /// When using a heap-fallback buffer (nested call), grows the private array without touching the ThreadStatic field.
     /// </summary>
     /// <param name="requiredCapacity">The minimum required capacity.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -221,13 +222,27 @@ public ref struct TempStringBuilder : IDisposable
             return;
         }
 
-        // Grow the buffer via ZeroAllocHelper (behavior depends on configuration)
-        _Array = ZeroAllocHelper.GrowCharBuffer(requiredCapacity);
+        if (_IsThreadStatic)
+        {
+            // We own the ThreadStatic buffer — grow it through the helper.
+            _Array = ZeroAllocHelper.GrowCharBuffer(requiredCapacity);
+        }
+        else
+        {
+            // Heap-fallback mode: grow our own private array; leave ThreadStatic untouched.
+            int newSize = ZeroAllocHelper.CalculateGrowth(_Array!.Length, requiredCapacity);
+            char[] grown = new char[newSize];
+            _Array.AsSpan(0, _Position).CopyTo(grown);
+            _Array = grown;
+        }
+
         _Span = _Array.AsSpan();
     }
 
     /// <summary>
     /// Tries to ensure the buffer has at least the specified capacity without throwing.
+    /// When using the ThreadStatic buffer, delegates growth to <see cref="ZeroAllocHelper.TryGrowCharBuffer"/>.
+    /// When using a heap-fallback buffer (nested call), grows the private array without touching the ThreadStatic field.
     /// </summary>
     /// <param name="requiredCapacity">The minimum required capacity.</param>
     /// <returns>True if capacity is available or was successfully grown; false otherwise.</returns>
@@ -239,14 +254,26 @@ public ref struct TempStringBuilder : IDisposable
             return true;
         }
 
-        // Try to grow - this may fail in ThrowOnOverflow mode
-        char[]? newBuffer = ZeroAllocHelper.TryGrowCharBuffer(requiredCapacity);
-        if (newBuffer is null)
+        if (_IsThreadStatic)
         {
-            return false;
+            // Try to grow the ThreadStatic buffer — may return null in ThrowOnOverflow mode.
+            char[]? newBuffer = ZeroAllocHelper.TryGrowCharBuffer(requiredCapacity);
+            if (newBuffer is null)
+            {
+                return false;
+            }
+
+            _Array = newBuffer;
+        }
+        else
+        {
+            // Heap-fallback mode: grow our own private array; leave ThreadStatic untouched.
+            int newSize = ZeroAllocHelper.CalculateGrowth(_Array!.Length, requiredCapacity);
+            char[] grown = new char[newSize];
+            _Array.AsSpan(0, _Position).CopyTo(grown);
+            _Array = grown;
         }
 
-        _Array = newBuffer;
         _Span = _Array.AsSpan();
         return true;
     }
@@ -483,13 +510,26 @@ public ref struct TempStringBuilder : IDisposable
         // Try to format in the remaining space
         while (!value.TryFormat(_Span.Slice(_Position), out charsWritten, format, provider))
         {
-            // Need more space - grow via ZeroAllocHelper (may throw depending on configuration)
+            // Need more space — grow the appropriate buffer.
             int previousLength = _Span.Length;
-            int newSize = ZeroAllocHelper.CalculateGrowth(_Span.Length, _Span.Length + 64);
-            _Array = ZeroAllocHelper.GrowCharBuffer(newSize);
+
+            if (_IsThreadStatic)
+            {
+                // We own the ThreadStatic buffer — grow it through the helper.
+                _Array = ZeroAllocHelper.GrowCharBuffer(_Position + 64);
+            }
+            else
+            {
+                // Heap-fallback mode: grow our own private array; leave ThreadStatic untouched.
+                int newSize = ZeroAllocHelper.CalculateGrowth(_Array!.Length, _Position + 64);
+                char[] grown = new char[newSize];
+                _Array.AsSpan(0, _Position).CopyTo(grown);
+                _Array = grown;
+            }
+
             _Span = _Array.AsSpan();
 
-            // Safety guard: if the buffer didn't actually grow, TryFormat will never succeed
+            // Safety guard: if the buffer didn't actually grow, TryFormat will never succeed.
             if (_Span.Length <= previousLength)
             {
                 throw new InvalidOperationException("Buffer failed to grow during formatting.");
@@ -511,19 +551,32 @@ public ref struct TempStringBuilder : IDisposable
         // Try to format in the remaining space
         while (!value.TryFormat(_Span.Slice(_Position), out charsWritten, format, provider))
         {
-            // Need more space - try to grow
+            // Need more space — grow the appropriate buffer.
             int previousLength = _Span.Length;
-            int newSize = ZeroAllocHelper.CalculateGrowth(_Span.Length, _Span.Length + 64);
-            char[]? newBuffer = ZeroAllocHelper.TryGrowCharBuffer(newSize);
-            if (newBuffer is null)
+
+            if (_IsThreadStatic)
             {
-                return false;
+                // Try to grow the ThreadStatic buffer — may return null in ThrowOnOverflow mode.
+                char[]? newBuffer = ZeroAllocHelper.TryGrowCharBuffer(_Position + 64);
+                if (newBuffer is null)
+                {
+                    return false;
+                }
+
+                _Array = newBuffer;
+            }
+            else
+            {
+                // Heap-fallback mode: grow our own private array; leave ThreadStatic untouched.
+                int newSize = ZeroAllocHelper.CalculateGrowth(_Array!.Length, _Position + 64);
+                char[] grown = new char[newSize];
+                _Array.AsSpan(0, _Position).CopyTo(grown);
+                _Array = grown;
             }
 
-            _Array = newBuffer;
             _Span = _Array.AsSpan();
 
-            // Safety guard: if the buffer didn't actually grow, TryFormat will never succeed
+            // Safety guard: if the buffer didn't actually grow, TryFormat will never succeed.
             if (_Span.Length <= previousLength)
             {
                 return false;
