@@ -1,4 +1,4 @@
-﻿// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
+// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
 // ============================================================================
 // ZeroAlloc - Endian Binary Wrappers
@@ -53,7 +53,11 @@ public readonly struct U16BE : IUtf8SpanFormattable, IBinaryParsable<U16BE>
     }
 
     /// <inheritdoc/>
-    public static bool TryGetSerializedSize(out int size) { size = Size; return true; }
+        public static bool TryGetSerializedSize(out int size)
+    {
+        size = Size;
+        return true;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -127,7 +131,11 @@ public readonly struct U32BE : IUtf8SpanFormattable, IBinaryParsable<U32BE>
     }
 
     /// <inheritdoc/>
-    public static bool TryGetSerializedSize(out int size) { size = Size; return true; }
+        public static bool TryGetSerializedSize(out int size)
+    {
+        size = Size;
+        return true;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -201,7 +209,11 @@ public readonly struct U64BE : IUtf8SpanFormattable, IBinaryParsable<U64BE>
     }
 
     /// <inheritdoc/>
-    public static bool TryGetSerializedSize(out int size) { size = Size; return true; }
+        public static bool TryGetSerializedSize(out int size)
+    {
+        size = Size;
+        return true;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -267,7 +279,11 @@ public readonly struct U128BE : IUtf8SpanFormattable, IBinaryParsable<U128BE>
     }
 
     /// <inheritdoc/>
-    public static bool TryGetSerializedSize(out int size) { size = Size; return true; }
+        public static bool TryGetSerializedSize(out int size)
+    {
+        size = Size;
+        return true;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -338,7 +354,11 @@ public readonly struct I16BE : IUtf8SpanFormattable, IBinaryParsable<I16BE>
     }
 
     /// <inheritdoc/>
-    public static bool TryGetSerializedSize(out int size) { size = Size; return true; }
+        public static bool TryGetSerializedSize(out int size)
+    {
+        size = Size;
+        return true;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -392,7 +412,11 @@ public readonly struct I32BE : IUtf8SpanFormattable, IBinaryParsable<I32BE>
     }
 
     /// <inheritdoc/>
-    public static bool TryGetSerializedSize(out int size) { size = Size; return true; }
+        public static bool TryGetSerializedSize(out int size)
+    {
+        size = Size;
+        return true;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -446,7 +470,11 @@ public readonly struct I64BE : IUtf8SpanFormattable, IBinaryParsable<I64BE>
     }
 
     /// <inheritdoc/>
-    public static bool TryGetSerializedSize(out int size) { size = Size; return true; }
+    public static bool TryGetSerializedSize(out int size)
+    {
+        size = Size;
+        return true;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -500,7 +528,11 @@ public readonly struct I128BE : IUtf8SpanFormattable, IBinaryParsable<I128BE>
     }
 
     /// <inheritdoc/>
-    public static bool TryGetSerializedSize(out int size) { size = Size; return true; }
+        public static bool TryGetSerializedSize(out int size)
+    {
+        size = Size;
+        return true;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -566,7 +598,11 @@ public readonly struct U16LE : IUtf8SpanFormattable, IBinaryParsable<U16LE>
     }
 
     /// <inheritdoc/>
-    public static bool TryGetSerializedSize(out int size) { size = Size; return true; }
+        public static bool TryGetSerializedSize(out int size)
+    {
+        size = Size;
+        return true;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -640,7 +676,11 @@ public readonly struct U32LE : IUtf8SpanFormattable, IBinaryParsable<U32LE>
     }
 
     /// <inheritdoc/>
-    public static bool TryGetSerializedSize(out int size) { size = Size; return true; }
+        public static bool TryGetSerializedSize(out int size)
+    {
+        size = Size;
+        return true;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -714,7 +754,11 @@ public readonly struct U64LE : IUtf8SpanFormattable, IBinaryParsable<U64LE>
     }
 
     /// <inheritdoc/>
-    public static bool TryGetSerializedSize(out int size) { size = Size; return true; }
+        public static bool TryGetSerializedSize(out int size)
+    {
+        size = Size;
+        return true;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -780,7 +824,11 @@ public readonly struct U128LE : IUtf8SpanFormattable, IBinaryParsable<U128LE>
     }
 
     /// <inheritdoc/>
-    public static bool TryGetSerializedSize(out int size) { size = Size; return true; }
+        public static bool TryGetSerializedSize(out int size)
+    {
+        size = Size;
+        return true;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -851,7 +899,11 @@ public readonly struct I16LE : IUtf8SpanFormattable, IBinaryParsable<I16LE>
     }
 
     /// <inheritdoc/>
-    public static bool TryGetSerializedSize(out int size) { size = Size; return true; }
+        public static bool TryGetSerializedSize(out int size)
+    {
+        size = Size;
+        return true;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -905,7 +957,11 @@ public readonly struct I32LE : IUtf8SpanFormattable, IBinaryParsable<I32LE>
     }
 
     /// <inheritdoc/>
-    public static bool TryGetSerializedSize(out int size) { size = Size; return true; }
+        public static bool TryGetSerializedSize(out int size)
+    {
+        size = Size;
+        return true;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -959,7 +1015,11 @@ public readonly struct I64LE : IUtf8SpanFormattable, IBinaryParsable<I64LE>
     }
 
     /// <inheritdoc/>
-    public static bool TryGetSerializedSize(out int size) { size = Size; return true; }
+        public static bool TryGetSerializedSize(out int size)
+    {
+        size = Size;
+        return true;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1013,7 +1073,11 @@ public readonly struct I128LE : IUtf8SpanFormattable, IBinaryParsable<I128LE>
     }
 
     /// <inheritdoc/>
-    public static bool TryGetSerializedSize(out int size) { size = Size; return true; }
+        public static bool TryGetSerializedSize(out int size)
+    {
+        size = Size;
+        return true;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1071,7 +1135,11 @@ public readonly struct F32BE : IUtf8SpanFormattable, IBinaryParsable<F32BE>
     }
 
     /// <inheritdoc/>
-    public static bool TryGetSerializedSize(out int size) { size = Size; return true; }
+        public static bool TryGetSerializedSize(out int size)
+    {
+        size = Size;
+        return true;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1125,7 +1193,11 @@ public readonly struct F32LE : IUtf8SpanFormattable, IBinaryParsable<F32LE>
     }
 
     /// <inheritdoc/>
-    public static bool TryGetSerializedSize(out int size) { size = Size; return true; }
+        public static bool TryGetSerializedSize(out int size)
+    {
+        size = Size;
+        return true;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1179,7 +1251,11 @@ public readonly struct F64BE : IUtf8SpanFormattable, IBinaryParsable<F64BE>
     }
 
     /// <inheritdoc/>
-    public static bool TryGetSerializedSize(out int size) { size = Size; return true; }
+        public static bool TryGetSerializedSize(out int size)
+    {
+        size = Size;
+        return true;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1233,7 +1309,11 @@ public readonly struct F64LE : IUtf8SpanFormattable, IBinaryParsable<F64LE>
     }
 
     /// <inheritdoc/>
-    public static bool TryGetSerializedSize(out int size) { size = Size; return true; }
+        public static bool TryGetSerializedSize(out int size)
+    {
+        size = Size;
+        return true;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1386,10 +1466,20 @@ public readonly struct VarInt : IUtf8SpanFormattable, IBinarySerializable, IBina
     }
 
     /// <inheritdoc/>
-    public bool TryGetSerializedSize(out int size) { size = EncodedSize; return true; }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryGetWrittenSize(out int size)
+    {
+        size = EncodedSize;
+        return true;
+    }
 
     /// <inheritdoc/>
-    static bool IBinaryParsable<VarInt>.TryGetSerializedSize(out int size) { size = 0; return false; }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryGetSerializedSize(out int size)
+    {
+        size = 0;
+        return false;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1521,10 +1611,20 @@ public readonly struct VarIntZigZag : IUtf8SpanFormattable, IBinarySerializable,
     }
 
     /// <inheritdoc/>
-    public bool TryGetSerializedSize(out int size) { size = EncodedSize; return true; }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryGetWrittenSize(out int size)
+    {
+        size = EncodedSize;
+        return true;
+    }
 
     /// <inheritdoc/>
-    static bool IBinaryParsable<VarIntZigZag>.TryGetSerializedSize(out int size) { size = 0; return false; }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryGetSerializedSize(out int size)
+    {
+        size = 0;
+        return false;
+    }
 
     /// <inheritdoc/>
     public override string ToString() => Value.ToString();

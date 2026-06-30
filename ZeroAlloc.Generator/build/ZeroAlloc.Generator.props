@@ -1,77 +1,13 @@
 <Project>
-  <!-- 
-    ============================================================================
-    ZeroAlloc Source Generator Configuration
-    ============================================================================
-    These properties control the ZeroAlloc source generator behavior.
-    Add these to your .csproj file to customize:
-    
-      <PropertyGroup>
-        <ZeroAlloc_DefaultBufferSize>4194304</ZeroAlloc_DefaultBufferSize>
-        <ZeroAlloc_RecursiveHeapFallback>true</ZeroAlloc_RecursiveHeapFallback>
-        <ZeroAlloc_BufferOverflowBehavior>Grow</ZeroAlloc_BufferOverflowBehavior>
-      </PropertyGroup>
-    ============================================================================
-  -->
-  
+  <!-- Generator MSBuild options (see README Configuration). Packed as buildTransitive/ZeroAlloc.props. -->
   <PropertyGroup>
-    <!-- 
-      ZeroAlloc_DefaultBufferSize (default: 2097152 = 2 MiB)
-      
-      Initial size of the ThreadStatic buffer in bytes/chars. The buffer
-      can grow dynamically if ZeroAlloc_BufferOverflowBehavior is set to "Grow".
-      
-      Increase this value if you commonly format large strings.
-      Decrease it if memory is constrained.
-      
-      Example (4 MiB):
-        <ZeroAlloc_DefaultBufferSize>4194304</ZeroAlloc_DefaultBufferSize>
-    -->
     <ZeroAlloc_DefaultBufferSize Condition="'$(ZeroAlloc_DefaultBufferSize)' == ''">2097152</ZeroAlloc_DefaultBufferSize>
-    
-    <!-- 
-      ZeroAlloc_RecursiveHeapFallback (default: true)
-      
-      Controls behavior when the ThreadStatic buffer is already in use (recursive/nested call):
-      - true:  Fall back to heap allocation (graceful, no exception)
-      - false: Throw InvalidOperationException (strict mode for debugging)
-      
-      This ONLY affects nested calls where the buffer is already acquired.
-      Set to false during development to catch unintentional nested calls.
-      
-      Example:
-        <ZeroAlloc_RecursiveHeapFallback>false</ZeroAlloc_RecursiveHeapFallback>
-    -->
     <ZeroAlloc_RecursiveHeapFallback Condition="'$(ZeroAlloc_RecursiveHeapFallback)' == ''">true</ZeroAlloc_RecursiveHeapFallback>
-    
-    <!-- 
-      ZeroAlloc_BufferOverflowBehavior (default: Grow)
-      
-      Controls behavior when formatted content exceeds the current buffer size:
-      
-      - Grow:         Dynamically grow the ThreadStatic buffer (may allocate once, 
-                      but buffer stays enlarged for future calls - best performance)
-      - HeapFallback: Allocate a new heap buffer for this call only 
-                      (ThreadStatic buffer unchanged, heap allocation per overflow)
-      - Throw:        Throw InvalidOperationException (strict mode, no allocations)
-      
-      Growth strategy (when Grow):
-      - ≤ 1 MiB: 3x growth
-      - ≤ 16 MiB: 2x growth  
-      - ≤ 512 MiB: 1.5x growth
-      - > 512 MiB: 1.25x growth
-      
-      Example:
-        <ZeroAlloc_BufferOverflowBehavior>HeapFallback</ZeroAlloc_BufferOverflowBehavior>
-    -->
     <ZeroAlloc_BufferOverflowBehavior Condition="'$(ZeroAlloc_BufferOverflowBehavior)' == ''">Grow</ZeroAlloc_BufferOverflowBehavior>
   </PropertyGroup>
-  
-  <!-- Make properties visible to the source generator -->
   <ItemGroup>
     <CompilerVisibleProperty Include="ZeroAlloc_DefaultBufferSize" />
     <CompilerVisibleProperty Include="ZeroAlloc_RecursiveHeapFallback" />
     <CompilerVisibleProperty Include="ZeroAlloc_BufferOverflowBehavior" />
   </ItemGroup>
-  
 </Project>

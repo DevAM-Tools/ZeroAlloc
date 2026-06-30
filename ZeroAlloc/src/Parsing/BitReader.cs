@@ -1,4 +1,4 @@
-﻿// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
+// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
 namespace ZeroAlloc;
 
@@ -65,7 +65,7 @@ public ref struct BitReader
                 $"Cannot read {bitCount} bits: only {totalBits - _BitOffset} bits remaining");
         }
 
-        return ReadBitsCore(bitCount);
+        return _ReadBitsCore(bitCount);
     }
 
     /// <summary>
@@ -74,17 +74,17 @@ public ref struct BitReader
     /// sufficient bits remain before calling this method.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private ulong ReadBitsCore(int bitCount)
+    private ulong _ReadBitsCore(int bitCount)
     {
         int bytePos = _BitOffset >> 3;
         int bitPos = _BitOffset & 7;
-        ulong value = bitPos == 0 ? ReadBitsAligned(bytePos, bitCount) : ReadBitsUnaligned(bytePos, bitPos, bitCount);
+        ulong value = bitPos == 0 ? _ReadBitsAligned(bytePos, bitCount) : _ReadBitsUnaligned(bytePos, bitPos, bitCount);
         _BitOffset += bitCount;
         return value;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private readonly ulong ReadBitsAligned(int bytePos, int bitCount)
+    private readonly ulong _ReadBitsAligned(int bytePos, int bitCount)
     {
         // Optimized for byte-aligned reads - use direct integer reads when possible
         return bitCount switch
@@ -93,15 +93,15 @@ public ref struct BitReader
             16 => BinaryPrimitives.ReadUInt16BigEndian(_Buffer.Slice(bytePos)),
             32 => BinaryPrimitives.ReadUInt32BigEndian(_Buffer.Slice(bytePos)),
             64 => BinaryPrimitives.ReadUInt64BigEndian(_Buffer.Slice(bytePos)),
-            _ => ReadBitsGeneric(bytePos, 0, bitCount)
+            _ => _ReadBitsGeneric(bytePos, 0, bitCount)
         };
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private readonly ulong ReadBitsUnaligned(int bytePos, int bitPos, int bitCount) => ReadBitsGeneric(bytePos, bitPos, bitCount);
+    private readonly ulong _ReadBitsUnaligned(int bytePos, int bitPos, int bitCount) => _ReadBitsGeneric(bytePos, bitPos, bitCount);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private readonly ulong ReadBitsGeneric(int bytePos, int bitPos, int bitCount)
+    private readonly ulong _ReadBitsGeneric(int bytePos, int bitPos, int bitCount)
     {
         ulong result = 0;
         int bitsRemaining = bitCount;
@@ -383,7 +383,7 @@ public ref struct BitReader
             return false;
         }
 
-        value = ReadBitsCore(bitCount);
+        value = _ReadBitsCore(bitCount);
         return true;
     }
 
@@ -421,7 +421,7 @@ public ref struct BitReader
             return false;
         }
 
-        value = new Bit2((byte)ReadBitsCore(2));
+        value = new Bit2((byte)_ReadBitsCore(2));
         return true;
     }
 
@@ -438,7 +438,7 @@ public ref struct BitReader
             return false;
         }
 
-        value = new Bit3((byte)ReadBitsCore(3));
+        value = new Bit3((byte)_ReadBitsCore(3));
         return true;
     }
 
@@ -455,7 +455,7 @@ public ref struct BitReader
             return false;
         }
 
-        value = new Nibble((byte)ReadBitsCore(4));
+        value = new Nibble((byte)_ReadBitsCore(4));
         return true;
     }
 
@@ -472,7 +472,7 @@ public ref struct BitReader
             return false;
         }
 
-        value = new Bit5((byte)ReadBitsCore(5));
+        value = new Bit5((byte)_ReadBitsCore(5));
         return true;
     }
 
@@ -489,7 +489,7 @@ public ref struct BitReader
             return false;
         }
 
-        value = new Bit6((byte)ReadBitsCore(6));
+        value = new Bit6((byte)_ReadBitsCore(6));
         return true;
     }
 
@@ -506,7 +506,7 @@ public ref struct BitReader
             return false;
         }
 
-        value = new Bit7((byte)ReadBitsCore(7));
+        value = new Bit7((byte)_ReadBitsCore(7));
         return true;
     }
 
@@ -529,7 +529,7 @@ public ref struct BitReader
             return false;
         }
 
-        value = new UIntBits(ReadBitsCore(bitCount), bitCount);
+        value = new UIntBits(_ReadBitsCore(bitCount), bitCount);
         return true;
     }
 
@@ -553,8 +553,8 @@ public ref struct BitReader
         }
 
         // Sign-extend after reading — mirrors the behaviour of ReadIntBits, but
-        // calls ReadBitsCore directly to avoid a second RemainingBits check.
-        ulong unsigned = ReadBitsCore(bitCount);
+        // calls _ReadBitsCore directly to avoid a second RemainingBits check.
+        ulong unsigned = _ReadBitsCore(bitCount);
         if (bitCount < 64)
         {
             ulong signBit = 1UL << (bitCount - 1);
@@ -589,7 +589,7 @@ public ref struct BitReader
         }
         else
         {
-            value = (byte)ReadBitsCore(8);
+            value = (byte)_ReadBitsCore(8);
         }
 
         return true;
@@ -608,7 +608,7 @@ public ref struct BitReader
             return false;
         }
 
-        value = (ushort)ReadBitsCore(16);
+        value = (ushort)_ReadBitsCore(16);
         return true;
     }
 
@@ -625,7 +625,7 @@ public ref struct BitReader
             return false;
         }
 
-        value = (uint)ReadBitsCore(32);
+        value = (uint)_ReadBitsCore(32);
         return true;
     }
 
@@ -642,7 +642,7 @@ public ref struct BitReader
             return false;
         }
 
-        value = ReadBitsCore(64);
+        value = _ReadBitsCore(64);
         return true;
     }
 
@@ -659,7 +659,7 @@ public ref struct BitReader
             return false;
         }
 
-        value = (short)ReadBitsCore(16);
+        value = (short)_ReadBitsCore(16);
         return true;
     }
 
@@ -676,7 +676,7 @@ public ref struct BitReader
             return false;
         }
 
-        value = (int)ReadBitsCore(32);
+        value = (int)_ReadBitsCore(32);
         return true;
     }
 
@@ -693,7 +693,7 @@ public ref struct BitReader
             return false;
         }
 
-        value = (long)ReadBitsCore(64);
+        value = (long)_ReadBitsCore(64);
         return true;
     }
 

@@ -1,0 +1,29 @@
+<Project>
+  <!-- Pack and publish wiring for the ZeroAlloc NuGet package (repo maintainers only). -->
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageOutputPath>$(MSBuildProjectDirectory)\..\artifacts</PackageOutputPath>
+  </PropertyGroup>
+
+  <!-- Deterministic source paths for explicit pack only (coverage runs must not use PathMap). -->
+  <PropertyGroup Condition="'$(ContinuousIntegrationBuild)' == 'true'">
+    <DeterministicSourcePaths>true</DeterministicSourcePaths>
+    <PathMap>$(MSBuildProjectDirectory)=/</PathMap>
+  </PropertyGroup>
+
+  <Target Name="_IncludeGeneratorInPackage" BeforeTargets="_GetPackageFiles">
+    <MSBuild Projects="$(MSBuildProjectDirectory)\..\ZeroAlloc.Generator\ZeroAlloc.Generator.csproj"
+             Targets="GetTargetPath"
+             Properties="Configuration=$(Configuration)">
+      <Output TaskParameter="TargetOutputs" ItemName="_GeneratorDll" />
+    </MSBuild>
+    <ItemGroup>
+      <None Include="@(_GeneratorDll)" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+      <None Include="$(MSBuildProjectDirectory)\..\ZeroAlloc.Generator\build\ZeroAlloc.Generator.props"
+            Pack="true"
+            PackagePath="buildTransitive/ZeroAlloc.props"
+            Visible="false" />
+    </ItemGroup>
+  </Target>
+</Project>

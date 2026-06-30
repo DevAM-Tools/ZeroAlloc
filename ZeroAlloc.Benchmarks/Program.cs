@@ -19,7 +19,7 @@ namespace ZeroAlloc.Benchmarks;
 /// </summary>
 class Program
 {
-    static int Main(string[] args)
+    public static int Main(string[] args)
     {
         // Quick verification mode
         if (args.Length > 0 && args[0] == "--verify-local")
@@ -54,7 +54,7 @@ class Program
     /// <summary>
     /// Verifies that LocalizedString produces identical output to interpolation.
     /// </summary>
-    static int VerifyLocalizedStringOutput()
+    public static int VerifyLocalizedStringOutput()
     {
         Console.WriteLine("=== LocalizedString Output Verification ===");
         Console.WriteLine();
@@ -118,6 +118,10 @@ class Program
 
         // Summary
         Console.WriteLine($"=== All tests passed: {allPassed} ===");
-        return allPassed ? 0 : 1;
+        if (allPassed)
+        {
+            return 0;
+        }
+        return 1;
     }
 }

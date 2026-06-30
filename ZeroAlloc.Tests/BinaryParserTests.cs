@@ -2,6 +2,15 @@
 
 namespace ZeroAlloc.Tests;
 
+/// <summary>Stub type for BinaryParseValidator name-pattern coverage.</summary>
+public struct UIntTestStub;
+
+/// <summary>Reference type stub for unsupported-type validation tests.</summary>
+public sealed class UnsupportedReferenceType;
+
+/// <summary>Value type stub without IBinaryParsable for validation tests.</summary>
+public struct UnsupportedValueType;
+
 /// <summary>
 /// Direct tests for <see cref="BinaryParser"/>.
 /// Covers primitive reads, VarInt, strings, and error handling.
@@ -246,6 +255,20 @@ public sealed class BinaryParserTests
 
         // Assert
         await Assert.That(result).IsEqualTo(0x123456789ABCDEF0UL);
+    }
+
+    [Test]
+    public async Task BinaryParser_ReadInt64LE_ReturnsCorrectValue()
+    {
+        byte[] data = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF];
+
+        long result;
+        {
+            BinaryParser parser = new(data);
+            result = parser.ReadInt64LE();
+        }
+
+        await Assert.That(result).IsEqualTo(-1L);
     }
 
     // ========================================================================
@@ -1086,5 +1109,318 @@ public sealed class BinaryParserTests
         try { parser.ReadUtf8FixedBE32(); }
         catch (InvalidOperationException) { threw = true; }
         await Assert.That(threw).IsTrue();
+    }
+
+    // ========================================================================
+    // EXIT-POINT COVERAGE — TryReadUtf8Var / generic reads / arrays / validation
+    // ========================================================================
+
+    [Test]
+    public async Task BinaryParser_TryReadUtf8Var_NegativeMaxLength_ThrowsArgumentOutOfRangeException()
+    {
+        BinaryParser parser = new([0x01, 0x41]);
+        bool threw = false;
+        try { parser.TryReadUtf8Var(-1, out ReadOnlySpan<byte> _); }
+        catch (ArgumentOutOfRangeException) { threw = true; }
+
+        await Assert.That(threw).IsTrue();
+    }
+
+    [Test]
+    public async Task BinaryParser_TryReadUtf8Var_IncompleteVarInt_ReturnsFalse()
+    {
+        bool ok;
+        int spanLength;
+        int position;
+        {
+            BinaryParser parser = new([0x80]);
+            ok = parser.TryReadUtf8Var(10, out ReadOnlySpan<byte> span);
+            spanLength = span.Length;
+            position = parser.Position;
+        }
+
+        await Assert.That(ok).IsFalse();
+        await Assert.That(spanLength).IsEqualTo(0);
+        await Assert.That(position).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task BinaryParser_TryReadUtf8Var_LengthExceedsMaxLength_ReturnsFalse()
+    {
+        bool ok;
+        int spanLength;
+        int position;
+        {
+            BinaryParser parser = new([0x05, 0x41, 0x42, 0x43, 0x44, 0x45]);
+            ok = parser.TryReadUtf8Var(4, out ReadOnlySpan<byte> span);
+            spanLength = span.Length;
+            position = parser.Position;
+        }
+
+        await Assert.That(ok).IsFalse();
+        await Assert.That(spanLength).IsEqualTo(0);
+        await Assert.That(position).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task BinaryParser_TryReadUtf8Var_PayloadTruncated_ReturnsFalse()
+    {
+        bool ok;
+        int spanLength;
+        int position;
+        {
+            BinaryParser parser = new([0x03, 0x41, 0x42]);
+            ok = parser.TryReadUtf8Var(10, out ReadOnlySpan<byte> span);
+            spanLength = span.Length;
+            position = parser.Position;
+        }
+
+        await Assert.That(ok).IsFalse();
+        await Assert.That(spanLength).IsEqualTo(0);
+        await Assert.That(position).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task BinaryParser_TryReadUtf8Var_ValidPayload_ReturnsTrue()
+    {
+        byte[] payload;
+        bool ok;
+        int position;
+        {
+            byte[] data = [0x03, 0x41, 0x42, 0x43];
+            BinaryParser parser = new(data);
+            ok = parser.TryReadUtf8Var(10, out ReadOnlySpan<byte> span);
+            payload = span.ToArray();
+            position = parser.Position;
+        }
+
+        await Assert.That(ok).IsTrue();
+        await Assert.That(payload).IsEquivalentTo((byte[])[0x41, 0x42, 0x43]);
+        await Assert.That(position).IsEqualTo(4);
+    }
+
+    [Test]
+    public async Task BinaryParser_TryReadUtf8Var_MalformedVarInt_ReturnsFalse()
+    {
+        bool ok;
+        int spanLength;
+        int position;
+        {
+            byte[] data = new byte[12];
+            Array.Fill(data, (byte)0xFF);
+            BinaryParser parser = new(data);
+            ok = parser.TryReadUtf8Var(100, out ReadOnlySpan<byte> span);
+            spanLength = span.Length;
+            position = parser.Position;
+        }
+
+        await Assert.That(ok).IsFalse();
+        await Assert.That(spanLength).IsEqualTo(0);
+        await Assert.That(position).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task BinaryParser_Read_U16BE_ReturnsParsedValue()
+    {
+        byte[] data = [0x12, 0x34];
+        U16BE result;
+        int position;
+        {
+            BinaryParser parser = new(data);
+            result = parser.Read<U16BE>();
+            position = parser.Position;
+        }
+
+        await Assert.That(result.Value).IsEqualTo((ushort)0x1234);
+        await Assert.That(position).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task BinaryParser_Read_U16BE_InsufficientData_ThrowsInvalidOperationException()
+    {
+        BinaryParser parser = new([0x12]);
+        bool threw = false;
+        try { parser.Read<U16BE>(); }
+        catch (InvalidOperationException) { threw = true; }
+
+        await Assert.That(threw).IsTrue();
+    }
+
+    [Test]
+    public async Task BinaryParser_TryRead_U16BE_SufficientData_ReturnsTrue()
+    {
+        BinaryParser parser = new([0x00, 0x7B]);
+        bool ok = parser.TryRead<U16BE>(out U16BE value);
+        int position = parser.Position;
+
+        await Assert.That(ok).IsTrue();
+        await Assert.That(value.Value).IsEqualTo((ushort)123);
+        await Assert.That(position).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task BinaryParser_TryRead_U16BE_InsufficientData_ReturnsFalse()
+    {
+        BinaryParser parser = new([0x12]);
+        bool ok = parser.TryRead<U16BE>(out U16BE value);
+        int position = parser.Position;
+
+        await Assert.That(ok).IsFalse();
+        await Assert.That(value.Value).IsEqualTo((ushort)0);
+        await Assert.That(position).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task BinaryParser_ReadArray_VarIntElementType_ThrowsArgumentException()
+    {
+        bool threw = false;
+        {
+            BinaryParser parser = new([0x01]);
+            VarInt[] destination = new VarInt[1];
+            try { parser.ReadArray<VarInt>(1, destination); }
+            catch (ArgumentException) { threw = true; }
+        }
+
+        await Assert.That(threw).IsTrue();
+    }
+
+    [Test]
+    public async Task BinaryParser_ReadArray_U16BE_ReturnsElementsRead()
+    {
+        byte[] data = [0x12, 0x34, 0x56, 0x78];
+        U16BE[] destination = new U16BE[2];
+        int elementsRead;
+        {
+            BinaryParser parser = new(data);
+            elementsRead = parser.ReadArray(2, destination.AsSpan());
+        }
+
+        await Assert.That(elementsRead).IsEqualTo(2);
+        await Assert.That(destination[0].Value).IsEqualTo((ushort)0x1234);
+        await Assert.That(destination[1].Value).IsEqualTo((ushort)0x5678);
+    }
+
+    [Test]
+    public async Task BinaryParser_ReadArrayVarInt_U16BE_ReturnsElementsRead()
+    {
+        byte[] data = [0x02, 0x00, 0x0A, 0x00, 0x14];
+        U16BE[] destination = new U16BE[2];
+        int elementsRead;
+        {
+            BinaryParser parser = new(data);
+            elementsRead = parser.ReadArrayVarInt(destination.AsSpan());
+        }
+
+        await Assert.That(elementsRead).IsEqualTo(2);
+        await Assert.That(destination[0].Value).IsEqualTo((ushort)10);
+        await Assert.That(destination[1].Value).IsEqualTo((ushort)20);
+    }
+
+    [Test]
+    public async Task BinaryParser_ReadArrayVarInt_OversizedCount_ThrowsInvalidOperationException()
+    {
+        byte[] data = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F];
+        U16BE[] destination = new U16BE[1];
+        bool threw = false;
+        try { new BinaryParser(data).ReadArrayVarInt(destination.AsSpan()); }
+        catch (InvalidOperationException) { threw = true; }
+
+        await Assert.That(threw).IsTrue();
+    }
+
+    [Test]
+    public async Task BinaryParser_ReadArrayBE16_U16BE_ReturnsElementsRead()
+    {
+        byte[] data = [0x00, 0x02, 0x00, 0x03, 0x00, 0x04];
+        U16BE[] destination = new U16BE[2];
+        int elementsRead;
+        {
+            BinaryParser parser = new(data);
+            elementsRead = parser.ReadArrayBE16(destination.AsSpan());
+        }
+
+        await Assert.That(elementsRead).IsEqualTo(2);
+        await Assert.That(destination[0].Value).IsEqualTo((ushort)3);
+        await Assert.That(destination[1].Value).IsEqualTo((ushort)4);
+    }
+
+    [Test]
+    public async Task BinaryParser_ReadArrayBE32_U16BE_ReturnsElementsRead()
+    {
+        byte[] data = [0x00, 0x00, 0x00, 0x01, 0x00, 0x05];
+        U16BE[] destination = new U16BE[1];
+        int elementsRead;
+        {
+            BinaryParser parser = new(data);
+            elementsRead = parser.ReadArrayBE32(destination.AsSpan());
+        }
+
+        await Assert.That(elementsRead).IsEqualTo(1);
+        await Assert.That(destination[0].Value).IsEqualTo((ushort)5);
+    }
+
+    [Test]
+    public async Task BinaryParseValidator_ValidateType_Primitive_DoesNotThrow()
+    {
+        bool threw = false;
+        try { BinaryParseValidator.ValidateType<int>(); }
+        catch (NotSupportedException) { threw = true; }
+
+        await Assert.That(threw).IsFalse();
+    }
+
+    [Test]
+    public async Task BinaryParseValidator_ValidateType_KnownWrapperName_DoesNotThrow()
+    {
+        bool threw = false;
+        try { BinaryParseValidator.ValidateType<UIntTestStub>(); }
+        catch (NotSupportedException) { threw = true; }
+
+        await Assert.That(threw).IsFalse();
+    }
+
+    [Test]
+    public async Task BinaryParseValidator_ValidateType_Array_ThrowsNotSupportedException()
+    {
+        bool threw = false;
+        try { BinaryParseValidator.ValidateType<byte[]>(); }
+        catch (NotSupportedException) { threw = true; }
+
+        await Assert.That(threw).IsTrue();
+    }
+
+    [Test]
+    [Arguments(typeof(object))]
+    [Arguments(typeof(string))]
+    [Arguments(typeof(UnsupportedReferenceType))]
+    [Arguments(typeof(int[]))]
+    [Arguments(typeof(UnsupportedValueType))]
+    public async Task BinaryParseValidator_ValidateType_UnsupportedType_ThrowsNotSupportedException(Type type)
+    {
+        bool threw = false;
+        try
+        {
+            System.Reflection.MethodInfo method = typeof(BinaryParseValidator)
+                .GetMethod(nameof(BinaryParseValidator.ValidateType))!
+                .MakeGenericMethod(type);
+            method.Invoke(null, null);
+        }
+        catch (System.Reflection.TargetInvocationException ex) when (ex.InnerException is NotSupportedException)
+        {
+            threw = true;
+        }
+
+        await Assert.That(threw).IsTrue();
+    }
+
+    [Test]
+    [Arguments(typeof(string), "ReadUtf8Bytes(length)")]
+    [Arguments(typeof(byte[]), "ReadArray<T>(count, destination)")]
+    [Arguments(typeof(UnsupportedValueType), "is not supported")]
+    public async Task BinaryParseValidator_GetTypeErrorMessage_ReturnsGuidance(Type type, string expectedFragment)
+    {
+        string message = BinaryParseValidator.GetTypeErrorMessage(type);
+
+        await Assert.That(message).Contains(expectedFragment);
     }
 }

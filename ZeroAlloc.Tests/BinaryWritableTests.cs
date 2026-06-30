@@ -559,13 +559,13 @@ public sealed class BinaryWritableTests
     // SIZE CALCULATION TESTS
     // ========================================================================
 
-    #region TryGetSerializedSize
+    #region TryGetWrittenSize
 
     /// <summary>
     /// Tests fixed-size type returns correct size.
     /// </summary>
     [Test]
-    public async Task TryGetSerializedSize_FixedSize_ReturnsCorrectSize()
+    public async Task TryGetWrittenSize_FixedSize_ReturnsCorrectSize()
     {
         WritableSimpleHeader header = new()
         {
@@ -574,7 +574,7 @@ public sealed class BinaryWritableTests
             Length = new U16BE(3)
         };
 
-        bool success = ((IBinarySerializable)header).TryGetSerializedSize(out int size);
+        bool success = ((IBinarySerializable)header).TryGetWrittenSize(out int size);
 
         await Assert.That(success).IsTrue();
         await Assert.That(size).IsEqualTo(8); // 2 + 4 + 2
@@ -584,11 +584,11 @@ public sealed class BinaryWritableTests
     /// Tests byte struct size calculation.
     /// </summary>
     [Test]
-    public async Task TryGetSerializedSize_ByteStruct_ReturnsCorrectSize()
+    public async Task TryGetWrittenSize_ByteStruct_ReturnsCorrectSize()
     {
         WritableByteStruct value = new() { First = 1, Second = 2, Third = 3 };
 
-        bool success = ((IBinarySerializable)value).TryGetSerializedSize(out int size);
+        bool success = ((IBinarySerializable)value).TryGetWrittenSize(out int size);
 
         await Assert.That(success).IsTrue();
         await Assert.That(size).IsEqualTo(3);
@@ -598,14 +598,14 @@ public sealed class BinaryWritableTests
     /// Tests MAC address size calculation.
     /// </summary>
     [Test]
-    public async Task TryGetSerializedSize_ByteArray_ReturnsCorrectSize()
+    public async Task TryGetWrittenSize_ByteArray_ReturnsCorrectSize()
     {
         WritableMacAddress mac = new()
         {
             Address = [0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF]
         };
 
-        bool success = ((IBinarySerializable)mac).TryGetSerializedSize(out int size);
+        bool success = ((IBinarySerializable)mac).TryGetWrittenSize(out int size);
 
         await Assert.That(success).IsTrue();
         await Assert.That(size).IsEqualTo(6);
@@ -830,7 +830,7 @@ public sealed class BinaryWritableTests
 
         // Verify it can be used as IBinarySerializable
         IBinarySerializable serializable = header;
-        await Assert.That(serializable.TryGetSerializedSize(out int size)).IsTrue();
+        await Assert.That(serializable.TryGetWrittenSize(out int size)).IsTrue();
         await Assert.That(size).IsEqualTo(8);
 
         byte[] buffer = new byte[size];

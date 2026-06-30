@@ -1,4 +1,4 @@
-﻿// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
+// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
 // ============================================================================
 // ZeroAlloc - TempStringBuilder: Zero-Allocation String Builder
@@ -26,6 +26,11 @@ namespace ZeroAlloc;
 /// A disposable ref struct for building strings without heap allocation.
 /// </summary>
 /// <remarks>
+/// <para>
+/// <b>Thread-safety:</b> Not thread-safe. Each builder instance must be used from a single thread.
+/// The underlying buffer is thread-local via <see cref="ZeroAllocHelper"/>; do not share one builder
+/// across threads.
+/// </para>
 /// <para>
 /// <see cref="TempStringBuilder"/> uses the thread-local buffer from 
 /// <see cref="ZeroAllocHelper"/>. Overflow behavior depends on configuration:
@@ -215,7 +220,7 @@ public ref struct TempStringBuilder : IDisposable
     /// </summary>
     /// <param name="requiredCapacity">The minimum required capacity.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void EnsureCapacity(int requiredCapacity)
+    private void _EnsureCapacity(int requiredCapacity)
     {
         if (requiredCapacity <= _Span.Length)
         {
@@ -247,7 +252,7 @@ public ref struct TempStringBuilder : IDisposable
     /// <param name="requiredCapacity">The minimum required capacity.</param>
     /// <returns>True if capacity is available or was successfully grown; false otherwise.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool TryEnsureCapacity(int requiredCapacity)
+    private bool _TryEnsureCapacity(int requiredCapacity)
     {
         if (requiredCapacity <= _Span.Length)
         {
@@ -295,7 +300,7 @@ public ref struct TempStringBuilder : IDisposable
         }
 
         int requiredCapacity = _Position + value.Length;
-        EnsureCapacity(requiredCapacity);
+        _EnsureCapacity(requiredCapacity);
         value.AsSpan().CopyTo(_Span.Slice(_Position));
         _Position += value.Length;
     }
@@ -308,7 +313,7 @@ public ref struct TempStringBuilder : IDisposable
     public void Append(ReadOnlySpan<char> value)
     {
         int requiredCapacity = _Position + value.Length;
-        EnsureCapacity(requiredCapacity);
+        _EnsureCapacity(requiredCapacity);
         value.CopyTo(_Span.Slice(_Position));
         _Position += value.Length;
     }
@@ -320,7 +325,7 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(char value)
     {
-        EnsureCapacity(_Position + 1);
+        _EnsureCapacity(_Position + 1);
         _Span[_Position++] = value;
     }
 
@@ -330,35 +335,35 @@ public ref struct TempStringBuilder : IDisposable
 
     /// <summary>Appends an integer value to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Append(int value) => AppendFormattable(value);
+    public void Append(int value) => _AppendFormattable(value);
 
     /// <summary>Appends a long value to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Append(long value) => AppendFormattable(value);
+    public void Append(long value) => _AppendFormattable(value);
 
     /// <summary>Appends an unsigned integer value to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Append(uint value) => AppendFormattable(value);
+    public void Append(uint value) => _AppendFormattable(value);
 
     /// <summary>Appends an unsigned long value to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Append(ulong value) => AppendFormattable(value);
+    public void Append(ulong value) => _AppendFormattable(value);
 
     /// <summary>Appends a short value to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Append(short value) => AppendFormattable(value);
+    public void Append(short value) => _AppendFormattable(value);
 
     /// <summary>Appends an unsigned short value to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Append(ushort value) => AppendFormattable(value);
+    public void Append(ushort value) => _AppendFormattable(value);
 
     /// <summary>Appends a byte value to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Append(byte value) => AppendFormattable(value);
+    public void Append(byte value) => _AppendFormattable(value);
 
     /// <summary>Appends a signed byte value to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Append(sbyte value) => AppendFormattable((int)value);
+    public void Append(sbyte value) => _AppendFormattable((int)value);
 
     /// <summary>Appends a boolean value ("True" or "False") to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -366,13 +371,13 @@ public ref struct TempStringBuilder : IDisposable
     {
         if (value)
         {
-            EnsureCapacity(_Position + 4);
+            _EnsureCapacity(_Position + 4);
             "True".AsSpan().CopyTo(_Span.Slice(_Position));
             _Position += 4;
         }
         else
         {
-            EnsureCapacity(_Position + 5);
+            _EnsureCapacity(_Position + 5);
             "False".AsSpan().CopyTo(_Span.Slice(_Position));
             _Position += 5;
         }
@@ -380,59 +385,59 @@ public ref struct TempStringBuilder : IDisposable
 
     /// <summary>Appends a DateTime value to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Append(DateTime value) => AppendFormattable(value);
+    public void Append(DateTime value) => _AppendFormattable(value);
 
     /// <summary>Appends a DateTimeOffset value to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Append(DateTimeOffset value) => AppendFormattable(value);
+    public void Append(DateTimeOffset value) => _AppendFormattable(value);
 
     /// <summary>Appends a TimeSpan value to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Append(TimeSpan value) => AppendFormattable(value);
+    public void Append(TimeSpan value) => _AppendFormattable(value);
 
     /// <summary>Appends a GUID value to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Append(Guid value) => AppendFormattable(value);
+    public void Append(Guid value) => _AppendFormattable(value);
 
     /// <summary>Appends a 128-bit signed integer value to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Append(Int128 value) => AppendFormattable(value);
+    public void Append(Int128 value) => _AppendFormattable(value);
 
     /// <summary>Appends a 128-bit unsigned integer value to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Append(UInt128 value) => AppendFormattable(value);
+    public void Append(UInt128 value) => _AppendFormattable(value);
 
     /// <summary>Appends a single-precision floating-point value to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Append(float value) => AppendFormattable(value);
+    public void Append(float value) => _AppendFormattable(value);
 
     /// <summary>Appends a double-precision floating-point value to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Append(double value) => AppendFormattable(value);
+    public void Append(double value) => _AppendFormattable(value);
 
     /// <summary>Appends a decimal value to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Append(decimal value) => AppendFormattable(value);
+    public void Append(decimal value) => _AppendFormattable(value);
 
     /// <summary>Appends a half-precision floating-point value to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Append(Half value) => AppendFormattable(value);
+    public void Append(Half value) => _AppendFormattable(value);
 
     /// <summary>Appends a DateOnly value to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Append(DateOnly value) => AppendFormattable(value);
+    public void Append(DateOnly value) => _AppendFormattable(value);
 
     /// <summary>Appends a TimeOnly value to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Append(TimeOnly value) => AppendFormattable(value);
+    public void Append(TimeOnly value) => _AppendFormattable(value);
 
     /// <summary>Appends a native integer value to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Append(nint value) => AppendFormattable(value);
+    public void Append(nint value) => _AppendFormattable(value);
 
     /// <summary>Appends a native unsigned integer value to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Append(nuint value) => AppendFormattable(value);
+    public void Append(nuint value) => _AppendFormattable(value);
 
     // ========================================================================
     // APPEND - WITH FORMAT
@@ -441,47 +446,47 @@ public ref struct TempStringBuilder : IDisposable
     /// <summary>Appends an integer value with a format string to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(int value, ReadOnlySpan<char> format, IFormatProvider? provider = null)
-        => AppendFormattable(value, format, provider);
+        => _AppendFormattable(value, format, provider);
 
     /// <summary>Appends a long value with a format string to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(long value, ReadOnlySpan<char> format, IFormatProvider? provider = null)
-        => AppendFormattable(value, format, provider);
+        => _AppendFormattable(value, format, provider);
 
     /// <summary>Appends a double value with a format string to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(double value, ReadOnlySpan<char> format, IFormatProvider? provider = null)
-        => AppendFormattable(value, format, provider);
+        => _AppendFormattable(value, format, provider);
 
     /// <summary>Appends a float value with a format string to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(float value, ReadOnlySpan<char> format, IFormatProvider? provider = null)
-        => AppendFormattable(value, format, provider);
+        => _AppendFormattable(value, format, provider);
 
     /// <summary>Appends a decimal value with a format string to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(decimal value, ReadOnlySpan<char> format, IFormatProvider? provider = null)
-        => AppendFormattable(value, format, provider);
+        => _AppendFormattable(value, format, provider);
 
     /// <summary>Appends a DateTime value with a format string to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(DateTime value, ReadOnlySpan<char> format, IFormatProvider? provider = null)
-        => AppendFormattable(value, format, provider);
+        => _AppendFormattable(value, format, provider);
 
     /// <summary>Appends a DateTimeOffset value with a format string to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(DateTimeOffset value, ReadOnlySpan<char> format, IFormatProvider? provider = null)
-        => AppendFormattable(value, format, provider);
+        => _AppendFormattable(value, format, provider);
 
     /// <summary>Appends a TimeSpan value with a format string to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(TimeSpan value, ReadOnlySpan<char> format, IFormatProvider? provider = null)
-        => AppendFormattable(value, format, provider);
+        => _AppendFormattable(value, format, provider);
 
     /// <summary>Appends a GUID value with a format string to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(Guid value, ReadOnlySpan<char> format)
-        => AppendFormattable(value, format, null);
+        => _AppendFormattable(value, format, null);
 
     /// <summary>
     /// Appends a formattable value with a format string.
@@ -493,7 +498,7 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append<T>(T value, ReadOnlySpan<char> format, IFormatProvider? provider = null)
         where T : ISpanFormattable
-        => AppendFormattable(value, format, provider);
+        => _AppendFormattable(value, format, provider);
 
     // ========================================================================
     // APPEND - HELPER FOR FORMATTABLES
@@ -503,7 +508,7 @@ public ref struct TempStringBuilder : IDisposable
     /// Core implementation for appending ISpanFormattable types.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void AppendFormattable<T>(T value, ReadOnlySpan<char> format = default, IFormatProvider? provider = null)
+    private void _AppendFormattable<T>(T value, ReadOnlySpan<char> format = default, IFormatProvider? provider = null)
         where T : ISpanFormattable
     {
         int charsWritten;
@@ -530,7 +535,7 @@ public ref struct TempStringBuilder : IDisposable
             _Span = _Array.AsSpan();
 
             // Safety guard: if the buffer didn't actually grow, TryFormat will never succeed.
-            if (_Span.Length <= previousLength)
+            if (_Span.Length <= previousLength || ZeroAllocHelper.ConsumeSimulatedGrowStall())
             {
                 throw new InvalidOperationException("Buffer failed to grow during formatting.");
             }
@@ -544,7 +549,7 @@ public ref struct TempStringBuilder : IDisposable
     /// </summary>
     /// <returns>True if the value was appended; false if buffer is full.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool TryAppendFormattable<T>(T value, ReadOnlySpan<char> format = default, IFormatProvider? provider = null)
+    private bool _TryAppendFormattable<T>(T value, ReadOnlySpan<char> format = default, IFormatProvider? provider = null)
         where T : ISpanFormattable
     {
         int charsWritten;
@@ -577,7 +582,7 @@ public ref struct TempStringBuilder : IDisposable
             _Span = _Array.AsSpan();
 
             // Safety guard: if the buffer didn't actually grow, TryFormat will never succeed.
-            if (_Span.Length <= previousLength)
+            if (_Span.Length <= previousLength || ZeroAllocHelper.ConsumeSimulatedGrowStall())
             {
                 return false;
             }
@@ -621,7 +626,7 @@ public ref struct TempStringBuilder : IDisposable
         }
 
         int requiredCapacity = _Position + value.Length;
-        if (!TryEnsureCapacity(requiredCapacity))
+        if (!_TryEnsureCapacity(requiredCapacity))
         {
             return false;
         }
@@ -640,7 +645,7 @@ public ref struct TempStringBuilder : IDisposable
     public bool TryAppend(ReadOnlySpan<char> value)
     {
         int requiredCapacity = _Position + value.Length;
-        if (!TryEnsureCapacity(requiredCapacity))
+        if (!_TryEnsureCapacity(requiredCapacity))
         {
             return false;
         }
@@ -658,7 +663,7 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppend(char value)
     {
-        if (!TryEnsureCapacity(_Position + 1))
+        if (!_TryEnsureCapacity(_Position + 1))
         {
             return false;
         }
@@ -669,35 +674,35 @@ public ref struct TempStringBuilder : IDisposable
 
     /// <summary>Tries to append an integer value without throwing.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryAppend(int value) => TryAppendFormattable(value);
+    public bool TryAppend(int value) => _TryAppendFormattable(value);
 
     /// <summary>Tries to append a long value without throwing.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryAppend(long value) => TryAppendFormattable(value);
+    public bool TryAppend(long value) => _TryAppendFormattable(value);
 
     /// <summary>Tries to append an unsigned integer value without throwing.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryAppend(uint value) => TryAppendFormattable(value);
+    public bool TryAppend(uint value) => _TryAppendFormattable(value);
 
     /// <summary>Tries to append an unsigned long value without throwing.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryAppend(ulong value) => TryAppendFormattable(value);
+    public bool TryAppend(ulong value) => _TryAppendFormattable(value);
 
     /// <summary>Tries to append a short value without throwing.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryAppend(short value) => TryAppendFormattable(value);
+    public bool TryAppend(short value) => _TryAppendFormattable(value);
 
     /// <summary>Tries to append an unsigned short value without throwing.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryAppend(ushort value) => TryAppendFormattable(value);
+    public bool TryAppend(ushort value) => _TryAppendFormattable(value);
 
     /// <summary>Tries to append a byte value without throwing.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryAppend(byte value) => TryAppendFormattable(value);
+    public bool TryAppend(byte value) => _TryAppendFormattable(value);
 
     /// <summary>Tries to append a signed byte value without throwing.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryAppend(sbyte value) => TryAppendFormattable((int)value);
+    public bool TryAppend(sbyte value) => _TryAppendFormattable((int)value);
 
     /// <summary>Tries to append a boolean value without throwing.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -705,7 +710,7 @@ public ref struct TempStringBuilder : IDisposable
     {
         if (value)
         {
-            if (!TryEnsureCapacity(_Position + 4))
+            if (!_TryEnsureCapacity(_Position + 4))
             {
                 return false;
             }
@@ -715,7 +720,7 @@ public ref struct TempStringBuilder : IDisposable
         }
         else
         {
-            if (!TryEnsureCapacity(_Position + 5))
+            if (!_TryEnsureCapacity(_Position + 5))
             {
                 return false;
             }
@@ -728,59 +733,59 @@ public ref struct TempStringBuilder : IDisposable
 
     /// <summary>Tries to append a DateTime value without throwing.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryAppend(DateTime value) => TryAppendFormattable(value);
+    public bool TryAppend(DateTime value) => _TryAppendFormattable(value);
 
     /// <summary>Tries to append a DateTimeOffset value without throwing.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryAppend(DateTimeOffset value) => TryAppendFormattable(value);
+    public bool TryAppend(DateTimeOffset value) => _TryAppendFormattable(value);
 
     /// <summary>Tries to append a TimeSpan value without throwing.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryAppend(TimeSpan value) => TryAppendFormattable(value);
+    public bool TryAppend(TimeSpan value) => _TryAppendFormattable(value);
 
     /// <summary>Tries to append a GUID value without throwing.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryAppend(Guid value) => TryAppendFormattable(value);
+    public bool TryAppend(Guid value) => _TryAppendFormattable(value);
 
     /// <summary>Tries to append a 128-bit signed integer value without throwing.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryAppend(Int128 value) => TryAppendFormattable(value);
+    public bool TryAppend(Int128 value) => _TryAppendFormattable(value);
 
     /// <summary>Tries to append a 128-bit unsigned integer value without throwing.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryAppend(UInt128 value) => TryAppendFormattable(value);
+    public bool TryAppend(UInt128 value) => _TryAppendFormattable(value);
 
     /// <summary>Tries to append a float value without throwing.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryAppend(float value) => TryAppendFormattable(value);
+    public bool TryAppend(float value) => _TryAppendFormattable(value);
 
     /// <summary>Tries to append a double value without throwing.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryAppend(double value) => TryAppendFormattable(value);
+    public bool TryAppend(double value) => _TryAppendFormattable(value);
 
     /// <summary>Tries to append a decimal value without throwing.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryAppend(decimal value) => TryAppendFormattable(value);
+    public bool TryAppend(decimal value) => _TryAppendFormattable(value);
 
     /// <summary>Tries to append a Half value without throwing.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryAppend(Half value) => TryAppendFormattable(value);
+    public bool TryAppend(Half value) => _TryAppendFormattable(value);
 
     /// <summary>Tries to append a DateOnly value without throwing.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryAppend(DateOnly value) => TryAppendFormattable(value);
+    public bool TryAppend(DateOnly value) => _TryAppendFormattable(value);
 
     /// <summary>Tries to append a TimeOnly value without throwing.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryAppend(TimeOnly value) => TryAppendFormattable(value);
+    public bool TryAppend(TimeOnly value) => _TryAppendFormattable(value);
 
     /// <summary>Tries to append a native integer value without throwing.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryAppend(nint value) => TryAppendFormattable(value);
+    public bool TryAppend(nint value) => _TryAppendFormattable(value);
 
     /// <summary>Tries to append a native unsigned integer value without throwing.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryAppend(nuint value) => TryAppendFormattable(value);
+    public bool TryAppend(nuint value) => _TryAppendFormattable(value);
 
     /// <summary>
     /// Tries to append a formattable value with a format string without throwing.
@@ -793,32 +798,32 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppend<T>(T value, ReadOnlySpan<char> format, IFormatProvider? provider = null)
         where T : ISpanFormattable
-        => TryAppendFormattable(value, format, provider);
+        => _TryAppendFormattable(value, format, provider);
 
     // ========================================================================
     // HEX/BINARY FORMATTING
     // ========================================================================
 
-    private static ReadOnlySpan<char> HexChars => "0123456789ABCDEF";
+    private static ReadOnlySpan<char> _HexChars => "0123456789ABCDEF";
 
     /// <summary>Appends a byte as 2 hexadecimal characters to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendHex2(byte value)
     {
-        EnsureCapacity(_Position + 2);
-        _Span[_Position++] = HexChars[value >> 4];
-        _Span[_Position++] = HexChars[value & 0xF];
+        _EnsureCapacity(_Position + 2);
+        _Span[_Position++] = _HexChars[value >> 4];
+        _Span[_Position++] = _HexChars[value & 0xF];
     }
 
     /// <summary>Appends a ushort as 4 hexadecimal characters to the buffer.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendHex4(ushort value)
     {
-        EnsureCapacity(_Position + 4);
-        _Span[_Position++] = HexChars[(value >> 12) & 0xF];
-        _Span[_Position++] = HexChars[(value >> 8) & 0xF];
-        _Span[_Position++] = HexChars[(value >> 4) & 0xF];
-        _Span[_Position++] = HexChars[value & 0xF];
+        _EnsureCapacity(_Position + 4);
+        _Span[_Position++] = _HexChars[(value >> 12) & 0xF];
+        _Span[_Position++] = _HexChars[(value >> 8) & 0xF];
+        _Span[_Position++] = _HexChars[(value >> 4) & 0xF];
+        _Span[_Position++] = _HexChars[value & 0xF];
     }
 
     /// <summary>Appends a uint as 8 hexadecimal characters to the buffer.</summary>
@@ -841,7 +846,7 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendBinary8(byte value)
     {
-        EnsureCapacity(_Position + 8);
+        _EnsureCapacity(_Position + 8);
         for (int i = 7; i >= 0; i--)
         {
             _Span[_Position++] = (char)('0' + ((value >> i) & 1));
@@ -852,7 +857,7 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendBinary16(ushort value)
     {
-        EnsureCapacity(_Position + 16);
+        _EnsureCapacity(_Position + 16);
         for (int i = 15; i >= 0; i--)
         {
             _Span[_Position++] = (char)('0' + ((value >> i) & 1));
@@ -863,7 +868,7 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendBinary32(uint value)
     {
-        EnsureCapacity(_Position + 32);
+        _EnsureCapacity(_Position + 32);
         for (int i = 31; i >= 0; i--)
         {
             _Span[_Position++] = (char)('0' + ((value >> i) & 1));
@@ -874,7 +879,7 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendBinary64(ulong value)
     {
-        EnsureCapacity(_Position + 64);
+        _EnsureCapacity(_Position + 64);
         for (int i = 63; i >= 0; i--)
         {
             _Span[_Position++] = (char)('0' + (int)((value >> i) & 1));
@@ -887,13 +892,13 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendHex2(byte value)
     {
-        if (!TryEnsureCapacity(_Position + 2))
+        if (!_TryEnsureCapacity(_Position + 2))
         {
             return false;
         }
 
-        _Span[_Position++] = HexChars[value >> 4];
-        _Span[_Position++] = HexChars[value & 0xF];
+        _Span[_Position++] = _HexChars[value >> 4];
+        _Span[_Position++] = _HexChars[value & 0xF];
         return true;
     }
 
@@ -903,15 +908,15 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendHex4(ushort value)
     {
-        if (!TryEnsureCapacity(_Position + 4))
+        if (!_TryEnsureCapacity(_Position + 4))
         {
             return false;
         }
 
-        _Span[_Position++] = HexChars[(value >> 12) & 0xF];
-        _Span[_Position++] = HexChars[(value >> 8) & 0xF];
-        _Span[_Position++] = HexChars[(value >> 4) & 0xF];
-        _Span[_Position++] = HexChars[value & 0xF];
+        _Span[_Position++] = _HexChars[(value >> 12) & 0xF];
+        _Span[_Position++] = _HexChars[(value >> 8) & 0xF];
+        _Span[_Position++] = _HexChars[(value >> 4) & 0xF];
+        _Span[_Position++] = _HexChars[value & 0xF];
         return true;
     }
 
@@ -921,7 +926,7 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendHex8(uint value)
     {
-        if (!TryEnsureCapacity(_Position + 8))
+        if (!_TryEnsureCapacity(_Position + 8))
         {
             return false;
         }
@@ -937,7 +942,7 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendHex16(ulong value)
     {
-        if (!TryEnsureCapacity(_Position + 16))
+        if (!_TryEnsureCapacity(_Position + 16))
         {
             return false;
         }
@@ -953,7 +958,7 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendBinary8(byte value)
     {
-        if (!TryEnsureCapacity(_Position + 8))
+        if (!_TryEnsureCapacity(_Position + 8))
         {
             return false;
         }
@@ -971,7 +976,7 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendBinary16(ushort value)
     {
-        if (!TryEnsureCapacity(_Position + 16))
+        if (!_TryEnsureCapacity(_Position + 16))
         {
             return false;
         }
@@ -989,7 +994,7 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendBinary32(uint value)
     {
-        if (!TryEnsureCapacity(_Position + 32))
+        if (!_TryEnsureCapacity(_Position + 32))
         {
             return false;
         }
@@ -1007,7 +1012,7 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendBinary64(ulong value)
     {
-        if (!TryEnsureCapacity(_Position + 64))
+        if (!_TryEnsureCapacity(_Position + 64))
         {
             return false;
         }

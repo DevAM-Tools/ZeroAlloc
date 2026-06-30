@@ -1156,9 +1156,29 @@ ReadOnlySpan<byte> payload = parser.ReadBytes((int)length);
 | **Floating Point** | `ReadF32BE()`, `ReadF32LE()`, `ReadF64BE()`, `ReadF64LE()` |
 | **VarInt** | `ReadVarInt()`, `ReadVarIntZigZag()` |
 | **Bytes** | `ReadByte()`, `ReadSByte()`, `ReadBytes(int)`, `Skip(int)` |
-| **UTF-8 Strings** | `ReadUtf8Bytes(int)`, `ReadUtf8Var()`, `ReadUtf8FixedBE16()`, `ReadUtf8FixedBE32()`, `ReadUtf8Null()`, `ReadAsciiBytes(int)` |
+| **UTF-8 Strings** | `ReadUtf8Bytes(int)`, `ReadUtf8Var()`, `TryReadUtf8Var(int maxLength, out ReadOnlySpan<byte>)`, `ReadUtf8FixedBE16()`, `ReadUtf8FixedBE32()`, `ReadUtf8Null()`, `ReadAsciiBytes(int)` |
 | **Generic** | `Read<T>()`, `TryRead<T>(out T)` where `T : IBinaryParsable<T>` |
 | **Arrays** | `ReadArray<T>(count, span)`, `ReadArrayVarInt<T>(span)`, `ReadArrayBE16<T>(span)`, `ReadArrayBE32<T>(span)` |
+
+#### Untrusted input and length limits
+
+`ReadUtf8Var()` and array count prefixes return spans bounded only by the remaining source buffer.
+The parser itself does not allocate, but decoding to `string` via `Encoding.UTF8.GetString(span)` can
+allocate large strings when a malicious length prefix is present.
+
+For network or file payloads, enforce a caller-defined maximum before allocation:
+
+```csharp
+var parser = new BinaryParser(payload);
+if (!parser.TryReadUtf8Var(maxNameBytes: 256, out ReadOnlySpan<byte> nameUtf8))
+{
+    return ParseResult.Rejected;
+}
+
+string name = Encoding.UTF8.GetString(nameUtf8);
+```
+
+Use `ReadUtf8Var()` only when the source buffer size already represents your trust boundary.
 
 ---
 
@@ -1414,7 +1434,7 @@ Or in `.csproj`:
 
 ```xml
 <ItemGroup>
-  <PackageReference Include="ZeroAlloc" Version="1.0.0" />
+  <PackageReference Include="ZeroAlloc" Version="0.5.0" />
 </ItemGroup>
 ```
 
@@ -1430,7 +1450,7 @@ internal partial class ZA : ZeroAllocBase { }
 
 **Requirements:**
 - .NET 10.0 or later
-- C# 13.0 or later
+- C# 14.0 or later
 
 ---
 

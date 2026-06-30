@@ -28,9 +28,15 @@
 namespace ZeroAlloc;
 
 /// <summary>
-/// Provides ThreadStatic buffer access for zero-allocation formatting.
+/// Provides thread-local ThreadStatic buffer access for zero-allocation formatting.
 /// </summary>
 /// <remarks>
+/// <para>
+/// <b>Thread-safety:</b> Buffers are thread-local. Concurrent calls from different threads are safe
+/// when each thread follows its own acquire/dispose cycle. Do not hold <see cref="TempString"/> or
+/// <see cref="TempBytes"/> across <c>await</c> points that may resume on another thread without
+/// disposing first.
+/// </para>
 /// <para>
 /// This class manages thread-local buffers for string and byte formatting.
 /// </para>
@@ -424,6 +430,24 @@ public static class ZeroAllocHelper
 
         int newSize = (int)Math.Min(newSizeLong, int.MaxValue);
         return Math.Max(newSize, requiredSize);
+    }
+
+    /// <summary>
+    /// When set, the next grow-stall safety guard in builders treats growth as failed (test coverage only).
+    /// </summary>
+    internal static bool SimulateGrowStallForCoverage;
+
+    /// <summary>Returns true once when <see cref="SimulateGrowStallForCoverage"/> is set, then clears the flag.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static bool ConsumeSimulatedGrowStall()
+    {
+        if (!SimulateGrowStallForCoverage)
+        {
+            return false;
+        }
+
+        SimulateGrowStallForCoverage = false;
+        return true;
     }
 
     /// <summary>

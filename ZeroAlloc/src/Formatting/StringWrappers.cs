@@ -1,4 +1,4 @@
-﻿// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
+// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
 // ============================================================================
 // ZeroAlloc - String Encoding Wrappers
@@ -182,7 +182,11 @@ public readonly struct Utf8Var : IUtf8SpanFormattable, IBinaryParsable<Utf8Var>
     }
 
     /// <inheritdoc/>
-    public static bool TryGetSerializedSize(out int size) { size = 0; return false; }
+        public static bool TryGetSerializedSize(out int size)
+    {
+        size = 0;
+        return false;
+    }
 
     /// <inheritdoc/>
     public static bool TryParse(ReadOnlySpan<byte> source, out Utf8Var value, out int bytesConsumed)
@@ -255,7 +259,11 @@ public readonly struct Utf8FixBE : IUtf8SpanFormattable, IBinaryParsable<Utf8Fix
     }
 
     /// <inheritdoc/>
-    public static bool TryGetSerializedSize(out int size) { size = 0; return false; }
+        public static bool TryGetSerializedSize(out int size)
+    {
+        size = 0;
+        return false;
+    }
 
     /// <inheritdoc/>
     public static bool TryParse(ReadOnlySpan<byte> source, out Utf8FixBE value, out int bytesConsumed)
@@ -320,7 +328,11 @@ public readonly struct Utf8FixLE : IUtf8SpanFormattable, IBinaryParsable<Utf8Fix
     }
 
     /// <inheritdoc/>
-    public static bool TryGetSerializedSize(out int size) { size = 0; return false; }
+        public static bool TryGetSerializedSize(out int size)
+    {
+        size = 0;
+        return false;
+    }
 
     /// <inheritdoc/>
     public static bool TryParse(ReadOnlySpan<byte> source, out Utf8FixLE value, out int bytesConsumed)
@@ -385,7 +397,11 @@ public readonly struct Utf8Fix16LE : IUtf8SpanFormattable, IBinaryParsable<Utf8F
     }
 
     /// <inheritdoc/>
-    public static bool TryGetSerializedSize(out int size) { size = 0; return false; }
+        public static bool TryGetSerializedSize(out int size)
+    {
+        size = 0;
+        return false;
+    }
 
     /// <inheritdoc/>
     public static bool TryParse(ReadOnlySpan<byte> source, out Utf8Fix16LE value, out int bytesConsumed)
@@ -451,7 +467,11 @@ public readonly struct Utf8Z : IUtf8SpanFormattable, IBinaryParsable<Utf8Z>
     }
 
     /// <inheritdoc/>
-    public static bool TryGetSerializedSize(out int size) { size = 0; return false; }
+        public static bool TryGetSerializedSize(out int size)
+    {
+        size = 0;
+        return false;
+    }
 
     /// <inheritdoc/>
     public static bool TryParse(ReadOnlySpan<byte> source, out Utf8Z value, out int bytesConsumed)
@@ -487,7 +507,7 @@ public readonly struct Utf8Z : IUtf8SpanFormattable, IBinaryParsable<Utf8Z>
 /// <summary>UTF-16 BE encoded string without length prefix.</summary>
 public readonly struct Utf16BE : IUtf8SpanFormattable
 {
-    private static readonly Encoding Enc = Encoding.BigEndianUnicode;
+    private static readonly Encoding _Enc = Encoding.BigEndianUnicode;
     private readonly string? _Value;
 
     /// <summary>Initializes a new instance with the specified value.</summary>
@@ -507,7 +527,7 @@ public readonly struct Utf16BE : IUtf8SpanFormattable
         int needed = _Value.Length * 2;
         if (destination.Length < needed)
         { bytesWritten = 0; return false; }
-        bytesWritten = Enc.GetBytes(_Value, destination);
+        bytesWritten = _Enc.GetBytes(_Value, destination);
         return true;
     }
 
@@ -525,7 +545,7 @@ public readonly struct Utf16BE : IUtf8SpanFormattable
 /// <summary>UTF-16 BE encoded string with VarInt length prefix (byte count).</summary>
 public readonly struct Utf16BEVar : IUtf8SpanFormattable
 {
-    private static readonly Encoding Enc = Encoding.BigEndianUnicode;
+    private static readonly Encoding _Enc = Encoding.BigEndianUnicode;
     private readonly string? _Value;
 
     /// <summary>Initializes a new instance with the specified value.</summary>
@@ -550,7 +570,7 @@ public readonly struct Utf16BEVar : IUtf8SpanFormattable
         if (destination.Length < varIntSize + strBytes)
         { bytesWritten = 0; return false; }
         int pos = EncodingHelper.WriteVarInt(destination, strBytes);
-        Enc.GetBytes(_Value, destination.Slice(pos));
+        _Enc.GetBytes(_Value, destination.Slice(pos));
         bytesWritten = pos + strBytes;
         return true;
     }
@@ -569,7 +589,7 @@ public readonly struct Utf16BEVar : IUtf8SpanFormattable
 /// <summary>UTF-16 BE encoded string with 4-byte big-endian length prefix.</summary>
 public readonly struct Utf16BEFixBE : IUtf8SpanFormattable
 {
-    private static readonly Encoding Enc = Encoding.BigEndianUnicode;
+    private static readonly Encoding _Enc = Encoding.BigEndianUnicode;
     private readonly string? _Value;
 
     /// <summary>Initializes a new instance with the specified value.</summary>
@@ -592,7 +612,7 @@ public readonly struct Utf16BEFixBE : IUtf8SpanFormattable
         if (destination.Length < 4 + strBytes)
         { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteUInt32BigEndian(destination, (uint)strBytes);
-        Enc.GetBytes(_Value, destination.Slice(4));
+        _Enc.GetBytes(_Value, destination.Slice(4));
         bytesWritten = 4 + strBytes;
         return true;
     }
@@ -611,7 +631,7 @@ public readonly struct Utf16BEFixBE : IUtf8SpanFormattable
 /// <summary>UTF-16 BE encoded string with 4-byte little-endian length prefix.</summary>
 public readonly struct Utf16BEFixLE : IUtf8SpanFormattable
 {
-    private static readonly Encoding Enc = Encoding.BigEndianUnicode;
+    private static readonly Encoding _Enc = Encoding.BigEndianUnicode;
     private readonly string? _Value;
 
     /// <summary>Initializes a new instance with the specified value.</summary>
@@ -634,7 +654,7 @@ public readonly struct Utf16BEFixLE : IUtf8SpanFormattable
         if (destination.Length < 4 + strBytes)
         { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteUInt32LittleEndian(destination, (uint)strBytes);
-        Enc.GetBytes(_Value, destination.Slice(4));
+        _Enc.GetBytes(_Value, destination.Slice(4));
         bytesWritten = 4 + strBytes;
         return true;
     }
@@ -657,7 +677,7 @@ public readonly struct Utf16BEFixLE : IUtf8SpanFormattable
 /// <summary>UTF-16 LE encoded string without length prefix.</summary>
 public readonly struct Utf16LE : IUtf8SpanFormattable
 {
-    private static readonly Encoding Enc = Encoding.Unicode;
+    private static readonly Encoding _Enc = Encoding.Unicode;
     private readonly string? _Value;
 
     /// <summary>Initializes a new instance with the specified value.</summary>
@@ -677,7 +697,7 @@ public readonly struct Utf16LE : IUtf8SpanFormattable
         int needed = _Value.Length * 2;
         if (destination.Length < needed)
         { bytesWritten = 0; return false; }
-        bytesWritten = Enc.GetBytes(_Value, destination);
+        bytesWritten = _Enc.GetBytes(_Value, destination);
         return true;
     }
 
@@ -695,7 +715,7 @@ public readonly struct Utf16LE : IUtf8SpanFormattable
 /// <summary>UTF-16 LE encoded string with VarInt length prefix (byte count).</summary>
 public readonly struct Utf16LEVar : IUtf8SpanFormattable
 {
-    private static readonly Encoding Enc = Encoding.Unicode;
+    private static readonly Encoding _Enc = Encoding.Unicode;
     private readonly string? _Value;
 
     /// <summary>Initializes a new instance with the specified value.</summary>
@@ -720,7 +740,7 @@ public readonly struct Utf16LEVar : IUtf8SpanFormattable
         if (destination.Length < varIntSize + strBytes)
         { bytesWritten = 0; return false; }
         int pos = EncodingHelper.WriteVarInt(destination, strBytes);
-        Enc.GetBytes(_Value, destination.Slice(pos));
+        _Enc.GetBytes(_Value, destination.Slice(pos));
         bytesWritten = pos + strBytes;
         return true;
     }
@@ -739,7 +759,7 @@ public readonly struct Utf16LEVar : IUtf8SpanFormattable
 /// <summary>UTF-16 LE encoded string with 4-byte big-endian length prefix.</summary>
 public readonly struct Utf16LEFixBE : IUtf8SpanFormattable
 {
-    private static readonly Encoding Enc = Encoding.Unicode;
+    private static readonly Encoding _Enc = Encoding.Unicode;
     private readonly string? _Value;
 
     /// <summary>Initializes a new instance with the specified value.</summary>
@@ -762,7 +782,7 @@ public readonly struct Utf16LEFixBE : IUtf8SpanFormattable
         if (destination.Length < 4 + strBytes)
         { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteUInt32BigEndian(destination, (uint)strBytes);
-        Enc.GetBytes(_Value, destination.Slice(4));
+        _Enc.GetBytes(_Value, destination.Slice(4));
         bytesWritten = 4 + strBytes;
         return true;
     }
@@ -781,7 +801,7 @@ public readonly struct Utf16LEFixBE : IUtf8SpanFormattable
 /// <summary>UTF-16 LE encoded string with 4-byte little-endian length prefix.</summary>
 public readonly struct Utf16LEFixLE : IUtf8SpanFormattable
 {
-    private static readonly Encoding Enc = Encoding.Unicode;
+    private static readonly Encoding _Enc = Encoding.Unicode;
     private readonly string? _Value;
 
     /// <summary>Initializes a new instance with the specified value.</summary>
@@ -804,7 +824,7 @@ public readonly struct Utf16LEFixLE : IUtf8SpanFormattable
         if (destination.Length < 4 + strBytes)
         { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteUInt32LittleEndian(destination, (uint)strBytes);
-        Enc.GetBytes(_Value, destination.Slice(4));
+        _Enc.GetBytes(_Value, destination.Slice(4));
         bytesWritten = 4 + strBytes;
         return true;
     }
@@ -834,7 +854,7 @@ internal static class Utf32BEEncoding
 /// <summary>UTF-32 BE encoded string without length prefix.</summary>
 public readonly struct Utf32BE : IUtf8SpanFormattable
 {
-    private static readonly Encoding Enc = Utf32BEEncoding.Instance;
+    private static readonly Encoding _Enc = Utf32BEEncoding.Instance;
     private readonly string? _Value;
 
     /// <summary>Initializes a new instance with the specified value.</summary>
@@ -851,10 +871,10 @@ public readonly struct Utf32BE : IUtf8SpanFormattable
     {
         if (_Value is null)
         { bytesWritten = 0; return true; }
-        int needed = Enc.GetByteCount(_Value);
+        int needed = _Enc.GetByteCount(_Value);
         if (destination.Length < needed)
         { bytesWritten = 0; return false; }
-        bytesWritten = Enc.GetBytes(_Value, destination);
+        bytesWritten = _Enc.GetBytes(_Value, destination);
         return true;
     }
 
@@ -872,7 +892,7 @@ public readonly struct Utf32BE : IUtf8SpanFormattable
 /// <summary>UTF-32 BE encoded string with VarInt length prefix.</summary>
 public readonly struct Utf32BEVar : IUtf8SpanFormattable
 {
-    private static readonly Encoding Enc = Utf32BEEncoding.Instance;
+    private static readonly Encoding _Enc = Utf32BEEncoding.Instance;
     private readonly string? _Value;
 
     /// <summary>Initializes a new instance with the specified value.</summary>
@@ -892,12 +912,12 @@ public readonly struct Utf32BEVar : IUtf8SpanFormattable
             if (destination.Length < 1) { bytesWritten = 0; return false; }
             destination[0] = 0; bytesWritten = 1; return true;
         }
-        int strBytes = Enc.GetByteCount(_Value);
+        int strBytes = _Enc.GetByteCount(_Value);
         int varIntSize = EncodingHelper.VarIntSize(strBytes);
         if (destination.Length < varIntSize + strBytes)
         { bytesWritten = 0; return false; }
         int pos = EncodingHelper.WriteVarInt(destination, strBytes);
-        Enc.GetBytes(_Value, destination.Slice(pos));
+        _Enc.GetBytes(_Value, destination.Slice(pos));
         bytesWritten = pos + strBytes;
         return true;
     }
@@ -916,7 +936,7 @@ public readonly struct Utf32BEVar : IUtf8SpanFormattable
 /// <summary>UTF-32 BE encoded string with 4-byte big-endian length prefix.</summary>
 public readonly struct Utf32BEFixBE : IUtf8SpanFormattable
 {
-    private static readonly Encoding Enc = Utf32BEEncoding.Instance;
+    private static readonly Encoding _Enc = Utf32BEEncoding.Instance;
     private readonly string? _Value;
 
     /// <summary>Initializes a new instance with the specified value.</summary>
@@ -935,11 +955,11 @@ public readonly struct Utf32BEFixBE : IUtf8SpanFormattable
         {
             return EncodingHelper.TryWriteZeroLengthPrefix32BE(destination, out bytesWritten);
         }
-        int strBytes = Enc.GetByteCount(_Value);
+        int strBytes = _Enc.GetByteCount(_Value);
         if (destination.Length < 4 + strBytes)
         { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteUInt32BigEndian(destination, (uint)strBytes);
-        Enc.GetBytes(_Value, destination.Slice(4));
+        _Enc.GetBytes(_Value, destination.Slice(4));
         bytesWritten = 4 + strBytes;
         return true;
     }
@@ -958,7 +978,7 @@ public readonly struct Utf32BEFixBE : IUtf8SpanFormattable
 /// <summary>UTF-32 BE encoded string with 4-byte little-endian length prefix.</summary>
 public readonly struct Utf32BEFixLE : IUtf8SpanFormattable
 {
-    private static readonly Encoding Enc = Utf32BEEncoding.Instance;
+    private static readonly Encoding _Enc = Utf32BEEncoding.Instance;
     private readonly string? _Value;
 
     /// <summary>Initializes a new instance with the specified value.</summary>
@@ -977,11 +997,11 @@ public readonly struct Utf32BEFixLE : IUtf8SpanFormattable
         {
             return EncodingHelper.TryWriteZeroLengthPrefix32LE(destination, out bytesWritten);
         }
-        int strBytes = Enc.GetByteCount(_Value);
+        int strBytes = _Enc.GetByteCount(_Value);
         if (destination.Length < 4 + strBytes)
         { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteUInt32LittleEndian(destination, (uint)strBytes);
-        Enc.GetBytes(_Value, destination.Slice(4));
+        _Enc.GetBytes(_Value, destination.Slice(4));
         bytesWritten = 4 + strBytes;
         return true;
     }
@@ -1004,7 +1024,7 @@ public readonly struct Utf32BEFixLE : IUtf8SpanFormattable
 /// <summary>UTF-32 LE encoded string without length prefix.</summary>
 public readonly struct Utf32LE : IUtf8SpanFormattable
 {
-    private static readonly Encoding Enc = Encoding.UTF32;
+    private static readonly Encoding _Enc = Encoding.UTF32;
     private readonly string? _Value;
 
     /// <summary>Initializes a new instance with the specified value.</summary>
@@ -1021,10 +1041,10 @@ public readonly struct Utf32LE : IUtf8SpanFormattable
     {
         if (_Value is null)
         { bytesWritten = 0; return true; }
-        int needed = Enc.GetByteCount(_Value);
+        int needed = _Enc.GetByteCount(_Value);
         if (destination.Length < needed)
         { bytesWritten = 0; return false; }
-        bytesWritten = Enc.GetBytes(_Value, destination);
+        bytesWritten = _Enc.GetBytes(_Value, destination);
         return true;
     }
 
@@ -1042,7 +1062,7 @@ public readonly struct Utf32LE : IUtf8SpanFormattable
 /// <summary>UTF-32 LE encoded string with VarInt length prefix.</summary>
 public readonly struct Utf32LEVar : IUtf8SpanFormattable
 {
-    private static readonly Encoding Enc = Encoding.UTF32;
+    private static readonly Encoding _Enc = Encoding.UTF32;
     private readonly string? _Value;
 
     /// <summary>Initializes a new instance with the specified value.</summary>
@@ -1062,12 +1082,12 @@ public readonly struct Utf32LEVar : IUtf8SpanFormattable
             if (destination.Length < 1) { bytesWritten = 0; return false; }
             destination[0] = 0; bytesWritten = 1; return true;
         }
-        int strBytes = Enc.GetByteCount(_Value);
+        int strBytes = _Enc.GetByteCount(_Value);
         int varIntSize = EncodingHelper.VarIntSize(strBytes);
         if (destination.Length < varIntSize + strBytes)
         { bytesWritten = 0; return false; }
         int pos = EncodingHelper.WriteVarInt(destination, strBytes);
-        Enc.GetBytes(_Value, destination.Slice(pos));
+        _Enc.GetBytes(_Value, destination.Slice(pos));
         bytesWritten = pos + strBytes;
         return true;
     }
@@ -1086,7 +1106,7 @@ public readonly struct Utf32LEVar : IUtf8SpanFormattable
 /// <summary>UTF-32 LE encoded string with 4-byte big-endian length prefix.</summary>
 public readonly struct Utf32LEFixBE : IUtf8SpanFormattable
 {
-    private static readonly Encoding Enc = Encoding.UTF32;
+    private static readonly Encoding _Enc = Encoding.UTF32;
     private readonly string? _Value;
 
     /// <summary>Initializes a new instance with the specified value.</summary>
@@ -1105,11 +1125,11 @@ public readonly struct Utf32LEFixBE : IUtf8SpanFormattable
         {
             return EncodingHelper.TryWriteZeroLengthPrefix32BE(destination, out bytesWritten);
         }
-        int strBytes = Enc.GetByteCount(_Value);
+        int strBytes = _Enc.GetByteCount(_Value);
         if (destination.Length < 4 + strBytes)
         { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteUInt32BigEndian(destination, (uint)strBytes);
-        Enc.GetBytes(_Value, destination.Slice(4));
+        _Enc.GetBytes(_Value, destination.Slice(4));
         bytesWritten = 4 + strBytes;
         return true;
     }
@@ -1128,7 +1148,7 @@ public readonly struct Utf32LEFixBE : IUtf8SpanFormattable
 /// <summary>UTF-32 LE encoded string with 4-byte little-endian length prefix.</summary>
 public readonly struct Utf32LEFixLE : IUtf8SpanFormattable
 {
-    private static readonly Encoding Enc = Encoding.UTF32;
+    private static readonly Encoding _Enc = Encoding.UTF32;
     private readonly string? _Value;
 
     /// <summary>Initializes a new instance with the specified value.</summary>
@@ -1147,11 +1167,11 @@ public readonly struct Utf32LEFixLE : IUtf8SpanFormattable
         {
             return EncodingHelper.TryWriteZeroLengthPrefix32LE(destination, out bytesWritten);
         }
-        int strBytes = Enc.GetByteCount(_Value);
+        int strBytes = _Enc.GetByteCount(_Value);
         if (destination.Length < 4 + strBytes)
         { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteUInt32LittleEndian(destination, (uint)strBytes);
-        Enc.GetBytes(_Value, destination.Slice(4));
+        _Enc.GetBytes(_Value, destination.Slice(4));
         bytesWritten = 4 + strBytes;
         return true;
     }
@@ -1399,7 +1419,7 @@ public readonly struct AsciiZ : IUtf8SpanFormattable
 /// <summary>Latin1 (ISO-8859-1) encoded string without length prefix.</summary>
 public readonly struct Latin1 : IUtf8SpanFormattable
 {
-    private static readonly Encoding Enc = Encoding.Latin1;
+    private static readonly Encoding _Enc = Encoding.Latin1;
     private readonly string? _Value;
 
     /// <summary>Initializes a new instance with the specified value.</summary>
@@ -1418,7 +1438,7 @@ public readonly struct Latin1 : IUtf8SpanFormattable
         { bytesWritten = 0; return true; }
         if (destination.Length < _Value.Length)
         { bytesWritten = 0; return false; }
-        bytesWritten = Enc.GetBytes(_Value, destination);
+        bytesWritten = _Enc.GetBytes(_Value, destination);
         return true;
     }
 
@@ -1436,7 +1456,7 @@ public readonly struct Latin1 : IUtf8SpanFormattable
 /// <summary>Latin1 encoded string with VarInt length prefix.</summary>
 public readonly struct Latin1Var : IUtf8SpanFormattable
 {
-    private static readonly Encoding Enc = Encoding.Latin1;
+    private static readonly Encoding _Enc = Encoding.Latin1;
     private readonly string? _Value;
 
     /// <summary>Initializes a new instance with the specified value.</summary>
@@ -1461,7 +1481,7 @@ public readonly struct Latin1Var : IUtf8SpanFormattable
         if (destination.Length < varIntSize + strBytes)
         { bytesWritten = 0; return false; }
         int pos = EncodingHelper.WriteVarInt(destination, strBytes);
-        Enc.GetBytes(_Value, destination.Slice(pos));
+        _Enc.GetBytes(_Value, destination.Slice(pos));
         bytesWritten = pos + strBytes;
         return true;
     }
@@ -1480,7 +1500,7 @@ public readonly struct Latin1Var : IUtf8SpanFormattable
 /// <summary>Latin1 encoded string with 4-byte big-endian length prefix.</summary>
 public readonly struct Latin1FixBE : IUtf8SpanFormattable
 {
-    private static readonly Encoding Enc = Encoding.Latin1;
+    private static readonly Encoding _Enc = Encoding.Latin1;
     private readonly string? _Value;
 
     /// <summary>Initializes a new instance with the specified value.</summary>
@@ -1502,7 +1522,7 @@ public readonly struct Latin1FixBE : IUtf8SpanFormattable
         if (destination.Length < 4 + _Value.Length)
         { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteUInt32BigEndian(destination, (uint)_Value.Length);
-        Enc.GetBytes(_Value, destination.Slice(4));
+        _Enc.GetBytes(_Value, destination.Slice(4));
         bytesWritten = 4 + _Value.Length;
         return true;
     }
@@ -1521,7 +1541,7 @@ public readonly struct Latin1FixBE : IUtf8SpanFormattable
 /// <summary>Latin1 encoded string with 4-byte little-endian length prefix.</summary>
 public readonly struct Latin1FixLE : IUtf8SpanFormattable
 {
-    private static readonly Encoding Enc = Encoding.Latin1;
+    private static readonly Encoding _Enc = Encoding.Latin1;
     private readonly string? _Value;
 
     /// <summary>Initializes a new instance with the specified value.</summary>
@@ -1543,7 +1563,7 @@ public readonly struct Latin1FixLE : IUtf8SpanFormattable
         if (destination.Length < 4 + _Value.Length)
         { bytesWritten = 0; return false; }
         BinaryPrimitives.WriteUInt32LittleEndian(destination, (uint)_Value.Length);
-        Enc.GetBytes(_Value, destination.Slice(4));
+        _Enc.GetBytes(_Value, destination.Slice(4));
         bytesWritten = 4 + _Value.Length;
         return true;
     }
@@ -1562,7 +1582,7 @@ public readonly struct Latin1FixLE : IUtf8SpanFormattable
 /// <summary>Latin1 encoded string with null terminator.</summary>
 public readonly struct Latin1Z : IUtf8SpanFormattable
 {
-    private static readonly Encoding Enc = Encoding.Latin1;
+    private static readonly Encoding _Enc = Encoding.Latin1;
     private readonly string? _Value;
 
     /// <summary>Initializes a new instance with the specified value.</summary>
@@ -1584,7 +1604,7 @@ public readonly struct Latin1Z : IUtf8SpanFormattable
         }
         if (destination.Length < _Value.Length + 1)
         { bytesWritten = 0; return false; }
-        Enc.GetBytes(_Value, destination);
+        _Enc.GetBytes(_Value, destination);
         destination[_Value.Length] = 0;
         bytesWritten = _Value.Length + 1;
         return true;

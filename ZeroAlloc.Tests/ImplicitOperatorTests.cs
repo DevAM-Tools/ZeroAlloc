@@ -9,6 +9,50 @@ namespace ZeroAlloc.Tests;
 public sealed class ImplicitOperatorTests
 {
     // ========================================================================
+    // TEMPSTRING - IMPLICIT TO READONLYSPAN<CHAR>
+    // ========================================================================
+
+    [Test]
+    [Arguments("hello", 5)]
+    [Arguments("", 0)]
+    public async Task TempString_ImplicitToReadOnlySpan_ReturnsCorrectContent(string text, int expectedLength)
+    {
+        string content;
+        int length;
+        {
+            using TempString temp = ZA.String(text);
+            ReadOnlySpan<char> span = temp;
+            content = span.ToString();
+            length = span.Length;
+        }
+
+        await Assert.That(content).IsEqualTo(text);
+        await Assert.That(length).IsEqualTo(expectedLength);
+    }
+
+    // ========================================================================
+    // TEMPBYTES - IMPLICIT TO READONLYSPAN<BYTE>
+    // ========================================================================
+
+    [Test]
+    [Arguments("hello", 5)]
+    [Arguments("", 0)]
+    public async Task TempBytes_ImplicitToReadOnlySpan_ReturnsCorrectContent(string text, int expectedLength)
+    {
+        string content;
+        int length;
+        {
+            using TempBytes temp = ZA.Utf8(text);
+            ReadOnlySpan<byte> span = temp;
+            content = Encoding.UTF8.GetString(span);
+            length = span.Length;
+        }
+
+        await Assert.That(content).IsEqualTo(text);
+        await Assert.That(length).IsEqualTo(expectedLength);
+    }
+
+    // ========================================================================
     // TEMPSTRING - IMPLICIT TO STRING
     // ========================================================================
     [Test]
@@ -144,6 +188,16 @@ public sealed class ImplicitOperatorTests
 
         // Assert
         await Assert.That(result).IsEmpty();
+        await Assert.That(result).IsSameReferenceAs(Array.Empty<byte>());
+    }
+
+    [Test]
+    [Arguments("lazy")]
+    public async Task LazyString_ImplicitToString_ReturnsEvaluatedValue(string expected)
+    {
+        LazyString s = LazyString.Lazy(() => expected);
+        string result = s;
+        await Assert.That(result).IsEqualTo(expected);
     }
 
     // ========================================================================

@@ -14,7 +14,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ZeroAlloc\ZeroAlloc.csproj" />
-    <ProjectReference Include="..\ZeroAlloc.Generator\ZeroAlloc.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <!-- Analyzer does not flow from ProjectReference; required for ZA source generation in tests. -->
+    <ProjectReference Include="..\ZeroAlloc.Generator\ZeroAlloc.Generator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>

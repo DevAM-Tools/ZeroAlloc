@@ -1,4 +1,4 @@
-﻿// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
+// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
 namespace ZeroAlloc.Benchmarks;
 
@@ -19,18 +19,18 @@ namespace ZeroAlloc.Benchmarks;
 public class StringBenchmarks
 {
     // === Test Data ===
-    private int _userId = 12345;
-    private string _userName = "JohnDoe";
-    private DateTime _timestamp = new(2025, 6, 15, 14, 30, 45);
-    private double _balance = 1234567.89;
-    private Guid _sessionId = Guid.Parse("550e8400-e29b-41d4-a716-446655440000");
-    private decimal _price = 9876543.21m;
-    private double _percentage = 0.15678;
-    private int _quantity = 42;
-    private long _orderId = 987654321012345;
+    private int _UserId = 12345;
+    private string _UserName = "JohnDoe";
+    private DateTime _Timestamp = new(2025, 6, 15, 14, 30, 45);
+    private double _Balance = 1234567.89;
+    private Guid _SessionId = Guid.Parse("550e8400-e29b-41d4-a716-446655440000");
+    private decimal _Price = 9876543.21m;
+    private double _Percentage = 0.15678;
+    private int _Quantity = 42;
+    private long _OrderId = 987654321012345;
 
-    private static readonly CultureInfo GermanCulture = CultureInfo.GetCultureInfo("de-DE");
-    private static readonly CultureInfo InvariantCulture = CultureInfo.InvariantCulture;
+    private static readonly CultureInfo _GermanCulture = CultureInfo.GetCultureInfo("de-DE");
+    private static readonly CultureInfo _InvariantCulture = CultureInfo.InvariantCulture;
 
     // ═══════════════════════════════════════════════════════════════════════════
     #region Category 1: Simple (3 parts: string + int + string)
@@ -39,21 +39,21 @@ public class StringBenchmarks
     [BenchmarkCategory("Simple"), Benchmark(Baseline = true)]
     public string Simple_Concat()
     {
-        return "User " + _userId + " logged in";
+        return "User " + _UserId + " logged in";
     }
 
     [BenchmarkCategory("Simple"), Benchmark]
     public string Simple_Interpolation()
     {
-        return $"User {_userId} logged in";
+        return $"User {_UserId} logged in";
     }
 
     [BenchmarkCategory("Simple"), Benchmark]
     public string Simple_StringBuilder()
     {
-        var sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder();
         sb.Append("User ");
-        sb.Append(_userId);
+        sb.Append(_UserId);
         sb.Append(" logged in");
         return sb.ToString();
     }
@@ -63,7 +63,7 @@ public class StringBenchmarks
     {
         // Optimal .NET approach using String.Create
         const int maxLen = 6 + 10 + 10; // "User " + int.MaxValue.ToString().Length + " logged in"
-        return string.Create(maxLen, _userId, static (span, userId) =>
+        return string.Create(maxLen, _UserId, static (span, userId) =>
         {
             "User ".CopyTo(span);
             int pos = 5;
@@ -76,20 +76,20 @@ public class StringBenchmarks
     [BenchmarkCategory("Simple"), Benchmark]
     public string Simple_ZString()
     {
-        return ZString.Concat("User ", _userId, " logged in");
+        return ZString.Concat("User ", _UserId, " logged in");
     }
 
     [BenchmarkCategory("Simple"), Benchmark]
     public string Simple_ZeroAlloc()
     {
-        return Z.String("User ", _userId, " logged in").ToString();
+        return Z.String("User ", _UserId, " logged in").ToString();
     }
 
     [BenchmarkCategory("Simple"), Benchmark]
     public int Simple_ZeroAlloc_NoAlloc()
     {
         // True zero-allocation: uses stack memory only
-        using var temp = Z.String("User ", _userId, " logged in");
+        using TempString temp = Z.String("User ", _UserId, " logged in");
         return temp.Length;
     }
 
@@ -102,57 +102,57 @@ public class StringBenchmarks
     [BenchmarkCategory("Medium"), Benchmark(Baseline = true)]
     public string Medium_Concat()
     {
-        return "User " + _userName + " (ID: " + _userId + ") logged in at " + _timestamp + " session: " + _sessionId;
+        return "User " + _UserName + " (ID: " + _UserId + ") logged in at " + _Timestamp + " session: " + _SessionId;
     }
 
     [BenchmarkCategory("Medium"), Benchmark]
     public string Medium_Interpolation()
     {
-        return $"User {_userName} (ID: {_userId}) logged in at {_timestamp} session: {_sessionId}";
+        return $"User {_UserName} (ID: {_UserId}) logged in at {_Timestamp} session: {_SessionId}";
     }
 
     [BenchmarkCategory("Medium"), Benchmark]
     public string Medium_StringBuilder()
     {
-        var sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder();
         sb.Append("User ");
-        sb.Append(_userName);
+        sb.Append(_UserName);
         sb.Append(" (ID: ");
-        sb.Append(_userId);
+        sb.Append(_UserId);
         sb.Append(") logged in at ");
-        sb.Append(_timestamp);
+        sb.Append(_Timestamp);
         sb.Append(" session: ");
-        sb.Append(_sessionId);
+        sb.Append(_SessionId);
         return sb.ToString();
     }
 
     [BenchmarkCategory("Medium"), Benchmark]
     public string Medium_StringBuilder_Capacity()
     {
-        var sb = new StringBuilder(128);
+        StringBuilder sb = new StringBuilder(128);
         sb.Append("User ");
-        sb.Append(_userName);
+        sb.Append(_UserName);
         sb.Append(" (ID: ");
-        sb.Append(_userId);
+        sb.Append(_UserId);
         sb.Append(") logged in at ");
-        sb.Append(_timestamp);
+        sb.Append(_Timestamp);
         sb.Append(" session: ");
-        sb.Append(_sessionId);
+        sb.Append(_SessionId);
         return sb.ToString();
     }
 
     [BenchmarkCategory("Medium"), Benchmark]
     public string Medium_ZString()
     {
-        using var sb = ZString.CreateStringBuilder();
+        using Utf16ValueStringBuilder sb = ZString.CreateStringBuilder();
         sb.Append("User ");
-        sb.Append(_userName);
+        sb.Append(_UserName);
         sb.Append(" (ID: ");
-        sb.Append(_userId);
+        sb.Append(_UserId);
         sb.Append(") logged in at ");
-        sb.Append(_timestamp);
+        sb.Append(_Timestamp);
         sb.Append(" session: ");
-        sb.Append(_sessionId);
+        sb.Append(_SessionId);
         return sb.ToString();
     }
 
@@ -160,16 +160,16 @@ public class StringBenchmarks
     public string Medium_ZeroAlloc()
     {
         return Z.String(
-            "User ", _userName, " (ID: ", _userId, ") logged in at ",
-            _timestamp, " session: ", _sessionId).ToString();
+            "User ", _UserName, " (ID: ", _UserId, ") logged in at ",
+            _Timestamp, " session: ", _SessionId).ToString();
     }
 
     [BenchmarkCategory("Medium"), Benchmark]
     public int Medium_ZeroAlloc_NoAlloc()
     {
-        using var temp = Z.String(
-            "User ", _userName, " (ID: ", _userId, ") logged in at ",
-            _timestamp, " session: ", _sessionId);
+        using TempString temp = Z.String(
+            "User ", _UserName, " (ID: ", _UserId, ") logged in at ",
+            _Timestamp, " session: ", _SessionId);
         return temp.Length;
     }
 
@@ -182,40 +182,40 @@ public class StringBenchmarks
     [BenchmarkCategory("Complex"), Benchmark(Baseline = true)]
     public string Complex_Interpolation()
     {
-        return $"User {_userName} (ID: {_userId}) at {_timestamp:yyyy-MM-dd HH:mm:ss} balance ${_balance:N2} session: {_sessionId}";
+        return $"User {_UserName} (ID: {_UserId}) at {_Timestamp:yyyy-MM-dd HH:mm:ss} balance ${_Balance:N2} session: {_SessionId}";
     }
 
     [BenchmarkCategory("Complex"), Benchmark]
     public string Complex_StringBuilder()
     {
-        var sb = new StringBuilder(128);
+        StringBuilder sb = new StringBuilder(128);
         sb.Append("User ");
-        sb.Append(_userName);
+        sb.Append(_UserName);
         sb.Append(" (ID: ");
-        sb.Append(_userId);
+        sb.Append(_UserId);
         sb.Append(") at ");
-        sb.Append(_timestamp.ToString("yyyy-MM-dd HH:mm:ss"));
+        sb.Append(_Timestamp.ToString("yyyy-MM-dd HH:mm:ss"));
         sb.Append(" balance $");
-        sb.Append(_balance.ToString("N2"));
+        sb.Append(_Balance.ToString("N2"));
         sb.Append(" session: ");
-        sb.Append(_sessionId);
+        sb.Append(_SessionId);
         return sb.ToString();
     }
 
     [BenchmarkCategory("Complex"), Benchmark]
     public string Complex_ZString()
     {
-        using var sb = ZString.CreateStringBuilder();
+        using Utf16ValueStringBuilder sb = ZString.CreateStringBuilder();
         sb.Append("User ");
-        sb.Append(_userName);
+        sb.Append(_UserName);
         sb.Append(" (ID: ");
-        sb.Append(_userId);
+        sb.Append(_UserId);
         sb.Append(") at ");
-        sb.Append(_timestamp.ToString("yyyy-MM-dd HH:mm:ss"));
+        sb.Append(_Timestamp.ToString("yyyy-MM-dd HH:mm:ss"));
         sb.Append(" balance $");
-        sb.Append(_balance.ToString("N2"));
+        sb.Append(_Balance.ToString("N2"));
         sb.Append(" session: ");
-        sb.Append(_sessionId);
+        sb.Append(_SessionId);
         return sb.ToString();
     }
 
@@ -223,18 +223,18 @@ public class StringBenchmarks
     public string Complex_ZeroAlloc()
     {
         return Z.String(
-            "User ", _userName, " (ID: ", _userId, ") at ",
-            new Formatted<DateTime>(_timestamp, "yyyy-MM-dd HH:mm:ss"), " balance $",
-            new Formatted<double>(_balance, "N2"), " session: ", _sessionId).ToString();
+            "User ", _UserName, " (ID: ", _UserId, ") at ",
+            new Formatted<DateTime>(_Timestamp, "yyyy-MM-dd HH:mm:ss"), " balance $",
+            new Formatted<double>(_Balance, "N2"), " session: ", _SessionId).ToString();
     }
 
     [BenchmarkCategory("Complex"), Benchmark]
     public int Complex_ZeroAlloc_NoAlloc()
     {
-        using var temp = Z.String(
-            "User ", _userName, " (ID: ", _userId, ") at ",
-            new Formatted<DateTime>(_timestamp, "yyyy-MM-dd HH:mm:ss"), " balance $",
-            new Formatted<double>(_balance, "N2"), " session: ", _sessionId);
+        using TempString temp = Z.String(
+            "User ", _UserName, " (ID: ", _UserId, ") at ",
+            new Formatted<DateTime>(_Timestamp, "yyyy-MM-dd HH:mm:ss"), " balance $",
+            new Formatted<double>(_Balance, "N2"), " session: ", _SessionId);
         return temp.Length;
     }
 
@@ -247,25 +247,25 @@ public class StringBenchmarks
     [BenchmarkCategory("Culture"), Benchmark(Baseline = true)]
     public string Culture_StringFormat()
     {
-        return string.Format(GermanCulture,
+        return string.Format(_GermanCulture,
             "Bestellung #{0}: {1} × Artikel zu {2:C2}, Rabatt {3:P2}, Gesamt: {4:N2} €",
-            _orderId, _quantity, _price, _percentage, _balance);
+            _OrderId, _Quantity, _Price, _Percentage, _Balance);
     }
 
     [BenchmarkCategory("Culture"), Benchmark]
     public string Culture_StringBuilder()
     {
-        var sb = new StringBuilder(128);
+        StringBuilder sb = new StringBuilder(128);
         sb.Append("Bestellung #");
-        sb.Append(_orderId);
+        sb.Append(_OrderId);
         sb.Append(": ");
-        sb.Append(_quantity);
+        sb.Append(_Quantity);
         sb.Append(" × Artikel zu ");
-        sb.Append(_price.ToString("C2", GermanCulture));
+        sb.Append(_Price.ToString("C2", _GermanCulture));
         sb.Append(", Rabatt ");
-        sb.Append(_percentage.ToString("P2", GermanCulture));
+        sb.Append(_Percentage.ToString("P2", _GermanCulture));
         sb.Append(", Gesamt: ");
-        sb.Append(_balance.ToString("N2", GermanCulture));
+        sb.Append(_Balance.ToString("N2", _GermanCulture));
         sb.Append(" €");
         return sb.ToString();
     }
@@ -273,17 +273,17 @@ public class StringBenchmarks
     [BenchmarkCategory("Culture"), Benchmark]
     public string Culture_ZString()
     {
-        using var sb = ZString.CreateStringBuilder();
+        using Utf16ValueStringBuilder sb = ZString.CreateStringBuilder();
         sb.Append("Bestellung #");
-        sb.Append(_orderId);
+        sb.Append(_OrderId);
         sb.Append(": ");
-        sb.Append(_quantity);
+        sb.Append(_Quantity);
         sb.Append(" × Artikel zu ");
-        sb.Append(_price.ToString("C2", GermanCulture));
+        sb.Append(_Price.ToString("C2", _GermanCulture));
         sb.Append(", Rabatt ");
-        sb.Append(_percentage.ToString("P2", GermanCulture));
+        sb.Append(_Percentage.ToString("P2", _GermanCulture));
         sb.Append(", Gesamt: ");
-        sb.Append(_balance.ToString("N2", GermanCulture));
+        sb.Append(_Balance.ToString("N2", _GermanCulture));
         sb.Append(" €");
         return sb.ToString();
     }
@@ -292,20 +292,20 @@ public class StringBenchmarks
     public string Culture_ZeroAlloc()
     {
         return Z.String(
-            "Bestellung #", _orderId, ": ", _quantity, " × Artikel zu ",
-            new Formatted<decimal>(_price, "C2", GermanCulture), ", Rabatt ",
-            new Formatted<double>(_percentage, "P2", GermanCulture), ", Gesamt: ",
-            new Formatted<double>(_balance, "N2", GermanCulture), " €").ToString();
+            "Bestellung #", _OrderId, ": ", _Quantity, " × Artikel zu ",
+            new Formatted<decimal>(_Price, "C2", _GermanCulture), ", Rabatt ",
+            new Formatted<double>(_Percentage, "P2", _GermanCulture), ", Gesamt: ",
+            new Formatted<double>(_Balance, "N2", _GermanCulture), " €").ToString();
     }
 
     [BenchmarkCategory("Culture"), Benchmark]
     public int Culture_ZeroAlloc_NoAlloc()
     {
-        using var temp = Z.String(
-            "Bestellung #", _orderId, ": ", _quantity, " × Artikel zu ",
-            new Formatted<decimal>(_price, "C2", GermanCulture), ", Rabatt ",
-            new Formatted<double>(_percentage, "P2", GermanCulture), ", Gesamt: ",
-            new Formatted<double>(_balance, "N2", GermanCulture), " €");
+        using TempString temp = Z.String(
+            "Bestellung #", _OrderId, ": ", _Quantity, " × Artikel zu ",
+            new Formatted<decimal>(_Price, "C2", _GermanCulture), ", Rabatt ",
+            new Formatted<double>(_Percentage, "P2", _GermanCulture), ", Gesamt: ",
+            new Formatted<double>(_Balance, "N2", _GermanCulture), " €");
         return temp.Length;
     }
 
@@ -318,35 +318,35 @@ public class StringBenchmarks
     [BenchmarkCategory("Stress"), Benchmark(Baseline = true)]
     public string Stress_Interpolation()
     {
-        return $"[{_timestamp:O}] User {_userName} (ID: {_userId}, Session: {_sessionId}) " +
-               $"Order #{_orderId}: {_quantity}x @ {_price:C2} (DE: {_price.ToString("C2", GermanCulture)}) " +
-               $"Discount: {_percentage:P2}, Balance: ${_balance:N2}, Status: Active, Priority: High";
+        return $"[{_Timestamp:O}] User {_UserName} (ID: {_UserId}, Session: {_SessionId}) " +
+               $"Order #{_OrderId}: {_Quantity}x @ {_Price:C2} (DE: {_Price.ToString("C2", _GermanCulture)}) " +
+               $"Discount: {_Percentage:P2}, Balance: ${_Balance:N2}, Status: Active, Priority: High";
     }
 
     [BenchmarkCategory("Stress"), Benchmark]
     public string Stress_StringBuilder()
     {
-        var sb = new StringBuilder(512);
+        StringBuilder sb = new StringBuilder(512);
         sb.Append('[');
-        sb.Append(_timestamp.ToString("O"));
+        sb.Append(_Timestamp.ToString("O"));
         sb.Append("] User ");
-        sb.Append(_userName);
+        sb.Append(_UserName);
         sb.Append(" (ID: ");
-        sb.Append(_userId);
+        sb.Append(_UserId);
         sb.Append(", Session: ");
-        sb.Append(_sessionId);
+        sb.Append(_SessionId);
         sb.Append(") Order #");
-        sb.Append(_orderId);
+        sb.Append(_OrderId);
         sb.Append(": ");
-        sb.Append(_quantity);
+        sb.Append(_Quantity);
         sb.Append("x @ ");
-        sb.Append(_price.ToString("C2"));
+        sb.Append(_Price.ToString("C2"));
         sb.Append(" (DE: ");
-        sb.Append(_price.ToString("C2", GermanCulture));
+        sb.Append(_Price.ToString("C2", _GermanCulture));
         sb.Append(") Discount: ");
-        sb.Append(_percentage.ToString("P2"));
+        sb.Append(_Percentage.ToString("P2"));
         sb.Append(", Balance: $");
-        sb.Append(_balance.ToString("N2"));
+        sb.Append(_Balance.ToString("N2"));
         sb.Append(", Status: Active, Priority: High");
         return sb.ToString();
     }
@@ -354,27 +354,27 @@ public class StringBenchmarks
     [BenchmarkCategory("Stress"), Benchmark]
     public string Stress_ZString()
     {
-        using var sb = ZString.CreateStringBuilder();
+        using Utf16ValueStringBuilder sb = ZString.CreateStringBuilder();
         sb.Append('[');
-        sb.Append(_timestamp.ToString("O"));
+        sb.Append(_Timestamp.ToString("O"));
         sb.Append("] User ");
-        sb.Append(_userName);
+        sb.Append(_UserName);
         sb.Append(" (ID: ");
-        sb.Append(_userId);
+        sb.Append(_UserId);
         sb.Append(", Session: ");
-        sb.Append(_sessionId);
+        sb.Append(_SessionId);
         sb.Append(") Order #");
-        sb.Append(_orderId);
+        sb.Append(_OrderId);
         sb.Append(": ");
-        sb.Append(_quantity);
+        sb.Append(_Quantity);
         sb.Append("x @ ");
-        sb.Append(_price.ToString("C2"));
+        sb.Append(_Price.ToString("C2"));
         sb.Append(" (DE: ");
-        sb.Append(_price.ToString("C2", GermanCulture));
+        sb.Append(_Price.ToString("C2", _GermanCulture));
         sb.Append(") Discount: ");
-        sb.Append(_percentage.ToString("P2"));
+        sb.Append(_Percentage.ToString("P2"));
         sb.Append(", Balance: $");
-        sb.Append(_balance.ToString("N2"));
+        sb.Append(_Balance.ToString("N2"));
         sb.Append(", Status: Active, Priority: High");
         return sb.ToString();
     }
@@ -383,25 +383,25 @@ public class StringBenchmarks
     public string Stress_ZeroAlloc()
     {
         return Z.String(
-            "[", new Formatted<DateTime>(_timestamp, "O"), "] User ", _userName,
-            " (ID: ", _userId, ", Session: ", _sessionId, ") Order #", _orderId,
-            ": ", _quantity, "x @ ", new Formatted<decimal>(_price, "C2"),
-            " (DE: ", new Formatted<decimal>(_price, "C2", GermanCulture), ") Discount: ",
-            new Formatted<double>(_percentage, "P2"), ", Balance: $",
-            new Formatted<double>(_balance, "N2"),
+            "[", new Formatted<DateTime>(_Timestamp, "O"), "] User ", _UserName,
+            " (ID: ", _UserId, ", Session: ", _SessionId, ") Order #", _OrderId,
+            ": ", _Quantity, "x @ ", new Formatted<decimal>(_Price, "C2"),
+            " (DE: ", new Formatted<decimal>(_Price, "C2", _GermanCulture), ") Discount: ",
+            new Formatted<double>(_Percentage, "P2"), ", Balance: $",
+            new Formatted<double>(_Balance, "N2"),
             ", Status: Active, Priority: High").ToString();
     }
 
     [BenchmarkCategory("Stress"), Benchmark]
     public int Stress_ZeroAlloc_NoAlloc()
     {
-        using var temp = Z.String(
-            "[", new Formatted<DateTime>(_timestamp, "O"), "] User ", _userName,
-            " (ID: ", _userId, ", Session: ", _sessionId, ") Order #", _orderId,
-            ": ", _quantity, "x @ ", new Formatted<decimal>(_price, "C2"),
-            " (DE: ", new Formatted<decimal>(_price, "C2", GermanCulture), ") Discount: ",
-            new Formatted<double>(_percentage, "P2"), ", Balance: $",
-            new Formatted<double>(_balance, "N2"),
+        using TempString temp = Z.String(
+            "[", new Formatted<DateTime>(_Timestamp, "O"), "] User ", _UserName,
+            " (ID: ", _UserId, ", Session: ", _SessionId, ") Order #", _OrderId,
+            ": ", _Quantity, "x @ ", new Formatted<decimal>(_Price, "C2"),
+            " (DE: ", new Formatted<decimal>(_Price, "C2", _GermanCulture), ") Discount: ",
+            new Formatted<double>(_Percentage, "P2"), ", Balance: $",
+            new Formatted<double>(_Balance, "N2"),
             ", Status: Active, Priority: High");
         return temp.Length;
     }
@@ -418,7 +418,7 @@ public class StringBenchmarks
         Span<char> buffer = stackalloc char[64];
         "User ".CopyTo(buffer);
         int pos = 5;
-        _userId.TryFormat(buffer[pos..], out int written);
+        _UserId.TryFormat(buffer[pos..], out int written);
         pos += written;
         " logged in".CopyTo(buffer[pos..]);
         pos += 10;
@@ -429,7 +429,7 @@ public class StringBenchmarks
     public int TryString_ZeroAlloc()
     {
         Span<char> buffer = stackalloc char[64];
-        Z.TryString(buffer, out int written, "User ", _userId, " logged in");
+        Z.TryString(buffer, out int written, "User ", _UserId, " logged in");
         return written;
     }
 

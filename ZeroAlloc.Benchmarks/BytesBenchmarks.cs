@@ -1,4 +1,4 @@
-﻿// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
+// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
 namespace ZeroAlloc.Benchmarks;
 
@@ -26,11 +26,11 @@ internal partial class Z : ZeroAllocBase { }
 public class BytesBenchmarks
 {
     // === Test Data ===
-    private static readonly byte[] SrcMac = [0x00, 0x1A, 0x2B, 0x3C, 0x4D, 0x5E];
-    private static readonly byte[] DstMac = [0x00, 0x5E, 0x00, 0x01, 0x02, 0x03];
-    private static readonly UInt128 SrcIPv6 = UInt128.Parse("1");  // ::1
-    private static readonly UInt128 DstIPv6 = UInt128.Parse("281473913978881");  // ::ffff:192.0.2.1
-    private static readonly byte[] Payload = "Hello, UDP World!"u8.ToArray();
+    private static readonly byte[] _SrcMac = [0x00, 0x1A, 0x2B, 0x3C, 0x4D, 0x5E];
+    private static readonly byte[] _DstMac = [0x00, 0x5E, 0x00, 0x01, 0x02, 0x03];
+    private static readonly UInt128 _SrcIPv6 = UInt128.Parse("1");  // ::1
+    private static readonly UInt128 _DstIPv6 = UInt128.Parse("281473913978881");  // ::ffff:192.0.2.1
+    private static readonly byte[] _Payload = "Hello, UDP World!"u8.ToArray();
 
     // ═══════════════════════════════════════════════════════════════════════════
     #region Category 1: Simple UDP Header (8 bytes)
@@ -40,18 +40,18 @@ public class BytesBenchmarks
     public byte[] SimpleUDP_Manual()
     {
         // UDP header: SrcPort(2) + DstPort(2) + Length(2) + Checksum(2) = 8 bytes
-        byte[] result = new byte[8 + Payload.Length];
+        byte[] result = new byte[8 + _Payload.Length];
         int offset = 0;
 
         BinaryPrimitives.WriteUInt16BigEndian(result.AsSpan(offset), 8080);
         offset += 2;
         BinaryPrimitives.WriteUInt16BigEndian(result.AsSpan(offset), 53);
         offset += 2;
-        BinaryPrimitives.WriteUInt16BigEndian(result.AsSpan(offset), (ushort)(8 + Payload.Length));
+        BinaryPrimitives.WriteUInt16BigEndian(result.AsSpan(offset), (ushort)(8 + _Payload.Length));
         offset += 2;
         BinaryPrimitives.WriteUInt16BigEndian(result.AsSpan(offset), 0);
         offset += 2;
-        Payload.CopyTo(result, offset);
+        _Payload.CopyTo(result, offset);
 
         return result;
     }
@@ -62,22 +62,22 @@ public class BytesBenchmarks
         return Z.Bytes(
             new U16BE(8080),      // Source port
             new U16BE(53),        // Destination port
-            new U16BE((ushort)(8 + Payload.Length)), // Length
+            new U16BE((ushort)(8 + _Payload.Length)), // Length
             new U16BE(0),         // Checksum
-            Payload).ToArray();
+            _Payload).ToArray();
     }
 
     [BenchmarkCategory("SimpleUDP"), Benchmark]
     public byte[] SimpleUDP_ZeroAlloc_Struct()
     {
-        var udp = new UdpHeader
+        UdpHeader udp = new UdpHeader
         {
             SourcePort = new U16BE(8080),
             DestinationPort = new U16BE(53),
-            Length = new U16BE((ushort)(8 + Payload.Length)),
+            Length = new U16BE((ushort)(8 + _Payload.Length)),
             Checksum = new U16BE(0)
         };
-        return Z.Bytes(udp, Payload).ToArray();
+        return Z.Bytes(udp, _Payload).ToArray();
     }
 
     #endregion
@@ -89,14 +89,14 @@ public class BytesBenchmarks
     [BenchmarkCategory("FullPacket"), Benchmark(Baseline = true)]
     public byte[] FullPacket_Manual()
     {
-        // Ethernet(14) + IPv6(40) + UDP(8) + Payload
-        int totalSize = 14 + 40 + 8 + Payload.Length;
+        // Ethernet(14) + IPv6(40) + UDP(8) + _Payload
+        int totalSize = 14 + 40 + 8 + _Payload.Length;
         byte[] result = new byte[totalSize];
         int offset = 0;
 
         // Ethernet header
-        DstMac.CopyTo(result, offset); offset += 6;
-        SrcMac.CopyTo(result, offset); offset += 6;
+        _DstMac.CopyTo(result, offset); offset += 6;
+        _SrcMac.CopyTo(result, offset); offset += 6;
         BinaryPrimitives.WriteUInt16BigEndian(result.AsSpan(offset), 0x86DD);
         offset += 2;
 
@@ -104,13 +104,13 @@ public class BytesBenchmarks
         uint vtf = (6U << 28) | (0U << 20) | 0U;
         BinaryPrimitives.WriteUInt32BigEndian(result.AsSpan(offset), vtf);
         offset += 4;
-        BinaryPrimitives.WriteUInt16BigEndian(result.AsSpan(offset), (ushort)(8 + Payload.Length));
+        BinaryPrimitives.WriteUInt16BigEndian(result.AsSpan(offset), (ushort)(8 + _Payload.Length));
         offset += 2;
         result[offset++] = 17; // UDP
         result[offset++] = 64; // Hop limit
-        BinaryPrimitives.WriteUInt128BigEndian(result.AsSpan(offset), SrcIPv6);
+        BinaryPrimitives.WriteUInt128BigEndian(result.AsSpan(offset), _SrcIPv6);
         offset += 16;
-        BinaryPrimitives.WriteUInt128BigEndian(result.AsSpan(offset), DstIPv6);
+        BinaryPrimitives.WriteUInt128BigEndian(result.AsSpan(offset), _DstIPv6);
         offset += 16;
 
         // UDP header
@@ -118,12 +118,12 @@ public class BytesBenchmarks
         offset += 2;
         BinaryPrimitives.WriteUInt16BigEndian(result.AsSpan(offset), 53);
         offset += 2;
-        BinaryPrimitives.WriteUInt16BigEndian(result.AsSpan(offset), (ushort)(8 + Payload.Length));
+        BinaryPrimitives.WriteUInt16BigEndian(result.AsSpan(offset), (ushort)(8 + _Payload.Length));
         offset += 2;
         BinaryPrimitives.WriteUInt16BigEndian(result.AsSpan(offset), 0);
         offset += 2;
 
-        Payload.CopyTo(result, offset);
+        _Payload.CopyTo(result, offset);
         return result;
     }
 
@@ -132,48 +132,48 @@ public class BytesBenchmarks
     {
         return Z.Bytes(
             // Ethernet
-            DstMac, SrcMac, new U16BE(0x86DD),
+            _DstMac, _SrcMac, new U16BE(0x86DD),
             // IPv6
             new U32BE((6U << 28) | (0U << 20) | 0U),
-            new U16BE((ushort)(8 + Payload.Length)),
+            new U16BE((ushort)(8 + _Payload.Length)),
             (byte)17, (byte)64,
-            new U128BE(SrcIPv6),
-            new U128BE(DstIPv6),
+            new U128BE(_SrcIPv6),
+            new U128BE(_DstIPv6),
             // UDP
             new U16BE(8080),
             new U16BE(53),
-            new U16BE((ushort)(8 + Payload.Length)),
+            new U16BE((ushort)(8 + _Payload.Length)),
             new U16BE(0),
-            Payload).ToArray();
+            _Payload).ToArray();
     }
 
     [BenchmarkCategory("FullPacket"), Benchmark]
     public byte[] FullPacket_ZeroAlloc_Structs()
     {
-        var packet = new UdpIPv6Packet
+        UdpIPv6Packet packet = new UdpIPv6Packet
         {
             Ethernet = new EthernetHeader
             {
-                DestinationMac = DstMac,
-                SourceMac = SrcMac,
+                DestinationMac = _DstMac,
+                SourceMac = _SrcMac,
                 EtherType = new U16BE(0x86DD)
             },
             IPv6 = IPv6Header.Create(
                 trafficClass: 0,
                 flowLabel: 0,
-                payloadLength: (ushort)(8 + Payload.Length),
+                payloadLength: (ushort)(8 + _Payload.Length),
                 nextHeader: 17,
                 hopLimit: 64,
-                sourceAddress: SrcIPv6,
-                destAddress: DstIPv6),
+                sourceAddress: _SrcIPv6,
+                destAddress: _DstIPv6),
             Udp = new UdpHeader
             {
                 SourcePort = new U16BE(8080),
                 DestinationPort = new U16BE(53),
-                Length = new U16BE((ushort)(8 + Payload.Length)),
+                Length = new U16BE((ushort)(8 + _Payload.Length)),
                 Checksum = new U16BE(0)
             },
-            Payload = Payload
+            Payload = _Payload
         };
         return Z.Bytes(packet).ToArray();
     }
@@ -194,12 +194,12 @@ public class BytesBenchmarks
         offset += 2;
         BinaryPrimitives.WriteUInt16BigEndian(buffer[offset..], 53);
         offset += 2;
-        BinaryPrimitives.WriteUInt16BigEndian(buffer[offset..], (ushort)(8 + Payload.Length));
+        BinaryPrimitives.WriteUInt16BigEndian(buffer[offset..], (ushort)(8 + _Payload.Length));
         offset += 2;
         BinaryPrimitives.WriteUInt16BigEndian(buffer[offset..], 0);
         offset += 2;
-        Payload.CopyTo(buffer[offset..]);
-        offset += Payload.Length;
+        _Payload.CopyTo(buffer[offset..]);
+        offset += _Payload.Length;
 
         return offset;
     }
@@ -211,9 +211,9 @@ public class BytesBenchmarks
         Z.TryBytes(buffer, out int written,
             new U16BE(8080),
             new U16BE(53),
-            new U16BE((ushort)(8 + Payload.Length)),
+            new U16BE((ushort)(8 + _Payload.Length)),
             new U16BE(0),
-            Payload);
+            _Payload);
         return written;
     }
 
@@ -229,18 +229,18 @@ public class BytesBenchmarks
         int totalSize = 0;
         for (int i = 0; i < 100; i++)
         {
-            byte[] packet = new byte[8 + Payload.Length];
+            byte[] packet = new byte[8 + _Payload.Length];
             int offset = 0;
 
             BinaryPrimitives.WriteUInt16BigEndian(packet.AsSpan(offset), (ushort)(8080 + i));
             offset += 2;
             BinaryPrimitives.WriteUInt16BigEndian(packet.AsSpan(offset), 53);
             offset += 2;
-            BinaryPrimitives.WriteUInt16BigEndian(packet.AsSpan(offset), (ushort)(8 + Payload.Length));
+            BinaryPrimitives.WriteUInt16BigEndian(packet.AsSpan(offset), (ushort)(8 + _Payload.Length));
             offset += 2;
             BinaryPrimitives.WriteUInt16BigEndian(packet.AsSpan(offset), 0);
             offset += 2;
-            Payload.CopyTo(packet, offset);
+            _Payload.CopyTo(packet, offset);
 
             totalSize += packet.Length;
         }
@@ -256,9 +256,9 @@ public class BytesBenchmarks
             byte[] packet = Z.Bytes(
                 new U16BE((ushort)(8080 + i)),
                 new U16BE(53),
-                new U16BE((ushort)(8 + Payload.Length)),
+                new U16BE((ushort)(8 + _Payload.Length)),
                 new U16BE(0),
-                Payload).ToArray();
+                _Payload).ToArray();
             totalSize += packet.Length;
         }
         return totalSize;
@@ -276,45 +276,45 @@ public class BytesBenchmarks
 [CategoriesColumn]
 public class BytesParseBenchmarks
 {
-    private byte[] _udpPacket = null!;
-    private byte[] _fullPacket = null!;
+    private byte[] _UdpPacket = null!;
+    private byte[] _FullPacket = null!;
 
     [GlobalSetup]
     public void Setup()
     {
         // Create sample UDP packet
-        _udpPacket = new byte[8 + 17];
-        BinaryPrimitives.WriteUInt16BigEndian(_udpPacket.AsSpan(0), 8080);
-        BinaryPrimitives.WriteUInt16BigEndian(_udpPacket.AsSpan(2), 53);
-        BinaryPrimitives.WriteUInt16BigEndian(_udpPacket.AsSpan(4), 25);
-        BinaryPrimitives.WriteUInt16BigEndian(_udpPacket.AsSpan(6), 0);
-        "Hello, UDP World!"u8.CopyTo(_udpPacket.AsSpan(8));
+        _UdpPacket = new byte[8 + 17];
+        BinaryPrimitives.WriteUInt16BigEndian(_UdpPacket.AsSpan(0), 8080);
+        BinaryPrimitives.WriteUInt16BigEndian(_UdpPacket.AsSpan(2), 53);
+        BinaryPrimitives.WriteUInt16BigEndian(_UdpPacket.AsSpan(4), 25);
+        BinaryPrimitives.WriteUInt16BigEndian(_UdpPacket.AsSpan(6), 0);
+        "Hello, UDP World!"u8.CopyTo(_UdpPacket.AsSpan(8));
 
-        // Create full packet (Ethernet + IPv6 + UDP + Payload)
-        _fullPacket = new byte[14 + 40 + 8 + 17];
+        // Create full packet (Ethernet + IPv6 + UDP + _Payload)
+        _FullPacket = new byte[14 + 40 + 8 + 17];
         int offset = 0;
 
         // Ethernet
-        new byte[] { 0x00, 0x5E, 0x00, 0x01, 0x02, 0x03 }.CopyTo(_fullPacket, offset); offset += 6;
-        new byte[] { 0x00, 0x1A, 0x2B, 0x3C, 0x4D, 0x5E }.CopyTo(_fullPacket, offset); offset += 6;
-        BinaryPrimitives.WriteUInt16BigEndian(_fullPacket.AsSpan(offset), 0x86DD); offset += 2;
+        new byte[] { 0x00, 0x5E, 0x00, 0x01, 0x02, 0x03 }.CopyTo(_FullPacket, offset); offset += 6;
+        new byte[] { 0x00, 0x1A, 0x2B, 0x3C, 0x4D, 0x5E }.CopyTo(_FullPacket, offset); offset += 6;
+        BinaryPrimitives.WriteUInt16BigEndian(_FullPacket.AsSpan(offset), 0x86DD); offset += 2;
 
         // IPv6
-        BinaryPrimitives.WriteUInt32BigEndian(_fullPacket.AsSpan(offset), 0x60000000); offset += 4;
-        BinaryPrimitives.WriteUInt16BigEndian(_fullPacket.AsSpan(offset), 25); offset += 2;
-        _fullPacket[offset++] = 17;
-        _fullPacket[offset++] = 64;
-        BinaryPrimitives.WriteUInt128BigEndian(_fullPacket.AsSpan(offset), UInt128.One); offset += 16;
-        BinaryPrimitives.WriteUInt128BigEndian(_fullPacket.AsSpan(offset), UInt128.One); offset += 16;
+        BinaryPrimitives.WriteUInt32BigEndian(_FullPacket.AsSpan(offset), 0x60000000); offset += 4;
+        BinaryPrimitives.WriteUInt16BigEndian(_FullPacket.AsSpan(offset), 25); offset += 2;
+        _FullPacket[offset++] = 17;
+        _FullPacket[offset++] = 64;
+        BinaryPrimitives.WriteUInt128BigEndian(_FullPacket.AsSpan(offset), UInt128.One); offset += 16;
+        BinaryPrimitives.WriteUInt128BigEndian(_FullPacket.AsSpan(offset), UInt128.One); offset += 16;
 
         // UDP
-        BinaryPrimitives.WriteUInt16BigEndian(_fullPacket.AsSpan(offset), 8080); offset += 2;
-        BinaryPrimitives.WriteUInt16BigEndian(_fullPacket.AsSpan(offset), 53); offset += 2;
-        BinaryPrimitives.WriteUInt16BigEndian(_fullPacket.AsSpan(offset), 25); offset += 2;
-        BinaryPrimitives.WriteUInt16BigEndian(_fullPacket.AsSpan(offset), 0); offset += 2;
+        BinaryPrimitives.WriteUInt16BigEndian(_FullPacket.AsSpan(offset), 8080); offset += 2;
+        BinaryPrimitives.WriteUInt16BigEndian(_FullPacket.AsSpan(offset), 53); offset += 2;
+        BinaryPrimitives.WriteUInt16BigEndian(_FullPacket.AsSpan(offset), 25); offset += 2;
+        BinaryPrimitives.WriteUInt16BigEndian(_FullPacket.AsSpan(offset), 0); offset += 2;
 
-        // Payload
-        "Hello, UDP World!"u8.CopyTo(_fullPacket.AsSpan(offset));
+        // _Payload
+        "Hello, UDP World!"u8.CopyTo(_FullPacket.AsSpan(offset));
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -324,17 +324,17 @@ public class BytesParseBenchmarks
     [BenchmarkCategory("ParseUDP"), Benchmark(Baseline = true)]
     public (ushort, ushort, ushort, ushort) ParseUDP_Manual()
     {
-        ushort srcPort = BinaryPrimitives.ReadUInt16BigEndian(_udpPacket.AsSpan(0));
-        ushort dstPort = BinaryPrimitives.ReadUInt16BigEndian(_udpPacket.AsSpan(2));
-        ushort length = BinaryPrimitives.ReadUInt16BigEndian(_udpPacket.AsSpan(4));
-        ushort checksum = BinaryPrimitives.ReadUInt16BigEndian(_udpPacket.AsSpan(6));
+        ushort srcPort = BinaryPrimitives.ReadUInt16BigEndian(_UdpPacket.AsSpan(0));
+        ushort dstPort = BinaryPrimitives.ReadUInt16BigEndian(_UdpPacket.AsSpan(2));
+        ushort length = BinaryPrimitives.ReadUInt16BigEndian(_UdpPacket.AsSpan(4));
+        ushort checksum = BinaryPrimitives.ReadUInt16BigEndian(_UdpPacket.AsSpan(6));
         return (srcPort, dstPort, length, checksum);
     }
 
     [BenchmarkCategory("ParseUDP"), Benchmark]
     public UdpHeader ParseUDP_Struct()
     {
-        return UdpHeader.Parse(_udpPacket);
+        return UdpHeader.Parse(_UdpPacket);
     }
 
     #endregion
@@ -346,16 +346,16 @@ public class BytesParseBenchmarks
     [BenchmarkCategory("ParseFull"), Benchmark(Baseline = true)]
     public (ushort EtherType, byte NextHeader, ushort SrcPort) ParseFull_Manual()
     {
-        ushort etherType = BinaryPrimitives.ReadUInt16BigEndian(_fullPacket.AsSpan(12));
-        byte nextHeader = _fullPacket[6 + 14];
-        ushort srcPort = BinaryPrimitives.ReadUInt16BigEndian(_fullPacket.AsSpan(54));
+        ushort etherType = BinaryPrimitives.ReadUInt16BigEndian(_FullPacket.AsSpan(12));
+        byte nextHeader = _FullPacket[6 + 14];
+        ushort srcPort = BinaryPrimitives.ReadUInt16BigEndian(_FullPacket.AsSpan(54));
         return (etherType, nextHeader, srcPort);
     }
 
     [BenchmarkCategory("ParseFull"), Benchmark]
     public UdpIPv6Packet ParseFull_Structs()
     {
-        return UdpIPv6Packet.Parse(_fullPacket);
+        return UdpIPv6Packet.Parse(_FullPacket);
     }
 
     #endregion
@@ -370,7 +370,7 @@ public class BytesParseBenchmarks
         int sum = 0;
         for (int i = 0; i < 100; i++)
         {
-            ushort srcPort = BinaryPrimitives.ReadUInt16BigEndian(_udpPacket.AsSpan(0));
+            ushort srcPort = BinaryPrimitives.ReadUInt16BigEndian(_UdpPacket.AsSpan(0));
             sum += srcPort;
         }
         return sum;
@@ -382,7 +382,7 @@ public class BytesParseBenchmarks
         int sum = 0;
         for (int i = 0; i < 100; i++)
         {
-            var udp = UdpHeader.Parse(_udpPacket);
+            UdpHeader udp = UdpHeader.Parse(_UdpPacket);
             sum += udp.SourcePort.Value;
         }
         return sum;

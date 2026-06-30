@@ -19,7 +19,11 @@ public readonly record struct EthernetHeader : IBinarySerializable
 
     public const int Size = 14;
 
-    public bool TryGetSerializedSize(out int size) { size = Size; return true; }
+    public bool TryGetWrittenSize(out int size)
+    {
+        size = Size;
+        return true;
+    }
 
     public bool TryWrite(Span<byte> destination, out int bytesWritten)
     {
@@ -65,7 +69,11 @@ public readonly record struct VlanHeader : IBinarySerializable
     /// <summary>VLAN Identifier (0-4095).</summary>
     public ushort VlanId => (ushort)(Tci.Value & 0x0FFF);
 
-    public bool TryGetSerializedSize(out int size) { size = Size; return true; }
+    public bool TryGetWrittenSize(out int size)
+    {
+        size = Size;
+        return true;
+    }
 
     public bool TryWrite(Span<byte> destination, out int bytesWritten)
     {
@@ -131,7 +139,11 @@ public readonly record struct IPv6Header : IBinarySerializable
     /// <summary>Flow label.</summary>
     public uint FlowLabel => VersionTrafficFlow.Value & 0x000FFFFF;
 
-    public bool TryGetSerializedSize(out int size) { size = Size; return true; }
+    public bool TryGetWrittenSize(out int size)
+    {
+        size = Size;
+        return true;
+    }
 
     public bool TryWrite(Span<byte> destination, out int bytesWritten)
     {
@@ -195,7 +207,11 @@ public readonly record struct UdpHeader : IBinarySerializable
 
     public const int Size = 8;
 
-    public bool TryGetSerializedSize(out int size) { size = Size; return true; }
+    public bool TryGetWrittenSize(out int size)
+    {
+        size = Size;
+        return true;
+    }
 
     public bool TryWrite(Span<byte> destination, out int bytesWritten)
     {
@@ -230,7 +246,7 @@ public readonly record struct UdpIPv6Packet : IBinarySerializable
     public required UdpHeader Udp { get; init; }
     public required byte[] Payload { get; init; }
 
-    public bool TryGetSerializedSize(out int size)
+    public bool TryGetWrittenSize(out int size)
     {
         size = EthernetHeader.Size + IPv6Header.Size + UdpHeader.Size + Payload.Length;
         return true;
@@ -258,16 +274,16 @@ public readonly record struct UdpIPv6Packet : IBinarySerializable
     public static UdpIPv6Packet Parse(ReadOnlySpan<byte> data)
     {
         int offset = 0;
-        var ethernet = EthernetHeader.Parse(data[offset..(offset + EthernetHeader.Size)]);
+        EthernetHeader ethernet = EthernetHeader.Parse(data[offset..(offset + EthernetHeader.Size)]);
         offset += EthernetHeader.Size;
 
-        var ipv6 = IPv6Header.Parse(data[offset..(offset + IPv6Header.Size)]);
+        IPv6Header ipv6 = IPv6Header.Parse(data[offset..(offset + IPv6Header.Size)]);
         offset += IPv6Header.Size;
 
-        var udp = UdpHeader.Parse(data[offset..(offset + UdpHeader.Size)]);
+        UdpHeader udp = UdpHeader.Parse(data[offset..(offset + UdpHeader.Size)]);
         offset += UdpHeader.Size;
 
-        var payload = data[offset..].ToArray();
+        byte[] payload = data[offset..].ToArray();
 
         return new UdpIPv6Packet
         {

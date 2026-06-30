@@ -210,6 +210,43 @@ public sealed class NegativeAndEdgeCaseTests
         await Assert.That(threw).IsFalse();
     }
 
+    [Test]
+    public async Task LazyString_FormatLazy_AsString_ThrowsOnFactoryFailure()
+    {
+        LazyString s = LazyString.FormatLazy(0, static _ => throw new InvalidOperationException("boom"));
+        await Assert.That(() => _ = s.AsString).Throws<InvalidOperationException>();
+    }
+
+    [Test]
+    [Arguments(true)]
+    [Arguments(false)]
+    public async Task TempString_ToString_AndIsEmpty_OnEmptyContent(bool useToString)
+    {
+        bool isEmpty;
+        string content;
+        {
+            using TempString temp = ZA.String("");
+            isEmpty = temp.IsEmpty;
+            content = useToString ? temp.ToString() : temp.AsSpan().ToString();
+        }
+
+        await Assert.That(isEmpty).IsTrue();
+        await Assert.That(content).IsEqualTo(string.Empty);
+    }
+
+    [Test]
+    public async Task TempBytes_ToArray_OnHeapFallback_ReturnsCopy()
+    {
+        byte[] array;
+        {
+            using TempBytes outer = ZA.Utf8("outer");
+            using TempBytes inner = ZA.Utf8("inner");
+            array = inner.ToArray();
+        }
+
+        await Assert.That(array).IsEquivalentTo("inner"u8.ToArray());
+    }
+
     #endregion
 
     // ========================================================================

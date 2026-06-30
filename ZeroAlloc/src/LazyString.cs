@@ -1,4 +1,4 @@
-﻿// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
+// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
 namespace ZeroAlloc;
 
@@ -84,8 +84,8 @@ public readonly struct LazyString : IEquatable<LazyString>, IComparable<LazyStri
         get => _Value switch
         {
             string s => s,
-            Func<string> => EvaluateAndCache(),
-            IDeferredFormat => EvaluateAndCache(),
+            Func<string> => _EvaluateAndCache(),
+            IDeferredFormat => _EvaluateAndCache(),
             _ => string.Empty,
         };
     }
@@ -110,7 +110,7 @@ public readonly struct LazyString : IEquatable<LazyString>, IComparable<LazyStri
                 return true;
             case Func<string>:
             case IDeferredFormat:
-                return TryEvaluateAndCache(out result);
+                return _TryEvaluateAndCache(out result);
             default:
                 result = string.Empty;
                 return true;
@@ -128,7 +128,7 @@ public readonly struct LazyString : IEquatable<LazyString>, IComparable<LazyStri
     /// </list>
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private string EvaluateAndCache()
+    private string _EvaluateAndCache()
     {
         object deferred = _Value!;
         string result = deferred switch
@@ -149,7 +149,7 @@ public readonly struct LazyString : IEquatable<LazyString>, IComparable<LazyStri
     /// On exception, caches <see cref="string.Empty"/> to prevent retry-forever behavior.
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private bool TryEvaluateAndCache(out string result)
+    private bool _TryEvaluateAndCache(out string result)
     {
         object deferred = _Value!;
         try

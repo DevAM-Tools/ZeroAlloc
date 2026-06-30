@@ -1,4 +1,4 @@
-﻿// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
+// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
 // ============================================================================
 // ZeroAlloc - SpanBytesBuilder: Span-Based Byte Builder
@@ -1145,7 +1145,7 @@ public ref struct SpanBytesBuilder
     // HEX/BINARY FORMATTING (ASCII OUTPUT)
     // ========================================================================
 
-    private static ReadOnlySpan<byte> HexCharsBytes => "0123456789ABCDEF"u8;
+    private static ReadOnlySpan<byte> _HexCharsBytes => "0123456789ABCDEF"u8;
 
     /// <summary>Appends a byte as 2 hexadecimal ASCII bytes.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1238,8 +1238,8 @@ public ref struct SpanBytesBuilder
             return false;
         }
 
-        _Buffer[_Position++] = HexCharsBytes[value >> 4];
-        _Buffer[_Position++] = HexCharsBytes[value & 0xF];
+        _Buffer[_Position++] = _HexCharsBytes[value >> 4];
+        _Buffer[_Position++] = _HexCharsBytes[value & 0xF];
         return true;
     }
 
@@ -1254,10 +1254,10 @@ public ref struct SpanBytesBuilder
             return false;
         }
 
-        _Buffer[_Position++] = HexCharsBytes[(value >> 12) & 0xF];
-        _Buffer[_Position++] = HexCharsBytes[(value >> 8) & 0xF];
-        _Buffer[_Position++] = HexCharsBytes[(value >> 4) & 0xF];
-        _Buffer[_Position++] = HexCharsBytes[value & 0xF];
+        _Buffer[_Position++] = _HexCharsBytes[(value >> 12) & 0xF];
+        _Buffer[_Position++] = _HexCharsBytes[(value >> 8) & 0xF];
+        _Buffer[_Position++] = _HexCharsBytes[(value >> 4) & 0xF];
+        _Buffer[_Position++] = _HexCharsBytes[value & 0xF];
         return true;
     }
 

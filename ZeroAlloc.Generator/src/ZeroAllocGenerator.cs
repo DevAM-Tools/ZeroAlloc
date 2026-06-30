@@ -46,15 +46,6 @@
 // - Bytes(...) and TryBytes(...) for binary serialization
 // ============================================================================
 
-using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Linq;
-using System.Text;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace ZeroAlloc.Generator;
 
@@ -111,8 +102,7 @@ internal static class Diagnostics
         messageFormat: "Type '{0}' does not implement ISpanFormattable or IUtf8SpanFormattable. Formatting will use ToString() which allocates. Consider implementing ISpanFormattable for zero-allocation formatting.",
         category: "ZeroAlloc",
         defaultSeverity: DiagnosticSeverity.Warning,
-        isEnabledByDefault: true,
-        helpLinkUri: "https://github.com/yourrepo/ZeroAlloc/blob/main/docs/ZA1004.md");
+        isEnabledByDefault: true);
 
     /// <summary>
     /// ZA0001: ZeroAllocBase derived class must be partial.
@@ -180,29 +170,31 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     {
         // Step 1: Read project options from MSBuild properties
         IncrementalValueProvider<GeneratorOptions> options = context.AnalyzerConfigOptionsProvider
-            .Select((provider, _) => ReadOptions(provider));
+            .Select((provider, _) => _ReadOptions(provider));
 
         // Step 2: Find all classes that inherit from ZeroAllocBase
         IncrementalValuesProvider<UserClassInfo?> userClasses = context.SyntaxProvider
             .CreateSyntaxProvider(
-                predicate: static (node, _) => IsPotentialUserClass(node),
-                transform: static (ctx, _) => GetUserClassInfo(ctx))
+                predicate: static (node, _) => _IsPotentialUserClass(node),
+                transform: static (ctx, _) => _GetUserClassInfo(ctx))
             .Where(static info => info is not null);
 
         // Step 3: Find all method invocations on user classes
         IncrementalValuesProvider<MethodCallInfo?> methodCalls = context.SyntaxProvider
             .CreateSyntaxProvider(
-                predicate: static (node, _) => IsPotentialApiCall(node),
-                transform: static (ctx, _) => GetMethodCallInfo(ctx))
+                predicate: static (node, _) => _IsPotentialApiCall(node),
+                transform: static (ctx, _) => _GetMethodCallInfo(ctx))
             .Where(static info => info is not null);
 
         // Step 4: Combine everything and generate
-        IncrementalValueProvider<(((ImmutableArray<UserClassInfo?> Left, ImmutableArray<MethodCallInfo?> Right) Left, Compilation Right) Left, GeneratorOptions Right)> combined = userClasses.Collect()
+        IncrementalValueProvider<
+            (((ImmutableArray<UserClassInfo?> Left, ImmutableArray<MethodCallInfo?> Right) Left, Compilation Right) Left, GeneratorOptions Right)> combined =
+            userClasses.Collect()
             .Combine(methodCalls.Collect())
             .Combine(context.CompilationProvider)
             .Combine(options);
 
-        context.RegisterSourceOutput(combined, GenerateSource);
+        context.RegisterSourceOutput(combined, _GenerateSource);
     }
 
     // ========================================================================
@@ -212,7 +204,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     /// <summary>
     /// Reads generator options from MSBuild properties.
     /// </summary>
-    private static GeneratorOptions ReadOptions(AnalyzerConfigOptionsProvider provider)
+    private static GeneratorOptions _ReadOptions(AnalyzerConfigOptionsProvider provider)
     {
         // Read buffer size (default 2 MiB)
         provider.GlobalOptions.TryGetValue("build_property.ZeroAlloc_DefaultBufferSize", out string? bufferSizeStr);
@@ -224,11 +216,13 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
 
         // Read buffer overflow behavior (default Grow)
         provider.GlobalOptions.TryGetValue("build_property.ZeroAlloc_BufferOverflowBehavior", out string? overflowBehaviorStr);
-        BufferOverflowBehavior overflowBehavior = overflowBehaviorStr?.ToLowerInvariant() switch
+        BufferOverflowBehavior overflowBehavior = overflowBehaviorStr switch
         {
-            "heapfallback" => BufferOverflowBehavior.HeapFallback,
-            "throw" => BufferOverflowBehavior.Throw,
-            _ => BufferOverflowBehavior.Grow // default
+            not null when string.Equals(overflowBehaviorStr, "heapfallback", StringComparison.OrdinalIgnoreCase)
+                => BufferOverflowBehavior.HeapFallback,
+            not null when string.Equals(overflowBehaviorStr, "throw", StringComparison.OrdinalIgnoreCase)
+                => BufferOverflowBehavior.Throw,
+            _ => BufferOverflowBehavior.Grow
         };
 
         return new GeneratorOptions(defaultBufferSize, recursiveHeapFallback, overflowBehavior);
@@ -253,7 +247,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     /// </remarks>
     /// <param name="node">The syntax node to check.</param>
     /// <returns><c>true</c> if the node is a class declaration; otherwise <c>false</c>.</returns>
-    private static bool IsPotentialUserClass(SyntaxNode node) => node is ClassDeclarationSyntax;
+    private static bool _IsPotentialUserClass(SyntaxNode node) => node is ClassDeclarationSyntax;
 
     /// <summary>
     /// Performs semantic analysis to verify if a class inherits from <c>ZeroAllocBase</c>.
@@ -269,19 +263,13 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     /// </remarks>
     /// <param name="ctx">The generator syntax context containing semantic model.</param>
     /// <returns>A <see cref="UserClassInfo"/> if the class qualifies; otherwise <c>null</c>.</returns>
-    private static UserClassInfo? GetUserClassInfo(GeneratorSyntaxContext ctx)
+    private static UserClassInfo? _GetUserClassInfo(GeneratorSyntaxContext ctx)
     {
         ClassDeclarationSyntax classDecl = (ClassDeclarationSyntax)ctx.Node;
 
-        // Must have base types
-        if (classDecl.BaseList is null)
-        {
-            return null;
-        }
-
         // Check if any base type is ZeroAllocBase
-        INamedTypeSymbol? classSymbol = ctx.SemanticModel.GetDeclaredSymbol(classDecl);
-        if (classSymbol is null)
+        if (classDecl.BaseList is null
+            || ctx.SemanticModel.GetDeclaredSymbol(classDecl) is not INamedTypeSymbol classSymbol)
         {
             return null;
         }
@@ -331,7 +319,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     /// </remarks>
     /// <param name="node">The syntax node to check.</param>
     /// <returns><c>true</c> if the node is an invocation expression; otherwise <c>false</c>.</returns>
-    private static bool IsPotentialApiCall(SyntaxNode node) => node is InvocationExpressionSyntax;
+    private static bool _IsPotentialApiCall(SyntaxNode node) => node is InvocationExpressionSyntax;
 
     /// <summary>
     /// Performs semantic analysis to verify if an invocation is a ZeroAlloc API call.
@@ -347,7 +335,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     /// </remarks>
     /// <param name="ctx">The generator syntax context containing semantic model.</param>
     /// <returns>A <see cref="MethodCallInfo"/> if the call qualifies; otherwise <c>null</c>.</returns>
-    private static MethodCallInfo? GetMethodCallInfo(GeneratorSyntaxContext ctx)
+    private static MethodCallInfo? _GetMethodCallInfo(GeneratorSyntaxContext ctx)
     {
         InvocationExpressionSyntax invocation = (InvocationExpressionSyntax)ctx.Node;
 
@@ -361,7 +349,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         string methodName = memberAccess.Name.Identifier.Text;
 
         // Check if it's one of our supported methods
-        if (!IsApiMethodName(methodName))
+        if (!_IsApiMethodName(methodName))
         {
             return null;
         }
@@ -396,7 +384,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
                 return null; // Can't determine type
             }
 
-            ArgumentTypeInfo argTypeInfo = AnalyzeArgumentType(argType, ctx.SemanticModel.Compilation);
+            ArgumentTypeInfo argTypeInfo = _AnalyzeArgumentType(argType, ctx.SemanticModel.Compilation);
             argTypes.Add(argTypeInfo);
         }
 
@@ -410,7 +398,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     /// <summary>
     /// Checks if the method name is one of our API methods.
     /// </summary>
-    private static bool IsApiMethodName(string name)
+    private static bool _IsApiMethodName(string name)
     {
         return name is "String" or "TryString" or "Utf8" or "TryUtf8" or "Bytes" or "TryBytes"
             or "LocalizedString" or "TryLocalizedString" or "LocalizedUtf8" or "TryLocalizedUtf8"
@@ -456,11 +444,11 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     /// <param name="type">The type symbol to analyze.</param>
     /// <param name="compilation">The compilation context for resolving type metadata.</param>
     /// <returns>Detailed type information including category and formatting hints.</returns>
-    private static ArgumentTypeInfo AnalyzeArgumentType(ITypeSymbol type, Compilation compilation)
+    private static ArgumentTypeInfo _AnalyzeArgumentType(ITypeSymbol type, Compilation compilation)
     {
         // Strip nullable annotation for signature deduplication (string? and string have the same CLR signature)
         string fullTypeName = type.WithNullableAnnotation(NullableAnnotation.None).ToDisplayString();
-        string shortName = GetShortName(type);
+        string shortName = _GetShortName(type);
         bool isRefStruct = type.IsRefLikeType;
         bool isValueType = type.IsValueType;
 
@@ -511,7 +499,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         }
 
         // Get known size for numeric types
-        (int? knownSize, int? minSize) = GetNumericTypeSizeInfo(type);
+        (int? knownSize, int? minSize) = _GetNumericTypeSizeInfo(type);
 
         // Check for IStringSize (for TryGetStringSize)
         INamedTypeSymbol? stringSize = compilation.GetTypeByMetadataName("ZeroAlloc.IStringSize");
@@ -536,7 +524,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         INamedTypeSymbol? spanFormattable = compilation.GetTypeByMetadataName("System.ISpanFormattable");
         if (spanFormattable is not null && type.AllInterfaces.Contains(spanFormattable, SymbolEqualityComparer.Default))
         {
-            bool mayUseZeroAlloc = MayUseZeroAllocInternally(type, compilation);
+            bool mayUseZeroAlloc = _MayUseZeroAllocInternally(type, compilation);
             return new ArgumentTypeInfo(fullTypeName, shortName, TypeCategory.SpanFormattable, isRefStruct, isValueType,
                 MayUseZeroAllocInternally: mayUseZeroAlloc, KnownSize: knownSize, MinimumSize: minSize,
                 ImplementsIStringSize: implementsIStringSize, ImplementsIUtf8Size: implementsIUtf8Size);
@@ -546,7 +534,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         INamedTypeSymbol? utf8SpanFormattable = compilation.GetTypeByMetadataName("System.IUtf8SpanFormattable");
         if (utf8SpanFormattable is not null && type.AllInterfaces.Contains(utf8SpanFormattable, SymbolEqualityComparer.Default))
         {
-            bool mayUseZeroAlloc = MayUseZeroAllocInternally(type, compilation);
+            bool mayUseZeroAlloc = _MayUseZeroAllocInternally(type, compilation);
             return new ArgumentTypeInfo(fullTypeName, shortName, TypeCategory.Utf8SpanFormattable, isRefStruct, isValueType,
                 MayUseZeroAllocInternally: mayUseZeroAlloc, KnownSize: knownSize, MinimumSize: minSize,
                 ImplementsIStringSize: implementsIStringSize, ImplementsIUtf8Size: implementsIUtf8Size);
@@ -556,8 +544,8 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         bool isArray = type is IArrayTypeSymbol;
 
         // Check if type is a ZeroAlloc internal type (TempString, TempBytes, etc.)
-        bool isZeroAllocInternal = fullTypeName.StartsWith("ZeroAlloc.Temp") ||
-                                    fullTypeName.StartsWith("ZeroAlloc.Stack");
+        bool isZeroAllocInternal = fullTypeName.StartsWith("ZeroAlloc.Temp", StringComparison.Ordinal) ||
+                                    fullTypeName.StartsWith("ZeroAlloc.Stack", StringComparison.Ordinal);
 
         // Fallback: assume it has ToString()
         return new ArgumentTypeInfo(fullTypeName, shortName, TypeCategory.Object, isRefStruct, isValueType,
@@ -568,7 +556,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     /// Gets size information for numeric types.
     /// </summary>
     /// <returns>Tuple of (exact size if fixed, minimum size if variable).</returns>
-    private static (int? KnownSize, int? MinSize) GetNumericTypeSizeInfo(ITypeSymbol type)
+    private static (int? KnownSize, int? MinSize) _GetNumericTypeSizeInfo(ITypeSymbol type)
     {
         // For numeric types, we know the maximum formatted length
         return type.SpecialType switch
@@ -597,7 +585,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     /// <summary>
     /// Gets a short name suitable for parameter naming.
     /// </summary>
-    private static string GetShortName(ITypeSymbol type)
+    private static string _GetShortName(ITypeSymbol type)
     {
         return type.SpecialType switch
         {
@@ -633,7 +621,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     /// </list>
     /// This provides precise detection instead of the overly broad "assembly references ZeroAlloc" check.
     /// </remarks>
-    private static bool MayUseZeroAllocInternally(ITypeSymbol type, Compilation compilation)
+    private static bool _MayUseZeroAllocInternally(ITypeSymbol type, Compilation compilation)
     {
         // Built-in types and System types cannot use ZeroAlloc internally
         string? containingNamespace = type.ContainingNamespace?.ToDisplayString();
@@ -650,7 +638,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
 
         // Check if the type inherits from ZeroAllocBase (definite ZeroAlloc user)
         INamedTypeSymbol? zeroAllocBase = compilation.GetTypeByMetadataName("ZeroAlloc.ZeroAllocBase");
-        if (zeroAllocBase is not null && InheritsFrom(type, zeroAllocBase))
+        if (zeroAllocBase is not null && _InheritsFrom(type, zeroAllocBase))
         {
             return true;
         }
@@ -658,14 +646,14 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         // If the type has source available, analyze the TryFormat method body
         if (type is INamedTypeSymbol namedType)
         {
-            IMethodSymbol? tryFormatMethod = FindTryFormatMethod(namedType);
+            IMethodSymbol? tryFormatMethod = _FindTryFormatMethod(namedType);
             if (tryFormatMethod is not null)
             {
                 // Check if we have access to the source code
                 foreach (SyntaxReference syntaxRef in tryFormatMethod.DeclaringSyntaxReferences)
                 {
                     SyntaxNode syntaxNode = syntaxRef.GetSyntax();
-                    if (ContainsZeroAllocApiCalls(syntaxNode))
+                    if (_ContainsZeroAllocApiCalls(syntaxNode))
                     {
                         return true;
                     }
@@ -680,7 +668,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     /// <summary>
     /// Checks if a type inherits from a specified base type.
     /// </summary>
-    private static bool InheritsFrom(ITypeSymbol type, INamedTypeSymbol baseType)
+    private static bool _InheritsFrom(ITypeSymbol type, INamedTypeSymbol baseType)
     {
         INamedTypeSymbol? current = type.BaseType;
         while (current is not null)
@@ -697,7 +685,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     /// <summary>
     /// Finds the TryFormat method on a type (ISpanFormattable or IUtf8SpanFormattable implementation).
     /// </summary>
-    private static IMethodSymbol? FindTryFormatMethod(INamedTypeSymbol type)
+    private static IMethodSymbol? _FindTryFormatMethod(INamedTypeSymbol type)
     {
         // Look for TryFormat method with typical signatures
         foreach (ISymbol member in type.GetMembers("TryFormat"))
@@ -731,7 +719,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     ///   <item>ZeroStringBuilder, ZeroBytesBuilder methods</item>
     /// </list>
     /// </remarks>
-    private static bool ContainsZeroAllocApiCalls(SyntaxNode node)
+    private static bool _ContainsZeroAllocApiCalls(SyntaxNode node)
     {
         // Known ZeroAlloc API method names that could cause recursion
         HashSet<string> zeroAllocMethods =
@@ -751,51 +739,70 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
             "StackStringBuilder", "StackBytesBuilder"
         ];
 
-        foreach (SyntaxNode descendant in node.DescendantNodes())
+        foreach (SyntaxNode descendant in node.DescendantNodesAndSelf())
         {
-            // Check for method invocations
-            if (descendant is InvocationExpressionSyntax invocation)
+            if (_DescendantUsesZeroAllocApi(descendant, zeroAllocMethods, zeroAllocTypes))
             {
-                string invocationText = invocation.Expression.ToString();
+                return _MatchedZeroAllocApiCall();
+            }
+        }
 
-                // Check for ZeroAlloc method calls like "ZA.String()", "Fmt.Utf8()"
-                foreach (string method in zeroAllocMethods)
+        return false;
+    }
+
+    private static bool _DescendantUsesZeroAllocApi(
+        SyntaxNode descendant,
+        HashSet<string> zeroAllocMethods,
+        HashSet<string> zeroAllocTypes)
+    {
+        if (descendant is InvocationExpressionSyntax invocation)
+        {
+            string invocationText = invocation.Expression.ToString();
+
+            foreach (string method in zeroAllocMethods)
+            {
+                if (invocationText.EndsWith("." + method, StringComparison.Ordinal))
                 {
-                    if (invocationText.EndsWith("." + method, StringComparison.Ordinal))
-                    {
-                        return true;
-                    }
+                    return true;
                 }
             }
+        }
 
-            // Check for object creation of ZeroAlloc types
-            if (descendant is ObjectCreationExpressionSyntax creation)
+        if (descendant is ObjectCreationExpressionSyntax creation)
+        {
+            string typeName = creation.Type.ToString();
+            foreach (string zeroAllocType in zeroAllocTypes)
             {
-                string typeName = creation.Type.ToString();
-                foreach (string zeroAllocType in zeroAllocTypes)
+                if (typeName.Contains(zeroAllocType, StringComparison.Ordinal))
                 {
-                    if (typeName.Contains(zeroAllocType, StringComparison.Ordinal))
-                    {
-                        return true;
-                    }
+                    return true;
                 }
             }
+        }
 
-            // Check for identifier usage (variable declarations, etc.)
-            if (descendant is IdentifierNameSyntax identifier)
+        if (descendant is IdentifierNameSyntax identifier)
+        {
+            if (identifier.Ancestors().Any(static ancestor => ancestor is ObjectCreationExpressionSyntax))
             {
-                string name = identifier.Identifier.Text;
-                foreach (string zeroAllocType in zeroAllocTypes)
+                return false;
+            }
+
+            string name = identifier.Identifier.Text;
+            foreach (string zeroAllocType in zeroAllocTypes)
+            {
+                if (name == zeroAllocType)
                 {
-                    if (name == zeroAllocType)
-                    {
-                        return true;
-                    }
+                    return true;
                 }
             }
         }
 
         return false;
+    }
+
+    private static bool _MatchedZeroAllocApiCall()
+    {
+        return true;
     }
 
     // ========================================================================
@@ -830,7 +837,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     /// </remarks>
     /// <param name="ctx">The source production context for adding generated sources and diagnostics.</param>
     /// <param name="input">Combined data from the incremental pipeline.</param>
-    private static void GenerateSource(
+    private static void _GenerateSource(
         SourceProductionContext ctx,
         (((ImmutableArray<UserClassInfo?> UserClasses, ImmutableArray<MethodCallInfo?> MethodCalls), Compilation Compilation), GeneratorOptions Options) input)
     {
@@ -855,11 +862,12 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         {
             if (call is not null)
             {
-                if (!callsByClass.ContainsKey(call.Value.TargetClass))
+                if (!callsByClass.TryGetValue(call.Value.TargetClass, out List<MethodCallInfo>? classCalls))
                 {
-                    callsByClass[call.Value.TargetClass] = new List<MethodCallInfo>();
+                    classCalls = new List<MethodCallInfo>();
+                    callsByClass[call.Value.TargetClass] = classCalls;
                 }
-                callsByClass[call.Value.TargetClass].Add(call.Value);
+                classCalls.Add(call.Value);
 
                 // Check for diagnostic warnings
                 foreach (ArgumentTypeInfo argInfo in call.Value.Arguments)
@@ -918,7 +926,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
             }
 
             // Generate the partial class
-            string sourceCode = GenerateClassSource(classInfo, calls, options);
+            string sourceCode = _GenerateClassSource(classInfo, calls, options);
             string fileName = $"{classInfo.ClassName}.ZeroAlloc.g.cs";
             ctx.AddSource(fileName, sourceCode);
         }
@@ -927,103 +935,108 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     /// <summary>
     /// Generates source code for a single user class.
     /// </summary>
-    private static string GenerateClassSource(
+    private static string _GenerateClassSource(
         UserClassInfo classInfo,
         List<MethodCallInfo> calls,
         GeneratorOptions options)
     {
         StringBuilder sb = new StringBuilder();
+        string recursiveHeapFallbackLiteral = options.RecursiveHeapFallback ? "true" : "false";
+        string recursiveHeapFallbackStatus = options.RecursiveHeapFallback ? "enabled" : "disabled";
 
         // File header
-        sb.AppendLine("// <auto-generated>");
-        sb.AppendLine("// This file was generated by the ZeroAlloc source generator.");
-        sb.AppendLine("// Do not modify this file directly - changes will be overwritten.");
-        sb.AppendLine("// </auto-generated>");
-        sb.AppendLine("// Copyright \u00a9 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.");
-        sb.AppendLine();
-        sb.AppendLine("#nullable enable");
-        sb.AppendLine();
+        BinaryGeneratorHelpers.AppendCode(sb,"""
+            // <auto-generated>
+            // This file was generated by the ZeroAlloc source generator.
+            // Do not modify this file directly - changes will be overwritten.
+            // </auto-generated>
+            // Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
-        // Usings
-        sb.AppendLine("using System;");
-        sb.AppendLine("using System.Globalization;");
-        sb.AppendLine("using System.Runtime.CompilerServices;");
-        sb.AppendLine("using System.Text;");
-        sb.AppendLine("using ZeroAlloc;");
-        sb.AppendLine();
+            #nullable enable
+
+            using System;
+            using System.Globalization;
+            using System.Runtime.CompilerServices;
+            using System.Text;
+            using ZeroAlloc;
+
+            """);
 
         // Namespace
         if (classInfo.Namespace is not null)
         {
-            sb.AppendLine($"namespace {classInfo.Namespace};");
-            sb.AppendLine();
+            BinaryGeneratorHelpers.AppendCode(sb,$$"""
+            namespace {{classInfo.Namespace}};
+
+            """);
         }
 
-        // Class documentation
-        sb.AppendLine("/// <summary>");
-        sb.AppendLine("/// Generated zero-allocation formatting methods.");
-        sb.AppendLine("/// </summary>");
-        sb.AppendLine("/// <remarks>");
-        sb.AppendLine("/// <para>");
-        sb.AppendLine("/// All methods return <see cref=\"TempString\"/> or <see cref=\"TempBytes\"/> which MUST be");
-        sb.AppendLine("/// disposed using a <c>using</c> statement.");
-        sb.AppendLine("/// </para>");
-        sb.AppendLine("/// <para>");
-        sb.AppendLine($"/// Default buffer size: {options.DefaultBufferSize:N0} bytes (configurable via ZeroAlloc_DefaultBufferSize MSBuild property).");
-        sb.AppendLine("/// </para>");
-        sb.AppendLine("/// <para>");
-        sb.AppendLine($"/// Recursive heap fallback: {(options.RecursiveHeapFallback ? "enabled" : "disabled")} (configurable via ZeroAlloc_RecursiveHeapFallback MSBuild property).");
-        sb.AppendLine("/// </para>");
-        sb.AppendLine("/// <para>");
-        sb.AppendLine($"/// Buffer overflow behavior: {options.BufferOverflowBehavior} (configurable via ZeroAlloc_BufferOverflowBehavior MSBuild property).");
-        sb.AppendLine("/// </para>");
-        sb.AppendLine("/// </remarks>");
-        sb.AppendLine($"partial class {classInfo.ClassName}");
-        sb.AppendLine("{");
+        // Class documentation and configuration constants
+        BinaryGeneratorHelpers.AppendCode(sb,$$"""
+            /// <summary>
+            /// Generated zero-allocation formatting methods.
+            /// </summary>
+            /// <remarks>
+            /// <para>
+            /// All methods return <see cref="TempString"/> or <see cref="TempBytes"/> which MUST be
+            /// disposed using a <c>using</c> statement.
+            /// </para>
+            /// <para>
+            /// Default buffer size: {{options.DefaultBufferSize:N0}} bytes (configurable via ZeroAlloc_DefaultBufferSize MSBuild property).
+            /// </para>
+            /// <para>
+            /// Recursive heap fallback: {{recursiveHeapFallbackStatus}} (configurable via ZeroAlloc_RecursiveHeapFallback MSBuild property).
+            /// </para>
+            /// <para>
+            /// Buffer overflow behavior: {{options.BufferOverflowBehavior}} (configurable via ZeroAlloc_BufferOverflowBehavior MSBuild property).
+            /// </para>
+            /// </remarks>
+            partial class {{classInfo.ClassName}}
+            {
+                // ========================================================================
+                // CONFIGURATION CONSTANTS
+                // ========================================================================
+                // These constants are set at compile-time from MSBuild properties in your .csproj.
+                // You can customize them by adding the following to your project file:
+                //
+                //   <PropertyGroup>
+                //     <ZeroAlloc_DefaultBufferSize>4194304</ZeroAlloc_DefaultBufferSize>
+                //     <ZeroAlloc_RecursiveHeapFallback>true</ZeroAlloc_RecursiveHeapFallback>
+                //     <ZeroAlloc_BufferOverflowBehavior>Grow</ZeroAlloc_BufferOverflowBehavior>
+                //   </PropertyGroup>
+                // ========================================================================
 
-        // Generate configuration constants
-        sb.AppendLine("    // ========================================================================");
-        sb.AppendLine("    // CONFIGURATION CONSTANTS");
-        sb.AppendLine("    // ========================================================================");
-        sb.AppendLine("    // These constants are set at compile-time from MSBuild properties in your .csproj.");
-        sb.AppendLine("    // You can customize them by adding the following to your project file:");
-        sb.AppendLine("    //");
-        sb.AppendLine("    //   <PropertyGroup>");
-        sb.AppendLine("    //     <ZeroAlloc_DefaultBufferSize>4194304</ZeroAlloc_DefaultBufferSize>");
-        sb.AppendLine("    //     <ZeroAlloc_RecursiveHeapFallback>true</ZeroAlloc_RecursiveHeapFallback>");
-        sb.AppendLine("    //     <ZeroAlloc_BufferOverflowBehavior>Grow</ZeroAlloc_BufferOverflowBehavior>");
-        sb.AppendLine("    //   </PropertyGroup>");
-        sb.AppendLine("    // ========================================================================");
-        sb.AppendLine();
-        sb.AppendLine("    /// <summary>");
-        sb.AppendLine("    /// Initial buffer size for ThreadStatic buffers.");
-        sb.AppendLine("    /// Configured via ZeroAlloc_DefaultBufferSize MSBuild property.");
-        sb.AppendLine("    /// </summary>");
-        sb.AppendLine($"    private const int DefaultBufferSize = {options.DefaultBufferSize};");
-        sb.AppendLine();
-        sb.AppendLine("    /// <summary>");
-        sb.AppendLine("    /// Whether to fall back to heap allocation when the ThreadStatic buffer is already in use (nested/recursive call).");
-        sb.AppendLine("    /// Configured via ZeroAlloc_RecursiveHeapFallback MSBuild property.");
-        sb.AppendLine("    /// </summary>");
-        sb.AppendLine("    /// <remarks>");
-        sb.AppendLine("    /// <para>");
-        sb.AppendLine("    /// IMPORTANT: Each thread has exactly ONE ThreadStatic buffer. If you call ZeroAlloc APIs");
-        sb.AppendLine("    /// while still holding a TempString/TempBytes (i.e., nested calls), the inner call cannot");
-        sb.AppendLine("    /// use the ThreadStatic buffer because the outer call is still using it.");
-        sb.AppendLine("    /// </para>");
-        sb.AppendLine("    /// <para>");
-        sb.AppendLine("    /// When true: Inner calls allocate a temporary heap buffer (small allocation).");
-        sb.AppendLine("    /// When false: Inner calls throw InvalidOperationException.");
-        sb.AppendLine("    /// </para>");
-        sb.AppendLine("    /// </remarks>");
-        sb.AppendLine($"    private const bool RecursiveHeapFallback = {options.RecursiveHeapFallback.ToString().ToLowerInvariant()};");
-        sb.AppendLine();
-        sb.AppendLine("    /// <summary>");
-        sb.AppendLine("    /// Behavior when content exceeds buffer size: 0=Grow, 1=HeapFallback, 2=Throw.");
-        sb.AppendLine("    /// Configured via ZeroAlloc_BufferOverflowBehavior MSBuild property.");
-        sb.AppendLine("    /// </summary>");
-        sb.AppendLine($"    private const int BufferOverflowBehavior = {(int)options.BufferOverflowBehavior}; // {options.BufferOverflowBehavior}");
-        sb.AppendLine();
+                /// <summary>
+                /// Initial buffer size for ThreadStatic buffers.
+                /// Configured via ZeroAlloc_DefaultBufferSize MSBuild property.
+                /// </summary>
+                private const int DefaultBufferSize = {{options.DefaultBufferSize}};
+
+                /// <summary>
+                /// Whether to fall back to heap allocation when the ThreadStatic buffer is already in use (nested/recursive call).
+                /// Configured via ZeroAlloc_RecursiveHeapFallback MSBuild property.
+                /// </summary>
+                /// <remarks>
+                /// <para>
+                /// IMPORTANT: Each thread has exactly ONE ThreadStatic buffer. If you call ZeroAlloc APIs
+                /// while still holding a TempString/TempBytes (i.e., nested calls), the inner call cannot
+                /// use the ThreadStatic buffer because the outer call is still using it.
+                /// </para>
+                /// <para>
+                /// When true: Inner calls allocate a temporary heap buffer (small allocation).
+                /// When false: Inner calls throw InvalidOperationException.
+                /// </para>
+                /// </remarks>
+                private const bool RecursiveHeapFallback = {{recursiveHeapFallbackLiteral}};
+
+                /// <summary>
+                /// Behavior when content exceeds buffer size: 0=Grow, 1=HeapFallback, 2=Throw.
+                /// Configured via ZeroAlloc_BufferOverflowBehavior MSBuild property.
+                /// </summary>
+                private const int BufferOverflowBehavior = {{(int)options.BufferOverflowBehavior}}; // {{options.BufferOverflowBehavior}}
+
+
+            """);
 
         // Deduplicate method signatures
         HashSet<string> generatedSignatures = new HashSet<string>();
@@ -1081,14 +1094,14 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
             if (!generatedSignatures.Contains(signatureKey))
             {
                 generatedSignatures.Add(signatureKey);
-                GenerateStringMethod(sb, args, options);
+                _GenerateStringMethod(sb, args);
             }
 
             signatureKey = $"TryString({string.Join(",", args.Select(a => a.FullTypeName))})";
             if (!generatedSignatures.Contains(signatureKey))
             {
                 generatedSignatures.Add(signatureKey);
-                GenerateTryStringMethod(sb, args, options);
+                _GenerateTryStringMethod(sb, args);
             }
         }
 
@@ -1099,14 +1112,14 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
             if (!generatedSignatures.Contains(signatureKey))
             {
                 generatedSignatures.Add(signatureKey);
-                GenerateUtf8Method(sb, args, options);
+                _GenerateUtf8Method(sb, args);
             }
 
             signatureKey = $"TryUtf8({string.Join(",", args.Select(a => a.FullTypeName))})";
             if (!generatedSignatures.Contains(signatureKey))
             {
                 generatedSignatures.Add(signatureKey);
-                GenerateTryUtf8Method(sb, args, options);
+                _GenerateTryUtf8Method(sb, args);
             }
         }
 
@@ -1117,14 +1130,14 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
             if (!generatedSignatures.Contains(signatureKey))
             {
                 generatedSignatures.Add(signatureKey);
-                GenerateBytesMethod(sb, args, options);
+                _GenerateBytesMethod(sb, args);
             }
 
             signatureKey = $"TryBytes({string.Join(",", args.Select(a => a.FullTypeName))})";
             if (!generatedSignatures.Contains(signatureKey))
             {
                 generatedSignatures.Add(signatureKey);
-                GenerateTryBytesMethod(sb, args, options);
+                _GenerateTryBytesMethod(sb, args);
             }
         }
 
@@ -1135,14 +1148,14 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
             if (!generatedSignatures.Contains(signatureKey))
             {
                 generatedSignatures.Add(signatureKey);
-                GenerateLocalizedStringMethod(sb, args, options);
+                _GenerateLocalizedStringMethod(sb, args);
             }
 
             signatureKey = $"TryLocalizedString({string.Join(",", args.Select(a => a.FullTypeName))})";
             if (!generatedSignatures.Contains(signatureKey))
             {
                 generatedSignatures.Add(signatureKey);
-                GenerateTryLocalizedStringMethod(sb, args, options);
+                _GenerateTryLocalizedStringMethod(sb, args);
             }
         }
 
@@ -1153,14 +1166,14 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
             if (!generatedSignatures.Contains(signatureKey))
             {
                 generatedSignatures.Add(signatureKey);
-                GenerateLocalizedUtf8Method(sb, args, options);
+                _GenerateLocalizedUtf8Method(sb, args);
             }
 
             signatureKey = $"TryLocalizedUtf8({string.Join(",", args.Select(a => a.FullTypeName))})";
             if (!generatedSignatures.Contains(signatureKey))
             {
                 generatedSignatures.Add(signatureKey);
-                GenerateTryLocalizedUtf8Method(sb, args, options);
+                _GenerateTryLocalizedUtf8Method(sb, args);
             }
         }
 
@@ -1171,7 +1184,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
             if (!generatedSignatures.Contains(signatureKey))
             {
                 generatedSignatures.Add(signatureKey);
-                GenerateLazyMethod(sb, args);
+                _GenerateLazyMethod(sb, args);
             }
         }
 
@@ -1182,11 +1195,11 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
             if (!generatedSignatures.Contains(signatureKey))
             {
                 generatedSignatures.Add(signatureKey);
-                GenerateLazyInterpolatedMethod(sb, args);
+                _GenerateLazyInterpolatedMethod(sb, args);
             }
         }
 
-        sb.AppendLine("}");
+        BinaryGeneratorHelpers.AppendCode(sb,"}\n");
 
         return sb.ToString();
     }
@@ -1222,11 +1235,9 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     /// </remarks>
     /// <param name="sb">The string builder to append generated code to.</param>
     /// <param name="args">The argument types for this overload.</param>
-    /// <param name="options">Generator configuration options.</param>
-    private static void GenerateStringMethod(
+    private static void _GenerateStringMethod(
         StringBuilder sb,
-        ImmutableArray<ArgumentTypeInfo> args,
-        GeneratorOptions options)
+        ImmutableArray<ArgumentTypeInfo> args)
     {
         // Check if first argument is CultureInfo
         bool hasCultureInfo = args.Length > 0 && args[0].Category == TypeCategory.CultureInfo;
@@ -1243,91 +1254,95 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
             paramNames.Add(paramName);
         }
 
+        string paramDocs = string.Join(
+            "\n",
+            Enumerable.Range(0, args.Length)
+                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <see cref=\"{args[i].FullTypeName}\"/>.</param>"));
+        string usageExample = hasCultureInfo
+            ? "    /// using TempString temp = ZA.String(CultureInfo.GetCultureInfo(\"de-DE\"), ...);"
+            : "    /// using TempString temp = ZA.String(...);";
+        string parameterList = string.Join(", ", parameters);
+
         // Method documentation
-        sb.AppendLine("    // ========================================================================");
-        sb.AppendLine("    // String() - Zero-allocation string formatting");
-        sb.AppendLine("    // ========================================================================");
-        sb.AppendLine();
-        sb.AppendLine("    /// <summary>");
-        sb.AppendLine("    /// Formats the given values into a temporary string without heap allocation.");
-        sb.AppendLine("    /// </summary>");
-        for (int i = 0; i < args.Length; i++)
-        {
-            sb.AppendLine($"    /// <param name=\"{paramNames[i]}\">Value of type <see cref=\"{args[i].FullTypeName}\"/>.</param>");
-        }
-        sb.AppendLine("    /// <returns>A <see cref=\"TempString\"/> that MUST be disposed with a using statement.</returns>");
-        sb.AppendLine("    /// <remarks>");
-        sb.AppendLine("    /// <para><b>Usage:</b></para>");
-        sb.AppendLine("    /// <code>");
-        if (hasCultureInfo)
-        {
-            sb.AppendLine("    /// using TempString temp = ZA.String(CultureInfo.GetCultureInfo(\"de-DE\"), ...);");
-        }
-        else
-        {
-            sb.AppendLine("    /// using TempString temp = ZA.String(...);");
-        }
-        sb.AppendLine("    /// ReadOnlySpan&lt;char&gt; span = temp.AsSpan();");
-        sb.AppendLine("    /// // Use span for comparison, parsing, logging, etc.");
-        sb.AppendLine("    /// </code>");
-        sb.AppendLine("    /// <para>");
-        sb.AppendLine("    /// If the ThreadStatic buffer is already in use (nested call), behavior depends on");
-        sb.AppendLine("    /// the <c>ZeroAlloc_RecursiveHeapFallback</c> MSBuild property. Check <see cref=\"TempString.IsHeapAllocated\"/> if needed.");
-        sb.AppendLine("    /// </para>");
-        sb.AppendLine("    /// </remarks>");
-        sb.AppendLine("    [MethodImpl(MethodImplOptions.AggressiveInlining)]");
-        sb.AppendLine($"    internal static TempString String({string.Join(", ", parameters)})");
-        sb.AppendLine("    {");
-        sb.AppendLine("        // ================================================================");
-        sb.AppendLine("        // STEP 1: Acquire Buffer");
-        sb.AppendLine("        // ================================================================");
-        sb.AppendLine("        // ZeroAlloc uses a ThreadStatic buffer to avoid heap allocations.");
-        sb.AppendLine("        // Each thread has exactly ONE buffer. If this call is nested inside");
-        sb.AppendLine("        // another ZeroAlloc call (e.g., you're still holding a TempString),");
-        sb.AppendLine("        // behavior depends on RecursiveHeapFallback:");
-        sb.AppendLine("        //   - true:  Allocate a temporary heap buffer (small allocation)");
-        sb.AppendLine("        //   - false: Throw InvalidOperationException");
-        sb.AppendLine("        //");
-        sb.AppendLine("        // The 'isThreadStatic' flag tracks which buffer we got:");
-        sb.AppendLine("        //   - true:  We own the ThreadStatic buffer, must release on Dispose");
-        sb.AppendLine("        //   - false: We got a heap buffer, no release needed");
-        sb.AppendLine("        // ================================================================");
-        sb.AppendLine("        char[] buffer = ZeroAllocHelper.AcquireCharBuffer(DefaultBufferSize, RecursiveHeapFallback, out bool isThreadStatic);");
-        sb.AppendLine("        Span<char> span = buffer.AsSpan();");
-        sb.AppendLine("        int position = 0;");
-        sb.AppendLine();
-        sb.AppendLine("        // ================================================================");
-        sb.AppendLine("        // STEP 2: Format Each Argument Into Buffer");
-        sb.AppendLine("        // ================================================================");
-        sb.AppendLine("        // Each argument is formatted directly into the buffer without");
-        sb.AppendLine("        // intermediate string allocations. The formatting strategy varies");
-        sb.AppendLine("        // by type (see inline comments for each argument below).");
-        sb.AppendLine("        // ================================================================");
+        BinaryGeneratorHelpers.AppendCode(sb,$$"""
+            // ========================================================================
+            // String() - Zero-allocation string formatting
+            // ========================================================================
+
+            /// <summary>
+            /// Formats the given values into a temporary string without heap allocation.
+            /// </summary>
+            {{paramDocs}}
+            /// <returns>A <see cref="TempString"/> that MUST be disposed with a using statement.</returns>
+            /// <remarks>
+            /// <para><b>Usage:</b></para>
+            /// <code>
+            {{usageExample}}
+            /// ReadOnlySpan&lt;char&gt; span = temp.AsSpan();
+            /// // Use span for comparison, parsing, logging, etc.
+            /// </code>
+            /// <para>
+            /// If the ThreadStatic buffer is already in use (nested call), behavior depends on
+            /// the <c>ZeroAlloc_RecursiveHeapFallback</c> MSBuild property. Check <see cref="TempString.IsHeapAllocated"/> if needed.
+            /// </para>
+            /// </remarks>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            internal static TempString String({{parameterList}})
+            {
+                // ================================================================
+                // STEP 1: Acquire Buffer
+                // ================================================================
+                // ZeroAlloc uses a ThreadStatic buffer to avoid heap allocations.
+                // Each thread has exactly ONE buffer. If this call is nested inside
+                // another ZeroAlloc call (e.g., you're still holding a TempString),
+                // behavior depends on RecursiveHeapFallback:
+                //   - true:  Allocate a temporary heap buffer (small allocation)
+                //   - false: Throw InvalidOperationException
+                //
+                // The 'isThreadStatic' flag tracks which buffer we got:
+                //   - true:  We own the ThreadStatic buffer, must release on Dispose
+                //   - false: We got a heap buffer, no release needed
+                // ================================================================
+                char[] buffer = ZeroAllocHelper.AcquireCharBuffer(DefaultBufferSize, RecursiveHeapFallback, out bool isThreadStatic);
+                Span<char> span = buffer.AsSpan();
+                int position = 0;
+
+                // ================================================================
+                // STEP 2: Format Each Argument Into Buffer
+                // ================================================================
+                // Each argument is formatted directly into the buffer without
+                // intermediate string allocations. The formatting strategy varies
+                // by type (see inline comments for each argument below).
+                // ================================================================
+
+            """);
 
         // Generate formatting code for each argument (skip CultureInfo at index 0 if present)
         for (int i = startIndex; i < args.Length; i++)
         {
-            sb.AppendLine();
-            GenerateCharFormatCode(sb, args[i], paramNames[i], i, cultureVar);
+            sb.Append('\n');
+            _GenerateCharFormatCode(sb, args[i], paramNames[i], i, cultureVar);
         }
 
-        sb.AppendLine();
-        sb.AppendLine("        // ================================================================");
-        sb.AppendLine("        // STEP 3: Return TempString Wrapper");
-        sb.AppendLine("        // ================================================================");
-        sb.AppendLine("        // The TempString wraps the buffer and tracks ownership.");
-        sb.AppendLine("        // IMPORTANT: The caller MUST dispose this TempString!");
-        sb.AppendLine("        //");
-        sb.AppendLine("        // Option A: Implicit conversion (allocates string, auto-disposes):");
-        sb.AppendLine("        //   string result = ZA.String(\"Hello\", name);");
-        sb.AppendLine("        //");
-        sb.AppendLine("        // Option B: Explicit span (zero-allocation, manual dispose):");
-        sb.AppendLine("        //   using var temp = ZA.String(\"Hello\", name);");
-        sb.AppendLine("        //   ReadOnlySpan<char> span = temp.AsSpan();");
-        sb.AppendLine("        // ================================================================");
-        sb.AppendLine("        return new TempString(buffer, position, isThreadStatic);");
-        sb.AppendLine("    }");
-        sb.AppendLine();
+        BinaryGeneratorHelpers.AppendCode(sb,"""
+
+                // ================================================================
+                // STEP 3: Return TempString Wrapper
+                // ================================================================
+                // The TempString wraps the buffer and tracks ownership.
+                // IMPORTANT: The caller MUST dispose this TempString!
+                //
+                // Option A: Implicit conversion (allocates string, auto-disposes):
+                //   string result = ZA.String("Hello", name);
+                //
+                // Option B: Explicit span (zero-allocation, manual dispose):
+                //   using var temp = ZA.String("Hello", name);
+                //   ReadOnlySpan<char> span = temp.AsSpan();
+                // ================================================================
+                return new TempString(buffer, position, isThreadStatic);
+            }
+
+            """);
     }
 
     /// <summary>
@@ -1355,164 +1370,151 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     /// <param name="paramName">The parameter name in generated code.</param>
     /// <param name="index">The argument index for generating unique variable names.</param>
     /// <param name="cultureVar">The variable name holding the CultureInfo to use.</param>
-    private static void GenerateCharFormatCode(
+    private static void _GenerateCharFormatCode(
         StringBuilder sb,
         ArgumentTypeInfo arg,
         string paramName,
         int index,
         string cultureVar = "CultureInfo.InvariantCulture")
     {
-        // ====================================================================
-        // Generate detailed inline comment explaining the formatting strategy
-        // for this specific argument. This helps developers understand what
-        // the generated code is doing when they inspect it.
-        // ====================================================================
-        sb.AppendLine($"        // ----------------------------------------------------------------");
-        sb.AppendLine($"        // Argument {index}: {arg.FullTypeName}");
-        sb.AppendLine($"        // Strategy: {CommentHelper.GetFormattingStrategy(arg.Category)}");
-        sb.AppendLine($"        // {CommentHelper.GetFormattingExplanation(arg.Category)}");
-        sb.AppendLine($"        // ----------------------------------------------------------------");
+        string formattingStrategy = CommentHelper.GetFormattingStrategy(arg.Category);
+        string formattingExplanation = CommentHelper.GetFormattingExplanation(arg.Category);
+
+        BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                // ----------------------------------------------------------------
+                // Argument {{index}}: {{arg.FullTypeName}}
+                // Strategy: {{formattingStrategy}}
+                // {{formattingExplanation}}
+                // ----------------------------------------------------------------
+
+            """);
 
         switch (arg.Category)
         {
             case TypeCategory.String:
-                // ==============================================================
-                // String: Use AsSpan().CopyTo() for direct, zero-allocation copy.
-                // We pre-check the length to grow buffer if needed.
-                // ==============================================================
-                sb.AppendLine($"        // String formatting: Copy chars directly via AsSpan().CopyTo()");
-                sb.AppendLine($"        // This is zero-allocation as we copy directly into our buffer.");
-                sb.AppendLine($"        if ({paramName} is not null)");
-                sb.AppendLine("        {");
-                sb.AppendLine($"            int len{index} = {paramName}.Length;");
-                sb.AppendLine($"            // Check if buffer has enough space for this string");
-                sb.AppendLine($"            if (position + len{index} > span.Length)");
-                sb.AppendLine("            {");
-                sb.AppendLine("                // Buffer overflow: Grow buffer (release ThreadStatic first if we own it)");
-                sb.AppendLine("                if (isThreadStatic) ZeroAllocHelper.ReleaseCharBuffer();");
-                sb.AppendLine($"                int newSize{index} = Math.Max(buffer.Length * 2, position + len{index});");
-                sb.AppendLine($"                char[] newBuffer = new char[newSize{index}];");
-                sb.AppendLine("                span.Slice(0, position).CopyTo(newBuffer); // Preserve existing content");
-                sb.AppendLine("                buffer = newBuffer;");
-                sb.AppendLine("                span = buffer.AsSpan();");
-                sb.AppendLine("                isThreadStatic = false; // Now using heap buffer");
-                sb.AppendLine("            }");
-                sb.AppendLine($"            {paramName}.AsSpan().CopyTo(span.Slice(position));");
-                sb.AppendLine($"            position += len{index};");
-                sb.AppendLine("        }");
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        // String formatting: Copy chars directly via AsSpan().CopyTo()
+                        // This is zero-allocation as we copy directly into our buffer.
+                        if ({{paramName}} is not null)
+                        {
+                            int len{{index}} = {{paramName}}.Length;
+                            // Check if buffer has enough space for this string
+                            if (position + len{{index}} > span.Length)
+                            {
+                                // Buffer overflow: Grow buffer (release ThreadStatic first if we own it)
+                                if (isThreadStatic) ZeroAllocHelper.ReleaseCharBuffer();
+                                int newSize{{index}} = Math.Max(buffer.Length * 2, position + len{{index}});
+                                char[] newBuffer = new char[newSize{{index}}];
+                                span.Slice(0, position).CopyTo(newBuffer); // Preserve existing content
+                                buffer = newBuffer;
+                                span = buffer.AsSpan();
+                                isThreadStatic = false; // Now using heap buffer
+                            }
+                            {{paramName}}.AsSpan().CopyTo(span.Slice(position));
+                            position += len{{index}};
+                        }
+                """);
                 break;
 
             case TypeCategory.Char:
-                // ==============================================================
-                // Char: Direct assignment, only needs 1 slot in buffer.
-                // ==============================================================
-                sb.AppendLine("        // Char formatting: Direct assignment to buffer (1 character)");
-                sb.AppendLine("        if (position >= span.Length)");
-                sb.AppendLine("        {");
-                sb.AppendLine("            // Buffer overflow: Grow buffer");
-                sb.AppendLine("            if (isThreadStatic) ZeroAllocHelper.ReleaseCharBuffer();");
-                sb.AppendLine("            char[] newBuffer = new char[buffer.Length * 2];");
-                sb.AppendLine("            span.Slice(0, position).CopyTo(newBuffer);");
-                sb.AppendLine("            buffer = newBuffer;");
-                sb.AppendLine("            span = buffer.AsSpan();");
-                sb.AppendLine("            isThreadStatic = false;");
-                sb.AppendLine("        }");
-                sb.AppendLine($"        span[position++] = {paramName};");
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        // Char formatting: Direct assignment to buffer (1 character)
+                        if (position >= span.Length)
+                        {
+                            // Buffer overflow: Grow buffer
+                            if (isThreadStatic) ZeroAllocHelper.ReleaseCharBuffer();
+                            char[] newBuffer = new char[buffer.Length * 2];
+                            span.Slice(0, position).CopyTo(newBuffer);
+                            buffer = newBuffer;
+                            span = buffer.AsSpan();
+                            isThreadStatic = false;
+                        }
+                        span[position++] = {{paramName}};
+                """);
                 break;
 
             case TypeCategory.Boolean:
-                // ==============================================================
-                // Boolean: "True" (4 chars) or "False" (5 chars).
-                // Pre-calculate required length based on boolean value.
-                // ==============================================================
-                sb.AppendLine("        // Boolean formatting: \"True\" (4 chars) or \"False\" (5 chars)");
-                sb.AppendLine($"        int boolLen{index} = {paramName} ? 4 : 5;");
-                sb.AppendLine($"        if (position + boolLen{index} > span.Length)");
-                sb.AppendLine("        {");
-                sb.AppendLine("            // Buffer overflow: Grow buffer");
-                sb.AppendLine("            if (isThreadStatic) ZeroAllocHelper.ReleaseCharBuffer();");
-                sb.AppendLine($"            int newSize{index} = Math.Max(buffer.Length * 2, position + boolLen{index});");
-                sb.AppendLine($"            char[] newBuffer = new char[newSize{index}];");
-                sb.AppendLine("            span.Slice(0, position).CopyTo(newBuffer);");
-                sb.AppendLine("            buffer = newBuffer;");
-                sb.AppendLine("            span = buffer.AsSpan();");
-                sb.AppendLine("            isThreadStatic = false;");
-                sb.AppendLine("        }");
-                sb.AppendLine($"        ({paramName} ? \"True\" : \"False\").AsSpan().CopyTo(span.Slice(position));");
-                sb.AppendLine($"        position += boolLen{index};");
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        // Boolean formatting: "True" (4 chars) or "False" (5 chars)
+                        int boolLen{{index}} = {{paramName}} ? 4 : 5;
+                        if (position + boolLen{{index}} > span.Length)
+                        {
+                            // Buffer overflow: Grow buffer
+                            if (isThreadStatic) ZeroAllocHelper.ReleaseCharBuffer();
+                            int newSize{{index}} = Math.Max(buffer.Length * 2, position + boolLen{{index}});
+                            char[] newBuffer = new char[newSize{{index}}];
+                            span.Slice(0, position).CopyTo(newBuffer);
+                            buffer = newBuffer;
+                            span = buffer.AsSpan();
+                            isThreadStatic = false;
+                        }
+                        ({{paramName}} ? "True" : "False").AsSpan().CopyTo(span.Slice(position));
+                        position += boolLen{{index}};
+                """);
                 break;
 
             case TypeCategory.SpanFormattable:
-                // ==============================================================
-                // ISpanFormattable: Use TryFormat for zero-allocation formatting.
-                // If TryFormat fails (buffer too small), fall back to ToString().
-                // ==============================================================
-                sb.AppendLine("        // ISpanFormattable: Use TryFormat for zero-allocation formatting");
-                sb.AppendLine("        // If TryFormat fails (buffer too small), we fall back to ToString()");
-                sb.AppendLine($"        if (!((ISpanFormattable){paramName}).TryFormat(span.Slice(position), out int written{index}, default, {cultureVar}))");
-                sb.AppendLine("        {");
-                sb.AppendLine("            // TryFormat failed (buffer too small) - fall back to ToString()");
-                sb.AppendLine($"            string fallback{index} = {paramName}.ToString() ?? \"\";");
-                sb.AppendLine($"            int fbLen{index} = fallback{index}.Length;");
-                sb.AppendLine($"            if (position + fbLen{index} > span.Length)");
-                sb.AppendLine("            {");
-                sb.AppendLine("                // Buffer overflow: Grow buffer");
-                sb.AppendLine("                if (isThreadStatic) ZeroAllocHelper.ReleaseCharBuffer();");
-                sb.AppendLine($"                int newSize{index} = Math.Max(buffer.Length * 2, position + fbLen{index});");
-                sb.AppendLine($"                char[] newBuffer = new char[newSize{index}];");
-                sb.AppendLine("                span.Slice(0, position).CopyTo(newBuffer);");
-                sb.AppendLine("                buffer = newBuffer;");
-                sb.AppendLine("                span = buffer.AsSpan();");
-                sb.AppendLine("                isThreadStatic = false;");
-                sb.AppendLine("            }");
-                sb.AppendLine($"            fallback{index}.AsSpan().CopyTo(span.Slice(position));");
-                sb.AppendLine($"            position += fbLen{index};");
-                sb.AppendLine("        }");
-                sb.AppendLine("        else");
-                sb.AppendLine("        {");
-                sb.AppendLine("            // TryFormat succeeded - advance position by bytes written");
-                sb.AppendLine($"            position += written{index};");
-                sb.AppendLine("        }");
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        // ISpanFormattable: Use TryFormat for zero-allocation formatting
+                        // If TryFormat fails (buffer too small), we fall back to ToString()
+                        if (!((ISpanFormattable){{paramName}}).TryFormat(span.Slice(position), out int written{{index}}, default, {{cultureVar}}))
+                        {
+                            // TryFormat failed (buffer too small) - fall back to ToString()
+                            string fallback{{index}} = {{paramName}}.ToString() ?? "";
+                            int fbLen{{index}} = fallback{{index}}.Length;
+                            if (position + fbLen{{index}} > span.Length)
+                            {
+                                // Buffer overflow: Grow buffer
+                                if (isThreadStatic) ZeroAllocHelper.ReleaseCharBuffer();
+                                int newSize{{index}} = Math.Max(buffer.Length * 2, position + fbLen{{index}});
+                                char[] newBuffer = new char[newSize{{index}}];
+                                span.Slice(0, position).CopyTo(newBuffer);
+                                buffer = newBuffer;
+                                span = buffer.AsSpan();
+                                isThreadStatic = false;
+                            }
+                            fallback{{index}}.AsSpan().CopyTo(span.Slice(position));
+                            position += fbLen{{index}};
+                        }
+                        else
+                        {
+                            // TryFormat succeeded - advance position by bytes written
+                            position += written{{index}};
+                        }
+                """);
                 break;
 
             case TypeCategory.CultureInfo:
-                // ==============================================================
-                // CultureInfo: Not written to output, used as format provider.
-                // ==============================================================
-                sb.AppendLine($"        // CultureInfo: Not written to output, used as format provider");
-                sb.AppendLine($"        // {paramName} is used for formatting other arguments in this call");
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        // CultureInfo: Not written to output, used as format provider
+                        // {{paramName}} is used for formatting other arguments in this call
+                """);
                 break;
 
             case TypeCategory.Object:
             default:
-                // ==============================================================
-                // Object fallback: Uses ToString() which ALLOCATES a string.
-                // This is the worst case - consider implementing ISpanFormattable.
-                // ==============================================================
-                sb.AppendLine("        // WARNING: Object fallback - ToString() ALLOCATES a temporary string!");
-                sb.AppendLine("        // Consider implementing ISpanFormattable on this type for zero-allocation.");
-                if (arg.CannotUseNullConditional)
-                {
-                    sb.AppendLine($"        string str{index} = {paramName}.ToString() ?? \"\";");
-                }
-                else
-                {
-                    sb.AppendLine($"        string str{index} = {paramName}?.ToString() ?? \"\";");
-                }
-                sb.AppendLine($"        int strLen{index} = str{index}.Length;");
-                sb.AppendLine($"        if (position + strLen{index} > span.Length)");
-                sb.AppendLine("        {");
-                sb.AppendLine("            // Buffer overflow: Grow buffer");
-                sb.AppendLine("            if (isThreadStatic) ZeroAllocHelper.ReleaseCharBuffer();");
-                sb.AppendLine($"            int newSize{index} = Math.Max(buffer.Length * 2, position + strLen{index});");
-                sb.AppendLine($"            char[] newBuffer = new char[newSize{index}];");
-                sb.AppendLine("            span.Slice(0, position).CopyTo(newBuffer);");
-                sb.AppendLine("            buffer = newBuffer;");
-                sb.AppendLine("            span = buffer.AsSpan();");
-                sb.AppendLine("            isThreadStatic = false;");
-                sb.AppendLine("        }");
-                sb.AppendLine($"        str{index}.AsSpan().CopyTo(span.Slice(position));");
-                sb.AppendLine($"        position += strLen{index};");
+                string toStringAssignment = arg.CannotUseNullConditional
+                    ? $"string str{index} = {paramName}.ToString() ?? \"\";"
+                    : $"string str{index} = {paramName}?.ToString() ?? \"\";";
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        // WARNING: Object fallback - ToString() ALLOCATES a temporary string!
+                        // Consider implementing ISpanFormattable on this type for zero-allocation.
+                        {{toStringAssignment}}
+                        int strLen{{index}} = str{{index}}.Length;
+                        if (position + strLen{{index}} > span.Length)
+                        {
+                            // Buffer overflow: Grow buffer
+                            if (isThreadStatic) ZeroAllocHelper.ReleaseCharBuffer();
+                            int newSize{{index}} = Math.Max(buffer.Length * 2, position + strLen{{index}});
+                            char[] newBuffer = new char[newSize{{index}}];
+                            span.Slice(0, position).CopyTo(newBuffer);
+                            buffer = newBuffer;
+                            span = buffer.AsSpan();
+                            isThreadStatic = false;
+                        }
+                        str{{index}}.AsSpan().CopyTo(span.Slice(position));
+                        position += strLen{{index}};
+                """);
                 break;
         }
     }
@@ -1538,11 +1540,9 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     /// </remarks>
     /// <param name="sb">The string builder to append generated code to.</param>
     /// <param name="args">The argument types for this overload.</param>
-    /// <param name="options">Generator configuration options.</param>
-    private static void GenerateTryStringMethod(
+    private static void _GenerateTryStringMethod(
         StringBuilder sb,
-        ImmutableArray<ArgumentTypeInfo> args,
-        GeneratorOptions options)
+        ImmutableArray<ArgumentTypeInfo> args)
     {
         // Check if first argument is CultureInfo
         bool hasCultureInfo = args.Length > 0 && args[0].Category == TypeCategory.CultureInfo;
@@ -1559,50 +1559,58 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
             paramNames.Add(paramName);
         }
 
-        sb.AppendLine("    // ========================================================================");
-        sb.AppendLine("    // TryString() - Safe zero-allocation string formatting");
-        sb.AppendLine("    // ========================================================================");
-        sb.AppendLine();
-        sb.AppendLine("    /// <summary>");
-        sb.AppendLine("    /// Tries to format the given values into a temporary string.");
-        sb.AppendLine("    /// </summary>");
-        sb.AppendLine("    /// <param name=\"result\">The resulting TempString if successful.</param>");
-        for (int i = 0; i < args.Length; i++)
-        {
-            sb.AppendLine($"    /// <param name=\"{paramNames[i]}\">Value of type <see cref=\"{args[i].FullTypeName}\"/>.</param>");
-        }
-        sb.AppendLine("    /// <returns><c>true</c> on success; <c>false</c> if RecursiveHeapFallback is disabled and buffer is busy.</returns>");
-        sb.AppendLine("    [MethodImpl(MethodImplOptions.AggressiveInlining)]");
-        sb.AppendLine($"    internal static bool TryString({string.Join(", ", parameters)})");
-        sb.AppendLine("    {");
-        sb.AppendLine("        // ----------------------------------------------------------------");
-        sb.AppendLine("        // Try to acquire buffer (respects RecursiveHeapFallback setting)");
-        sb.AppendLine("        // ----------------------------------------------------------------");
-        sb.AppendLine("        if (!RecursiveHeapFallback && !ZeroAllocHelper.IsCharBufferAvailable())");
-        sb.AppendLine("        {");
-        sb.AppendLine("            result = default;");
-        sb.AppendLine("            return false;");
-        sb.AppendLine("        }");
-        sb.AppendLine();
-        sb.AppendLine("        char[] buffer = ZeroAllocHelper.AcquireCharBuffer(DefaultBufferSize, RecursiveHeapFallback, out bool isThreadStatic);");
-        sb.AppendLine("        Span<char> span = buffer.AsSpan();");
-        sb.AppendLine("        int position = 0;");
-        sb.AppendLine();
-        sb.AppendLine("        // ----------------------------------------------------------------");
-        sb.AppendLine("        // Format each value into the buffer");
-        sb.AppendLine("        // ----------------------------------------------------------------");
+        string paramDocs = string.Join(
+            "\n",
+            Enumerable.Range(0, args.Length)
+                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <see cref=\"{args[i].FullTypeName}\"/>.</param>"));
+        string parameterList = string.Join(", ", parameters);
+
+        BinaryGeneratorHelpers.AppendCode(sb,$$"""
+            // ========================================================================
+            // TryString() - Safe zero-allocation string formatting
+            // ========================================================================
+
+            /// <summary>
+            /// Tries to format the given values into a temporary string.
+            /// </summary>
+            /// <param name="result">The resulting TempString if successful.</param>
+            {{paramDocs}}
+            /// <returns><c>true</c> on success; <c>false</c> if RecursiveHeapFallback is disabled and buffer is busy.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            internal static bool TryString({{parameterList}})
+            {
+                // ----------------------------------------------------------------
+                // Try to acquire buffer (respects RecursiveHeapFallback setting)
+                // ----------------------------------------------------------------
+                if (!RecursiveHeapFallback && !ZeroAllocHelper.IsCharBufferAvailable())
+                {
+                    result = default;
+                    return false;
+                }
+
+                char[] buffer = ZeroAllocHelper.AcquireCharBuffer(DefaultBufferSize, RecursiveHeapFallback, out bool isThreadStatic);
+                Span<char> span = buffer.AsSpan();
+                int position = 0;
+
+                // ----------------------------------------------------------------
+                // Format each value into the buffer
+                // ----------------------------------------------------------------
+
+            """);
 
         for (int i = startIndex; i < args.Length; i++)
         {
-            sb.AppendLine();
-            GenerateTryCharFormatCode(sb, args[i], paramNames[i], i, cultureVar);
+            sb.Append('\n');
+            _GenerateTryCharFormatCode(sb, args[i], paramNames[i], i, cultureVar);
         }
 
-        sb.AppendLine();
-        sb.AppendLine("        result = new TempString(buffer, position, isThreadStatic);");
-        sb.AppendLine("        return true;");
-        sb.AppendLine("    }");
-        sb.AppendLine();
+        BinaryGeneratorHelpers.AppendCode(sb,"""
+
+                result = new TempString(buffer, position, isThreadStatic);
+                return true;
+            }
+
+            """);
     }
 
     /// <summary>
@@ -1618,131 +1626,137 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     /// <param name="paramName">The parameter name in generated code.</param>
     /// <param name="index">The argument index for generating unique variable names.</param>
     /// <param name="cultureVar">The variable name holding the CultureInfo to use.</param>
-    private static void GenerateTryCharFormatCode(
+    private static void _GenerateTryCharFormatCode(
         StringBuilder sb,
         ArgumentTypeInfo arg,
         string paramName,
         int index,
         string cultureVar = "CultureInfo.InvariantCulture")
     {
-        // Generate detailed inline comment explaining the formatting strategy
-        sb.AppendLine($"        // ----------------------------------------------------------------");
-        sb.AppendLine($"        // Argument {index}: {arg.FullTypeName}");
-        sb.AppendLine($"        // Strategy: {CommentHelper.GetFormattingStrategy(arg.Category)}");
-        sb.AppendLine($"        // ----------------------------------------------------------------");
+        string formattingStrategy = CommentHelper.GetFormattingStrategy(arg.Category);
+
+        BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                // ----------------------------------------------------------------
+                // Argument {{index}}: {{arg.FullTypeName}}
+                // Strategy: {{formattingStrategy}}
+                // ----------------------------------------------------------------
+
+            """);
 
         switch (arg.Category)
         {
             case TypeCategory.String:
-                // Pre-check length to avoid exceptions
-                sb.AppendLine($"        if ({paramName} is not null)");
-                sb.AppendLine("        {");
-                sb.AppendLine($"            int len{index} = {paramName}.Length;");
-                sb.AppendLine($"            if (position + len{index} > span.Length)");
-                sb.AppendLine("            {");
-                sb.AppendLine("                // Buffer too small - grow like List<T>");
-                sb.AppendLine("                if (isThreadStatic) ZeroAllocHelper.ReleaseCharBuffer();");
-                sb.AppendLine($"                int newSize{index} = Math.Max(buffer.Length * 2, position + len{index});");
-                sb.AppendLine($"                char[] newBuffer = new char[newSize{index}];");
-                sb.AppendLine("                span.Slice(0, position).CopyTo(newBuffer);");
-                sb.AppendLine("                buffer = newBuffer;");
-                sb.AppendLine("                span = buffer.AsSpan();");
-                sb.AppendLine("                isThreadStatic = false;");
-                sb.AppendLine("            }");
-                sb.AppendLine($"            {paramName}.AsSpan().CopyTo(span.Slice(position));");
-                sb.AppendLine($"            position += len{index};");
-                sb.AppendLine("        }");
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        if ({{paramName}} is not null)
+                        {
+                            int len{{index}} = {{paramName}}.Length;
+                            if (position + len{{index}} > span.Length)
+                            {
+                                // Buffer too small - grow like List<T>
+                                if (isThreadStatic) ZeroAllocHelper.ReleaseCharBuffer();
+                                int newSize{{index}} = Math.Max(buffer.Length * 2, position + len{{index}});
+                                char[] newBuffer = new char[newSize{{index}}];
+                                span.Slice(0, position).CopyTo(newBuffer);
+                                buffer = newBuffer;
+                                span = buffer.AsSpan();
+                                isThreadStatic = false;
+                            }
+                            {{paramName}}.AsSpan().CopyTo(span.Slice(position));
+                            position += len{{index}};
+                        }
+                """);
                 break;
 
             case TypeCategory.Char:
-                // Pre-check for single char
-                sb.AppendLine("        if (position >= span.Length)");
-                sb.AppendLine("        {");
-                sb.AppendLine("            // Buffer too small - grow like List<T>");
-                sb.AppendLine("            if (isThreadStatic) ZeroAllocHelper.ReleaseCharBuffer();");
-                sb.AppendLine("            char[] newBuffer = new char[buffer.Length * 2];");
-                sb.AppendLine("            span.Slice(0, position).CopyTo(newBuffer);");
-                sb.AppendLine("            buffer = newBuffer;");
-                sb.AppendLine("            span = buffer.AsSpan();");
-                sb.AppendLine("            isThreadStatic = false;");
-                sb.AppendLine("        }");
-                sb.AppendLine($"        span[position++] = {paramName};");
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        if (position >= span.Length)
+                        {
+                            // Buffer too small - grow like List<T>
+                            if (isThreadStatic) ZeroAllocHelper.ReleaseCharBuffer();
+                            char[] newBuffer = new char[buffer.Length * 2];
+                            span.Slice(0, position).CopyTo(newBuffer);
+                            buffer = newBuffer;
+                            span = buffer.AsSpan();
+                            isThreadStatic = false;
+                        }
+                        span[position++] = {{paramName}};
+                """);
                 break;
 
             case TypeCategory.Boolean:
-                // Pre-check for boolean (4 or 5 chars)
-                sb.AppendLine($"        int boolLen{index} = {paramName} ? 4 : 5;");
-                sb.AppendLine($"        if (position + boolLen{index} > span.Length)");
-                sb.AppendLine("        {");
-                sb.AppendLine("            // Buffer too small - grow like List<T>");
-                sb.AppendLine("            if (isThreadStatic) ZeroAllocHelper.ReleaseCharBuffer();");
-                sb.AppendLine($"            int newSize{index} = Math.Max(buffer.Length * 2, position + boolLen{index});");
-                sb.AppendLine($"            char[] newBuffer = new char[newSize{index}];");
-                sb.AppendLine("            span.Slice(0, position).CopyTo(newBuffer);");
-                sb.AppendLine("            buffer = newBuffer;");
-                sb.AppendLine("            span = buffer.AsSpan();");
-                sb.AppendLine("            isThreadStatic = false;");
-                sb.AppendLine("        }");
-                sb.AppendLine($"        ({paramName} ? \"True\" : \"False\").AsSpan().CopyTo(span.Slice(position));");
-                sb.AppendLine($"        position += boolLen{index};");
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        int boolLen{{index}} = {{paramName}} ? 4 : 5;
+                        if (position + boolLen{{index}} > span.Length)
+                        {
+                            // Buffer too small - grow like List<T>
+                            if (isThreadStatic) ZeroAllocHelper.ReleaseCharBuffer();
+                            int newSize{{index}} = Math.Max(buffer.Length * 2, position + boolLen{{index}});
+                            char[] newBuffer = new char[newSize{{index}}];
+                            span.Slice(0, position).CopyTo(newBuffer);
+                            buffer = newBuffer;
+                            span = buffer.AsSpan();
+                            isThreadStatic = false;
+                        }
+                        ({{paramName}} ? "True" : "False").AsSpan().CopyTo(span.Slice(position));
+                        position += boolLen{{index}};
+                """);
                 break;
 
             case TypeCategory.SpanFormattable:
-                // TryFormat returns false on overflow, use fallback with pre-check
-                sb.AppendLine($"        if (!((ISpanFormattable){paramName}).TryFormat(span.Slice(position), out int written{index}, default, {cultureVar}))");
-                sb.AppendLine("        {");
-                sb.AppendLine($"            string fallback{index} = {paramName}.ToString() ?? \"\";");
-                sb.AppendLine($"            int fbLen{index} = fallback{index}.Length;");
-                sb.AppendLine($"            if (position + fbLen{index} > span.Length)");
-                sb.AppendLine("            {");
-                sb.AppendLine("                // Buffer too small - grow like List<T>");
-                sb.AppendLine("                if (isThreadStatic) ZeroAllocHelper.ReleaseCharBuffer();");
-                sb.AppendLine($"                int newSize{index} = Math.Max(buffer.Length * 2, position + fbLen{index});");
-                sb.AppendLine($"                char[] newBuffer = new char[newSize{index}];");
-                sb.AppendLine("                span.Slice(0, position).CopyTo(newBuffer);");
-                sb.AppendLine("                buffer = newBuffer;");
-                sb.AppendLine("                span = buffer.AsSpan();");
-                sb.AppendLine("                isThreadStatic = false;");
-                sb.AppendLine("            }");
-                sb.AppendLine($"            fallback{index}.AsSpan().CopyTo(span.Slice(position));");
-                sb.AppendLine($"            position += fbLen{index};");
-                sb.AppendLine("        }");
-                sb.AppendLine("        else");
-                sb.AppendLine("        {");
-                sb.AppendLine($"            position += written{index};");
-                sb.AppendLine("        }");
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        if (!((ISpanFormattable){{paramName}}).TryFormat(span.Slice(position), out int written{{index}}, default, {{cultureVar}}))
+                        {
+                            string fallback{{index}} = {{paramName}}.ToString() ?? "";
+                            int fbLen{{index}} = fallback{{index}}.Length;
+                            if (position + fbLen{{index}} > span.Length)
+                            {
+                                // Buffer too small - grow like List<T>
+                                if (isThreadStatic) ZeroAllocHelper.ReleaseCharBuffer();
+                                int newSize{{index}} = Math.Max(buffer.Length * 2, position + fbLen{{index}});
+                                char[] newBuffer = new char[newSize{{index}}];
+                                span.Slice(0, position).CopyTo(newBuffer);
+                                buffer = newBuffer;
+                                span = buffer.AsSpan();
+                                isThreadStatic = false;
+                            }
+                            fallback{{index}}.AsSpan().CopyTo(span.Slice(position));
+                            position += fbLen{{index}};
+                        }
+                        else
+                        {
+                            position += written{{index}};
+                        }
+                """);
                 break;
 
             case TypeCategory.CultureInfo:
-                // CultureInfo is used for formatting, not written to output
-                sb.AppendLine($"        // CultureInfo {paramName} is used for formatting other arguments");
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        // CultureInfo {{paramName}} is used for formatting other arguments
+                """);
                 break;
 
             case TypeCategory.Object:
             default:
-                // Fallback to ToString() with pre-check
-                if (arg.CannotUseNullConditional)
-                {
-                    sb.AppendLine($"        string str{index} = {paramName}.ToString() ?? \"\";");
-                }
-                else
-                {
-                    sb.AppendLine($"        string str{index} = {paramName}?.ToString() ?? \"\";");
-                }
-                sb.AppendLine($"        int strLen{index} = str{index}.Length;");
-                sb.AppendLine($"        if (position + strLen{index} > span.Length)");
-                sb.AppendLine("        {");
-                sb.AppendLine("            // Buffer too small - grow like List<T>");
-                sb.AppendLine("            if (isThreadStatic) ZeroAllocHelper.ReleaseCharBuffer();");
-                sb.AppendLine($"            int newSize{index} = Math.Max(buffer.Length * 2, position + strLen{index});");
-                sb.AppendLine($"            char[] newBuffer = new char[newSize{index}];");
-                sb.AppendLine("            span.Slice(0, position).CopyTo(newBuffer);");
-                sb.AppendLine("            buffer = newBuffer;");
-                sb.AppendLine("            span = buffer.AsSpan();");
-                sb.AppendLine("            isThreadStatic = false;");
-                sb.AppendLine("        }");
-                sb.AppendLine($"        str{index}.AsSpan().CopyTo(span.Slice(position));");
-                sb.AppendLine($"        position += strLen{index};");
+                string toStringAssignment = arg.CannotUseNullConditional
+                    ? $"string str{index} = {paramName}.ToString() ?? \"\";"
+                    : $"string str{index} = {paramName}?.ToString() ?? \"\";";
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        {{toStringAssignment}}
+                        int strLen{{index}} = str{{index}}.Length;
+                        if (position + strLen{{index}} > span.Length)
+                        {
+                            // Buffer too small - grow like List<T>
+                            if (isThreadStatic) ZeroAllocHelper.ReleaseCharBuffer();
+                            int newSize{{index}} = Math.Max(buffer.Length * 2, position + strLen{{index}});
+                            char[] newBuffer = new char[newSize{{index}}];
+                            span.Slice(0, position).CopyTo(newBuffer);
+                            buffer = newBuffer;
+                            span = buffer.AsSpan();
+                            isThreadStatic = false;
+                        }
+                        str{{index}}.AsSpan().CopyTo(span.Slice(position));
+                        position += strLen{{index}};
+                """);
                 break;
         }
     }
@@ -1772,11 +1786,9 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     /// </remarks>
     /// <param name="sb">The string builder to append generated code to.</param>
     /// <param name="args">The argument types for this overload.</param>
-    /// <param name="options">Generator configuration options.</param>
-    private static void GenerateUtf8Method(
+    private static void _GenerateUtf8Method(
         StringBuilder sb,
-        ImmutableArray<ArgumentTypeInfo> args,
-        GeneratorOptions options)
+        ImmutableArray<ArgumentTypeInfo> args)
     {
         List<string> parameters = new List<string>();
         List<string> paramNames = new List<string>();
@@ -1787,42 +1799,50 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
             paramNames.Add(paramName);
         }
 
-        sb.AppendLine("    // ========================================================================");
-        sb.AppendLine("    // Utf8() - Zero-allocation UTF-8 formatting");
-        sb.AppendLine("    // ========================================================================");
-        sb.AppendLine();
-        sb.AppendLine("    /// <summary>");
-        sb.AppendLine("    /// Formats the given values into UTF-8 bytes without heap allocation.");
-        sb.AppendLine("    /// </summary>");
-        for (int i = 0; i < args.Length; i++)
-        {
-            sb.AppendLine($"    /// <param name=\"{paramNames[i]}\">Value of type <see cref=\"{args[i].FullTypeName}\"/>.</param>");
-        }
-        sb.AppendLine("    /// <returns>A <see cref=\"TempBytes\"/> that MUST be disposed with a using statement.</returns>");
-        sb.AppendLine("    [MethodImpl(MethodImplOptions.AggressiveInlining)]");
-        sb.AppendLine($"    internal static TempBytes Utf8({string.Join(", ", parameters)})");
-        sb.AppendLine("    {");
-        sb.AppendLine("        // ----------------------------------------------------------------");
-        sb.AppendLine("        // Acquire buffer (ThreadStatic if available, fallback depends on RecursiveHeapFallback setting)");
-        sb.AppendLine("        // ----------------------------------------------------------------");
-        sb.AppendLine("        byte[] buffer = ZeroAllocHelper.AcquireByteBuffer(DefaultBufferSize, RecursiveHeapFallback, out bool isThreadStatic);");
-        sb.AppendLine("        Span<byte> span = buffer.AsSpan();");
-        sb.AppendLine("        int position = 0;");
-        sb.AppendLine();
-        sb.AppendLine("        // ----------------------------------------------------------------");
-        sb.AppendLine("        // Format each value as UTF-8 directly into the buffer");
-        sb.AppendLine("        // ----------------------------------------------------------------");
+        string paramDocs = string.Join(
+            "\n",
+            Enumerable.Range(0, args.Length)
+                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <see cref=\"{args[i].FullTypeName}\"/>.</param>"));
+        string parameterList = string.Join(", ", parameters);
+
+        BinaryGeneratorHelpers.AppendCode(sb,$$"""
+            // ========================================================================
+            // Utf8() - Zero-allocation UTF-8 formatting
+            // ========================================================================
+
+            /// <summary>
+            /// Formats the given values into UTF-8 bytes without heap allocation.
+            /// </summary>
+            {{paramDocs}}
+            /// <returns>A <see cref="TempBytes"/> that MUST be disposed with a using statement.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            internal static TempBytes Utf8({{parameterList}})
+            {
+                // ----------------------------------------------------------------
+                // Acquire buffer (ThreadStatic if available, fallback depends on RecursiveHeapFallback setting)
+                // ----------------------------------------------------------------
+                byte[] buffer = ZeroAllocHelper.AcquireByteBuffer(DefaultBufferSize, RecursiveHeapFallback, out bool isThreadStatic);
+                Span<byte> span = buffer.AsSpan();
+                int position = 0;
+
+                // ----------------------------------------------------------------
+                // Format each value as UTF-8 directly into the buffer
+                // ----------------------------------------------------------------
+
+            """);
 
         for (int i = 0; i < args.Length; i++)
         {
-            sb.AppendLine();
-            GenerateUtf8FormatCode(sb, args[i], paramNames[i], i);
+            sb.Append('\n');
+            _GenerateUtf8FormatCode(sb, args[i], paramNames[i], i);
         }
 
-        sb.AppendLine();
-        sb.AppendLine("        return new TempBytes(buffer, position, isThreadStatic);");
-        sb.AppendLine("    }");
-        sb.AppendLine();
+        BinaryGeneratorHelpers.AppendCode(sb,"""
+
+                return new TempBytes(buffer, position, isThreadStatic);
+            }
+
+            """);
     }
 
     /// <summary>
@@ -1845,192 +1865,200 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     /// <param name="arg">Type information for the argument.</param>
     /// <param name="paramName">The parameter name in generated code.</param>
     /// <param name="index">The argument index for generating unique variable names.</param>
-    private static void GenerateUtf8FormatCode(
+    private static void _GenerateUtf8FormatCode(
         StringBuilder sb,
         ArgumentTypeInfo arg,
         string paramName,
         int index)
     {
-        // Generate detailed inline comment explaining the formatting strategy
-        sb.AppendLine($"        // ----------------------------------------------------------------");
-        sb.AppendLine($"        // Argument {index}: {arg.FullTypeName}");
-        sb.AppendLine($"        // Strategy: {CommentHelper.GetFormattingStrategy(arg.Category)}");
-        sb.AppendLine($"        // ----------------------------------------------------------------");
+        string formattingStrategy = CommentHelper.GetFormattingStrategy(arg.Category);
+
+        BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                // ----------------------------------------------------------------
+                // Argument {{index}}: {{arg.FullTypeName}}
+                // Strategy: {{formattingStrategy}}
+                // ----------------------------------------------------------------
+
+            """);
 
         switch (arg.Category)
         {
             case TypeCategory.String:
-                // Pre-check byte count before writing
-                sb.AppendLine($"        if ({paramName} is not null)");
-                sb.AppendLine("        {");
-                sb.AppendLine($"            int byteCount{index} = Encoding.UTF8.GetByteCount({paramName});");
-                sb.AppendLine($"            if (position + byteCount{index} > span.Length)");
-                sb.AppendLine("            {");
-                sb.AppendLine("                // Buffer too small - grow like List<T>");
-                sb.AppendLine("                if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();");
-                sb.AppendLine($"                int newSize{index} = Math.Max(buffer.Length * 2, position + byteCount{index});");
-                sb.AppendLine($"                byte[] newBuffer = new byte[newSize{index}];");
-                sb.AppendLine("                span.Slice(0, position).CopyTo(newBuffer);");
-                sb.AppendLine("                buffer = newBuffer;");
-                sb.AppendLine("                span = buffer.AsSpan();");
-                sb.AppendLine("                isThreadStatic = false;");
-                sb.AppendLine("            }");
-                sb.AppendLine($"            position += Encoding.UTF8.GetBytes({paramName}, span.Slice(position));");
-                sb.AppendLine("        }");
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        if ({{paramName}} is not null)
+                        {
+                            int byteCount{{index}} = Encoding.UTF8.GetByteCount({{paramName}});
+                            if (position + byteCount{{index}} > span.Length)
+                            {
+                                // Buffer too small - grow like List<T>
+                                if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();
+                                int newSize{{index}} = Math.Max(buffer.Length * 2, position + byteCount{{index}});
+                                byte[] newBuffer = new byte[newSize{{index}}];
+                                span.Slice(0, position).CopyTo(newBuffer);
+                                buffer = newBuffer;
+                                span = buffer.AsSpan();
+                                isThreadStatic = false;
+                            }
+                            position += Encoding.UTF8.GetBytes({{paramName}}, span.Slice(position));
+                        }
+                """);
                 break;
 
             case TypeCategory.Char:
-                // Single char to UTF-8 - max 4 bytes, pre-check
-                sb.AppendLine("        if (position + 4 > span.Length)");
-                sb.AppendLine("        {");
-                sb.AppendLine("            // Buffer too small - grow like List<T>");
-                sb.AppendLine("            if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();");
-                sb.AppendLine("            byte[] newBuffer = new byte[buffer.Length * 2];");
-                sb.AppendLine("            span.Slice(0, position).CopyTo(newBuffer);");
-                sb.AppendLine("            buffer = newBuffer;");
-                sb.AppendLine("            span = buffer.AsSpan();");
-                sb.AppendLine("            isThreadStatic = false;");
-                sb.AppendLine("        }");
-                sb.AppendLine($"        Span<char> charSpan{index} = stackalloc char[1] {{ {paramName} }};");
-                sb.AppendLine($"        position += Encoding.UTF8.GetBytes(charSpan{index}, span.Slice(position));");
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        if (position + 4 > span.Length)
+                        {
+                            // Buffer too small - grow like List<T>
+                            if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();
+                            byte[] newBuffer = new byte[buffer.Length * 2];
+                            span.Slice(0, position).CopyTo(newBuffer);
+                            buffer = newBuffer;
+                            span = buffer.AsSpan();
+                            isThreadStatic = false;
+                        }
+                        Span<char> charSpan{{index}} = stackalloc char[1] { {{paramName}} };
+                        position += Encoding.UTF8.GetBytes(charSpan{{index}}, span.Slice(position));
+                """);
                 break;
 
             case TypeCategory.Boolean:
-                // Pre-check for boolean (4 or 5 bytes)
-                sb.AppendLine($"        int boolLen{index} = {paramName} ? 4 : 5;");
-                sb.AppendLine($"        if (position + boolLen{index} > span.Length)");
-                sb.AppendLine("        {");
-                sb.AppendLine("            // Buffer too small - grow like List<T>");
-                sb.AppendLine("            if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();");
-                sb.AppendLine($"            int newSize{index} = Math.Max(buffer.Length * 2, position + boolLen{index});");
-                sb.AppendLine($"            byte[] newBuffer = new byte[newSize{index}];");
-                sb.AppendLine("            span.Slice(0, position).CopyTo(newBuffer);");
-                sb.AppendLine("            buffer = newBuffer;");
-                sb.AppendLine("            span = buffer.AsSpan();");
-                sb.AppendLine("            isThreadStatic = false;");
-                sb.AppendLine("        }");
-                sb.AppendLine($"        ({paramName} ? \"True\"u8 : \"False\"u8).CopyTo(span.Slice(position));");
-                sb.AppendLine($"        position += boolLen{index};");
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        int boolLen{{index}} = {{paramName}} ? 4 : 5;
+                        if (position + boolLen{{index}} > span.Length)
+                        {
+                            // Buffer too small - grow like List<T>
+                            if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();
+                            int newSize{{index}} = Math.Max(buffer.Length * 2, position + boolLen{{index}});
+                            byte[] newBuffer = new byte[newSize{{index}}];
+                            span.Slice(0, position).CopyTo(newBuffer);
+                            buffer = newBuffer;
+                            span = buffer.AsSpan();
+                            isThreadStatic = false;
+                        }
+                        ({{paramName}} ? "True"u8 : "False"u8).CopyTo(span.Slice(position));
+                        position += boolLen{{index}};
+                """);
                 break;
 
             case TypeCategory.Utf8SpanFormattable:
-                // Direct UTF-8 formatting - TryFormat returns false on overflow
-                sb.AppendLine($"        if (!{paramName}.TryFormat(span.Slice(position), out int written{index}, default, CultureInfo.InvariantCulture))");
-                sb.AppendLine("        {");
-                sb.AppendLine($"            string utf8Fallback{index} = {paramName}.ToString() ?? \"\";");
-                sb.AppendLine($"            int neededBytes{index} = Encoding.UTF8.GetByteCount(utf8Fallback{index});");
-                sb.AppendLine($"            if (position + neededBytes{index} > span.Length)");
-                sb.AppendLine("            {");
-                sb.AppendLine("                // Buffer too small - grow like List<T>");
-                sb.AppendLine("                if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();");
-                sb.AppendLine($"                int newSize{index} = Math.Max(buffer.Length * 2, position + neededBytes{index});");
-                sb.AppendLine($"                byte[] newBuffer = new byte[newSize{index}];");
-                sb.AppendLine("                span.Slice(0, position).CopyTo(newBuffer);");
-                sb.AppendLine("                buffer = newBuffer;");
-                sb.AppendLine("                span = buffer.AsSpan();");
-                sb.AppendLine("                isThreadStatic = false;");
-                sb.AppendLine("            }");
-                sb.AppendLine($"            position += Encoding.UTF8.GetBytes(utf8Fallback{index}, span.Slice(position));");
-                sb.AppendLine("        }");
-                sb.AppendLine("        else");
-                sb.AppendLine("        {");
-                sb.AppendLine($"            position += written{index};");
-                sb.AppendLine("        }");
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        if (!{{paramName}}.TryFormat(span.Slice(position), out int written{{index}}, default, CultureInfo.InvariantCulture))
+                        {
+                            string utf8Fallback{{index}} = {{paramName}}.ToString() ?? "";
+                            int neededBytes{{index}} = Encoding.UTF8.GetByteCount(utf8Fallback{{index}});
+                            if (position + neededBytes{{index}} > span.Length)
+                            {
+                                // Buffer too small - grow like List<T>
+                                if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();
+                                int newSize{{index}} = Math.Max(buffer.Length * 2, position + neededBytes{{index}});
+                                byte[] newBuffer = new byte[newSize{{index}}];
+                                span.Slice(0, position).CopyTo(newBuffer);
+                                buffer = newBuffer;
+                                span = buffer.AsSpan();
+                                isThreadStatic = false;
+                            }
+                            position += Encoding.UTF8.GetBytes(utf8Fallback{{index}}, span.Slice(position));
+                        }
+                        else
+                        {
+                            position += written{{index}};
+                        }
+                """);
                 break;
 
             case TypeCategory.SpanFormattable:
-                // Format to char first, then convert to UTF-8 - with pre-check
-                sb.AppendLine($"        Span<char> charBuf{index} = stackalloc char[64];");
-                sb.AppendLine($"        if (((ISpanFormattable){paramName}).TryFormat(charBuf{index}, out int charWritten{index}, default, CultureInfo.InvariantCulture))");
-                sb.AppendLine("        {");
-                sb.AppendLine($"            int byteCount{index} = Encoding.UTF8.GetByteCount(charBuf{index}.Slice(0, charWritten{index}));");
-                sb.AppendLine($"            if (position + byteCount{index} > span.Length)");
-                sb.AppendLine("            {");
-                sb.AppendLine("                // Buffer too small - grow like List<T>");
-                sb.AppendLine("                if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();");
-                sb.AppendLine($"                int newSize{index} = Math.Max(buffer.Length * 2, position + byteCount{index});");
-                sb.AppendLine($"                byte[] newBuffer = new byte[newSize{index}];");
-                sb.AppendLine("                span.Slice(0, position).CopyTo(newBuffer);");
-                sb.AppendLine("                buffer = newBuffer;");
-                sb.AppendLine("                span = buffer.AsSpan();");
-                sb.AppendLine("                isThreadStatic = false;");
-                sb.AppendLine("            }");
-                sb.AppendLine($"            position += Encoding.UTF8.GetBytes(charBuf{index}.Slice(0, charWritten{index}), span.Slice(position));");
-                sb.AppendLine("        }");
-                sb.AppendLine("        else");
-                sb.AppendLine("        {");
-                sb.AppendLine($"            string spanFallback{index} = {paramName}.ToString() ?? \"\";");
-                sb.AppendLine($"            int fbByteCount{index} = Encoding.UTF8.GetByteCount(spanFallback{index});");
-                sb.AppendLine($"            if (position + fbByteCount{index} > span.Length)");
-                sb.AppendLine("            {");
-                sb.AppendLine("                // Buffer too small - grow like List<T>");
-                sb.AppendLine("                if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();");
-                sb.AppendLine($"                int newSize{index} = Math.Max(buffer.Length * 2, position + fbByteCount{index});");
-                sb.AppendLine($"                byte[] newBuffer = new byte[newSize{index}];");
-                sb.AppendLine("                span.Slice(0, position).CopyTo(newBuffer);");
-                sb.AppendLine("                buffer = newBuffer;");
-                sb.AppendLine("                span = buffer.AsSpan();");
-                sb.AppendLine("                isThreadStatic = false;");
-                sb.AppendLine("            }");
-                sb.AppendLine($"            position += Encoding.UTF8.GetBytes(spanFallback{index}, span.Slice(position));");
-                sb.AppendLine("        }");
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        Span<char> charBuf{{index}} = stackalloc char[64];
+                        if (((ISpanFormattable){{paramName}}).TryFormat(charBuf{{index}}, out int charWritten{{index}}, default, CultureInfo.InvariantCulture))
+                        {
+                            int byteCount{{index}} = Encoding.UTF8.GetByteCount(charBuf{{index}}.Slice(0, charWritten{{index}}));
+                            if (position + byteCount{{index}} > span.Length)
+                            {
+                                // Buffer too small - grow like List<T>
+                                if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();
+                                int newSize{{index}} = Math.Max(buffer.Length * 2, position + byteCount{{index}});
+                                byte[] newBuffer = new byte[newSize{{index}}];
+                                span.Slice(0, position).CopyTo(newBuffer);
+                                buffer = newBuffer;
+                                span = buffer.AsSpan();
+                                isThreadStatic = false;
+                            }
+                            position += Encoding.UTF8.GetBytes(charBuf{{index}}.Slice(0, charWritten{{index}}), span.Slice(position));
+                        }
+                        else
+                        {
+                            string spanFallback{{index}} = {{paramName}}.ToString() ?? "";
+                            int fbByteCount{{index}} = Encoding.UTF8.GetByteCount(spanFallback{{index}});
+                            if (position + fbByteCount{{index}} > span.Length)
+                            {
+                                // Buffer too small - grow like List<T>
+                                if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();
+                                int newSize{{index}} = Math.Max(buffer.Length * 2, position + fbByteCount{{index}});
+                                byte[] newBuffer = new byte[newSize{{index}}];
+                                span.Slice(0, position).CopyTo(newBuffer);
+                                buffer = newBuffer;
+                                span = buffer.AsSpan();
+                                isThreadStatic = false;
+                            }
+                            position += Encoding.UTF8.GetBytes(spanFallback{{index}}, span.Slice(position));
+                        }
+                """);
                 break;
 
             case TypeCategory.BinarySerializable:
-                // Direct binary serialization using TryWrite
-                sb.AppendLine($"        // IBinarySerializable: {arg.FullTypeName}");
-                sb.AppendLine($"        if (!((IBinarySerializable){paramName}).TryWrite(span.Slice(position), out int written{index}))");
-                sb.AppendLine("        {");
-                sb.AppendLine("            throw new InvalidOperationException(\"Buffer too small for IBinarySerializable value.\");");
-                sb.AppendLine("        }");
-                sb.AppendLine($"        position += written{index};");
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        // IBinarySerializable: {{arg.FullTypeName}}
+                        if (!((IBinarySerializable){{paramName}}).TryWrite(span.Slice(position), out int written{{index}}))
+                        {
+                            throw new InvalidOperationException("Buffer too small for IBinarySerializable value.");
+                        }
+                        position += written{{index}};
+                """);
                 break;
 
             case TypeCategory.RawBytes:
-                // Direct raw bytes copy using TryFormat (Raw ref struct has TryFormat method)
-                sb.AppendLine($"        // Raw bytes: {arg.FullTypeName}");
-                sb.AppendLine($"        if (!{paramName}.TryFormat(span.Slice(position), out int rawWritten{index}, default, null))");
-                sb.AppendLine("        {");
-                sb.AppendLine("            // Buffer too small - grow");
-                sb.AppendLine("            if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();");
-                sb.AppendLine($"            int newSize{index} = Math.Max(buffer.Length * 2, position + {paramName}.Size);");
-                sb.AppendLine($"            byte[] newBuffer = new byte[newSize{index}];");
-                sb.AppendLine("            span.Slice(0, position).CopyTo(newBuffer);");
-                sb.AppendLine("            buffer = newBuffer;");
-                sb.AppendLine("            span = buffer.AsSpan();");
-                sb.AppendLine("            isThreadStatic = false;");
-                sb.AppendLine($"            if (!{paramName}.TryFormat(span.Slice(position), out rawWritten{index}, default, null))");
-                sb.AppendLine("            {");
-                sb.AppendLine("                throw new InvalidOperationException(\"Buffer too small for Raw value after resize.\");");
-                sb.AppendLine("            }");
-                sb.AppendLine("        }");
-                sb.AppendLine($"        position += rawWritten{index};");
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        // Raw bytes: {{arg.FullTypeName}}
+                        if (!{{paramName}}.TryFormat(span.Slice(position), out int rawWritten{{index}}, default, null))
+                        {
+                            // Buffer too small - grow
+                            if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();
+                            int newSize{{index}} = Math.Max(buffer.Length * 2, position + {{paramName}}.Size);
+                            byte[] newBuffer = new byte[newSize{{index}}];
+                            span.Slice(0, position).CopyTo(newBuffer);
+                            buffer = newBuffer;
+                            span = buffer.AsSpan();
+                            isThreadStatic = false;
+                            if (!{{paramName}}.TryFormat(span.Slice(position), out rawWritten{{index}}, default, null))
+                            {
+                                throw new InvalidOperationException("Buffer too small for Raw value after resize.");
+                            }
+                        }
+                        position += rawWritten{{index}};
+                """);
                 break;
 
             case TypeCategory.Object:
             default:
-                // Fallback to ToString() with pre-check
-                if (arg.CannotUseNullConditional)
-                {
-                    sb.AppendLine($"        string str{index} = {paramName}.ToString() ?? \"\";");
-                }
-                else
-                {
-                    sb.AppendLine($"        string str{index} = {paramName}?.ToString() ?? \"\";");
-                }
-                sb.AppendLine($"        int strByteCount{index} = Encoding.UTF8.GetByteCount(str{index});");
-                sb.AppendLine($"        if (position + strByteCount{index} > span.Length)");
-                sb.AppendLine("        {");
-                sb.AppendLine("            // Buffer too small - grow like List<T>");
-                sb.AppendLine("            if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();");
-                sb.AppendLine($"            int newSize{index} = Math.Max(buffer.Length * 2, position + strByteCount{index});");
-                sb.AppendLine($"            byte[] newBuffer = new byte[newSize{index}];");
-                sb.AppendLine("            span.Slice(0, position).CopyTo(newBuffer);");
-                sb.AppendLine("            buffer = newBuffer;");
-                sb.AppendLine("            span = buffer.AsSpan();");
-                sb.AppendLine("            isThreadStatic = false;");
-                sb.AppendLine("        }");
-                sb.AppendLine($"        position += Encoding.UTF8.GetBytes(str{index}, span.Slice(position));");
+                string toStringAssignment = arg.CannotUseNullConditional
+                    ? $"string str{index} = {paramName}.ToString() ?? \"\";"
+                    : $"string str{index} = {paramName}?.ToString() ?? \"\";";
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        {{toStringAssignment}}
+                        int strByteCount{{index}} = Encoding.UTF8.GetByteCount(str{{index}});
+                        if (position + strByteCount{{index}} > span.Length)
+                        {
+                            // Buffer too small - grow like List<T>
+                            if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();
+                            int newSize{{index}} = Math.Max(buffer.Length * 2, position + strByteCount{{index}});
+                            byte[] newBuffer = new byte[newSize{{index}}];
+                            span.Slice(0, position).CopyTo(newBuffer);
+                            buffer = newBuffer;
+                            span = buffer.AsSpan();
+                            isThreadStatic = false;
+                        }
+                        position += Encoding.UTF8.GetBytes(str{{index}}, span.Slice(position));
+                """);
                 break;
         }
     }
@@ -2039,152 +2067,161 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     /// Generates UTF-8 formatting code with culture-sensitive formatting.
     /// Similar to GenerateUtf8FormatCode but uses the specified format provider.
     /// </summary>
-    private static void GenerateUtf8FormatCodeWithCulture(
+    private static void _GenerateUtf8FormatCodeWithCulture(
         StringBuilder sb,
         ArgumentTypeInfo arg,
         string paramName,
         int index,
         string cultureVar)
     {
-        sb.AppendLine($"        // ----------------------------------------------------------------");
-        sb.AppendLine($"        // Argument {index}: {arg.FullTypeName} (culture-sensitive)");
-        sb.AppendLine($"        // Strategy: {CommentHelper.GetFormattingStrategy(arg.Category)}");
-        sb.AppendLine($"        // ----------------------------------------------------------------");
+        string formattingStrategy = CommentHelper.GetFormattingStrategy(arg.Category);
+
+        BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                // ----------------------------------------------------------------
+                // Argument {{index}}: {{arg.FullTypeName}} (culture-sensitive)
+                // Strategy: {{formattingStrategy}}
+                // ----------------------------------------------------------------
+
+            """);
 
         switch (arg.Category)
         {
             case TypeCategory.String:
-                // Pre-check byte count before writing
-                sb.AppendLine($"        if ({paramName} is not null)");
-                sb.AppendLine("        {");
-                sb.AppendLine($"            int byteCount{index} = Encoding.UTF8.GetByteCount({paramName});");
-                sb.AppendLine($"            if (position + byteCount{index} > span.Length)");
-                sb.AppendLine("            {");
-                sb.AppendLine("                if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();");
-                sb.AppendLine($"                int newSize{index} = Math.Max(buffer.Length * 2, position + byteCount{index});");
-                sb.AppendLine($"                byte[] newBuffer = new byte[newSize{index}];");
-                sb.AppendLine("                span.Slice(0, position).CopyTo(newBuffer);");
-                sb.AppendLine("                buffer = newBuffer;");
-                sb.AppendLine("                span = buffer.AsSpan();");
-                sb.AppendLine("                isThreadStatic = false;");
-                sb.AppendLine("            }");
-                sb.AppendLine($"            position += Encoding.UTF8.GetBytes({paramName}, span.Slice(position));");
-                sb.AppendLine("        }");
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        if ({{paramName}} is not null)
+                        {
+                            int byteCount{{index}} = Encoding.UTF8.GetByteCount({{paramName}});
+                            if (position + byteCount{{index}} > span.Length)
+                            {
+                                if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();
+                                int newSize{{index}} = Math.Max(buffer.Length * 2, position + byteCount{{index}});
+                                byte[] newBuffer = new byte[newSize{{index}}];
+                                span.Slice(0, position).CopyTo(newBuffer);
+                                buffer = newBuffer;
+                                span = buffer.AsSpan();
+                                isThreadStatic = false;
+                            }
+                            position += Encoding.UTF8.GetBytes({{paramName}}, span.Slice(position));
+                        }
+                """);
                 break;
 
             case TypeCategory.Char:
-                sb.AppendLine("        if (position + 4 > span.Length)");
-                sb.AppendLine("        {");
-                sb.AppendLine("            if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();");
-                sb.AppendLine("            byte[] newBuffer = new byte[buffer.Length * 2];");
-                sb.AppendLine("            span.Slice(0, position).CopyTo(newBuffer);");
-                sb.AppendLine("            buffer = newBuffer;");
-                sb.AppendLine("            span = buffer.AsSpan();");
-                sb.AppendLine("            isThreadStatic = false;");
-                sb.AppendLine("        }");
-                sb.AppendLine($"        Span<char> charSpan{index} = stackalloc char[1] {{ {paramName} }};");
-                sb.AppendLine($"        position += Encoding.UTF8.GetBytes(charSpan{index}, span.Slice(position));");
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        if (position + 4 > span.Length)
+                        {
+                            if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();
+                            byte[] newBuffer = new byte[buffer.Length * 2];
+                            span.Slice(0, position).CopyTo(newBuffer);
+                            buffer = newBuffer;
+                            span = buffer.AsSpan();
+                            isThreadStatic = false;
+                        }
+                        Span<char> charSpan{{index}} = stackalloc char[1] { {{paramName}} };
+                        position += Encoding.UTF8.GetBytes(charSpan{{index}}, span.Slice(position));
+                """);
                 break;
 
             case TypeCategory.Boolean:
-                sb.AppendLine($"        int boolLen{index} = {paramName} ? 4 : 5;");
-                sb.AppendLine($"        if (position + boolLen{index} > span.Length)");
-                sb.AppendLine("        {");
-                sb.AppendLine("            if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();");
-                sb.AppendLine($"            int newSize{index} = Math.Max(buffer.Length * 2, position + boolLen{index});");
-                sb.AppendLine($"            byte[] newBuffer = new byte[newSize{index}];");
-                sb.AppendLine("            span.Slice(0, position).CopyTo(newBuffer);");
-                sb.AppendLine("            buffer = newBuffer;");
-                sb.AppendLine("            span = buffer.AsSpan();");
-                sb.AppendLine("            isThreadStatic = false;");
-                sb.AppendLine("        }");
-                sb.AppendLine($"        ({paramName} ? \"True\"u8 : \"False\"u8).CopyTo(span.Slice(position));");
-                sb.AppendLine($"        position += boolLen{index};");
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        int boolLen{{index}} = {{paramName}} ? 4 : 5;
+                        if (position + boolLen{{index}} > span.Length)
+                        {
+                            if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();
+                            int newSize{{index}} = Math.Max(buffer.Length * 2, position + boolLen{{index}});
+                            byte[] newBuffer = new byte[newSize{{index}}];
+                            span.Slice(0, position).CopyTo(newBuffer);
+                            buffer = newBuffer;
+                            span = buffer.AsSpan();
+                            isThreadStatic = false;
+                        }
+                        ({{paramName}} ? "True"u8 : "False"u8).CopyTo(span.Slice(position));
+                        position += boolLen{{index}};
+                """);
                 break;
 
             case TypeCategory.Utf8SpanFormattable:
-                // Direct UTF-8 formatting with culture
-                sb.AppendLine($"        if (!{paramName}.TryFormat(span.Slice(position), out int written{index}, default, {cultureVar}))");
-                sb.AppendLine("        {");
-                sb.AppendLine($"            string utf8Fallback{index} = {paramName}.ToString() ?? \"\";");
-                sb.AppendLine($"            int neededBytes{index} = Encoding.UTF8.GetByteCount(utf8Fallback{index});");
-                sb.AppendLine($"            if (position + neededBytes{index} > span.Length)");
-                sb.AppendLine("            {");
-                sb.AppendLine("                if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();");
-                sb.AppendLine($"                int newSize{index} = Math.Max(buffer.Length * 2, position + neededBytes{index});");
-                sb.AppendLine($"                byte[] newBuffer = new byte[newSize{index}];");
-                sb.AppendLine("                span.Slice(0, position).CopyTo(newBuffer);");
-                sb.AppendLine("                buffer = newBuffer;");
-                sb.AppendLine("                span = buffer.AsSpan();");
-                sb.AppendLine("                isThreadStatic = false;");
-                sb.AppendLine("            }");
-                sb.AppendLine($"            position += Encoding.UTF8.GetBytes(utf8Fallback{index}, span.Slice(position));");
-                sb.AppendLine("        }");
-                sb.AppendLine("        else");
-                sb.AppendLine("        {");
-                sb.AppendLine($"            position += written{index};");
-                sb.AppendLine("        }");
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        if (!{{paramName}}.TryFormat(span.Slice(position), out int written{{index}}, default, {{cultureVar}}))
+                        {
+                            string utf8Fallback{{index}} = {{paramName}}.ToString() ?? "";
+                            int neededBytes{{index}} = Encoding.UTF8.GetByteCount(utf8Fallback{{index}});
+                            if (position + neededBytes{{index}} > span.Length)
+                            {
+                                if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();
+                                int newSize{{index}} = Math.Max(buffer.Length * 2, position + neededBytes{{index}});
+                                byte[] newBuffer = new byte[newSize{{index}}];
+                                span.Slice(0, position).CopyTo(newBuffer);
+                                buffer = newBuffer;
+                                span = buffer.AsSpan();
+                                isThreadStatic = false;
+                            }
+                            position += Encoding.UTF8.GetBytes(utf8Fallback{{index}}, span.Slice(position));
+                        }
+                        else
+                        {
+                            position += written{{index}};
+                        }
+                """);
                 break;
 
             case TypeCategory.SpanFormattable:
-                // Format to char first with culture, then convert to UTF-8
-                sb.AppendLine($"        Span<char> charBuf{index} = stackalloc char[64];");
-                sb.AppendLine($"        if (((ISpanFormattable){paramName}).TryFormat(charBuf{index}, out int charWritten{index}, default, {cultureVar}))");
-                sb.AppendLine("        {");
-                sb.AppendLine($"            int byteCount{index} = Encoding.UTF8.GetByteCount(charBuf{index}.Slice(0, charWritten{index}));");
-                sb.AppendLine($"            if (position + byteCount{index} > span.Length)");
-                sb.AppendLine("            {");
-                sb.AppendLine("                if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();");
-                sb.AppendLine($"                int newSize{index} = Math.Max(buffer.Length * 2, position + byteCount{index});");
-                sb.AppendLine($"                byte[] newBuffer = new byte[newSize{index}];");
-                sb.AppendLine("                span.Slice(0, position).CopyTo(newBuffer);");
-                sb.AppendLine("                buffer = newBuffer;");
-                sb.AppendLine("                span = buffer.AsSpan();");
-                sb.AppendLine("                isThreadStatic = false;");
-                sb.AppendLine("            }");
-                sb.AppendLine($"            position += Encoding.UTF8.GetBytes(charBuf{index}.Slice(0, charWritten{index}), span.Slice(position));");
-                sb.AppendLine("        }");
-                sb.AppendLine("        else");
-                sb.AppendLine("        {");
-                sb.AppendLine($"            string spanFallback{index} = {paramName}.ToString() ?? \"\";");
-                sb.AppendLine($"            int fbByteCount{index} = Encoding.UTF8.GetByteCount(spanFallback{index});");
-                sb.AppendLine($"            if (position + fbByteCount{index} > span.Length)");
-                sb.AppendLine("            {");
-                sb.AppendLine("                if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();");
-                sb.AppendLine($"                int newSize{index} = Math.Max(buffer.Length * 2, position + fbByteCount{index});");
-                sb.AppendLine($"                byte[] newBuffer = new byte[newSize{index}];");
-                sb.AppendLine("                span.Slice(0, position).CopyTo(newBuffer);");
-                sb.AppendLine("                buffer = newBuffer;");
-                sb.AppendLine("                span = buffer.AsSpan();");
-                sb.AppendLine("                isThreadStatic = false;");
-                sb.AppendLine("            }");
-                sb.AppendLine($"            position += Encoding.UTF8.GetBytes(spanFallback{index}, span.Slice(position));");
-                sb.AppendLine("        }");
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        Span<char> charBuf{{index}} = stackalloc char[64];
+                        if (((ISpanFormattable){{paramName}}).TryFormat(charBuf{{index}}, out int charWritten{{index}}, default, {{cultureVar}}))
+                        {
+                            int byteCount{{index}} = Encoding.UTF8.GetByteCount(charBuf{{index}}.Slice(0, charWritten{{index}}));
+                            if (position + byteCount{{index}} > span.Length)
+                            {
+                                if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();
+                                int newSize{{index}} = Math.Max(buffer.Length * 2, position + byteCount{{index}});
+                                byte[] newBuffer = new byte[newSize{{index}}];
+                                span.Slice(0, position).CopyTo(newBuffer);
+                                buffer = newBuffer;
+                                span = buffer.AsSpan();
+                                isThreadStatic = false;
+                            }
+                            position += Encoding.UTF8.GetBytes(charBuf{{index}}.Slice(0, charWritten{{index}}), span.Slice(position));
+                        }
+                        else
+                        {
+                            string spanFallback{{index}} = {{paramName}}.ToString() ?? "";
+                            int fbByteCount{{index}} = Encoding.UTF8.GetByteCount(spanFallback{{index}});
+                            if (position + fbByteCount{{index}} > span.Length)
+                            {
+                                if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();
+                                int newSize{{index}} = Math.Max(buffer.Length * 2, position + fbByteCount{{index}});
+                                byte[] newBuffer = new byte[newSize{{index}}];
+                                span.Slice(0, position).CopyTo(newBuffer);
+                                buffer = newBuffer;
+                                span = buffer.AsSpan();
+                                isThreadStatic = false;
+                            }
+                            position += Encoding.UTF8.GetBytes(spanFallback{{index}}, span.Slice(position));
+                        }
+                """);
                 break;
 
             case TypeCategory.Object:
             default:
-                // Fallback to ToString()
-                if (arg.CannotUseNullConditional)
-                {
-                    sb.AppendLine($"        string str{index} = {paramName}.ToString() ?? \"\";");
-                }
-                else
-                {
-                    sb.AppendLine($"        string str{index} = {paramName}?.ToString() ?? \"\";");
-                }
-                sb.AppendLine($"        int strByteCount{index} = Encoding.UTF8.GetByteCount(str{index});");
-                sb.AppendLine($"        if (position + strByteCount{index} > span.Length)");
-                sb.AppendLine("        {");
-                sb.AppendLine("            if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();");
-                sb.AppendLine($"            int newSize{index} = Math.Max(buffer.Length * 2, position + strByteCount{index});");
-                sb.AppendLine($"            byte[] newBuffer = new byte[newSize{index}];");
-                sb.AppendLine("            span.Slice(0, position).CopyTo(newBuffer);");
-                sb.AppendLine("            buffer = newBuffer;");
-                sb.AppendLine("            span = buffer.AsSpan();");
-                sb.AppendLine("            isThreadStatic = false;");
-                sb.AppendLine("        }");
-                sb.AppendLine($"        position += Encoding.UTF8.GetBytes(str{index}, span.Slice(position));");
+                string toStringAssignment = arg.CannotUseNullConditional
+                    ? $"string str{index} = {paramName}.ToString() ?? \"\";"
+                    : $"string str{index} = {paramName}?.ToString() ?? \"\";";
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        {{toStringAssignment}}
+                        int strByteCount{{index}} = Encoding.UTF8.GetByteCount(str{{index}});
+                        if (position + strByteCount{{index}} > span.Length)
+                        {
+                            if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();
+                            int newSize{{index}} = Math.Max(buffer.Length * 2, position + strByteCount{{index}});
+                            byte[] newBuffer = new byte[newSize{{index}}];
+                            span.Slice(0, position).CopyTo(newBuffer);
+                            buffer = newBuffer;
+                            span = buffer.AsSpan();
+                            isThreadStatic = false;
+                        }
+                        position += Encoding.UTF8.GetBytes(str{{index}}, span.Slice(position));
+                """);
                 break;
         }
     }
@@ -2201,11 +2238,9 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     /// </summary>
     /// <param name="sb">The string builder to append generated code to.</param>
     /// <param name="args">The argument types for this overload.</param>
-    /// <param name="options">Generator configuration options.</param>
-    private static void GenerateTryUtf8Method(
+    private static void _GenerateTryUtf8Method(
         StringBuilder sb,
-        ImmutableArray<ArgumentTypeInfo> args,
-        GeneratorOptions options)
+        ImmutableArray<ArgumentTypeInfo> args)
     {
         List<string> parameters = new List<string> { "out TempBytes result" };
         List<string> paramNames = new List<string>();
@@ -2216,42 +2251,58 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
             paramNames.Add(paramName);
         }
 
-        sb.AppendLine("    // ========================================================================");
-        sb.AppendLine("    // TryUtf8() - Safe zero-allocation UTF-8 formatting");
-        sb.AppendLine("    // ========================================================================");
-        sb.AppendLine();
-        sb.AppendLine("    /// <summary>");
-        sb.AppendLine("    /// Tries to format the given values into UTF-8 bytes.");
-        sb.AppendLine("    /// </summary>");
-        sb.AppendLine("    [MethodImpl(MethodImplOptions.AggressiveInlining)]");
-        sb.AppendLine($"    internal static bool TryUtf8({string.Join(", ", parameters)})");
-        sb.AppendLine("    {");
-        sb.AppendLine("        // ----------------------------------------------------------------");
-        sb.AppendLine("        // Try to acquire buffer (respects RecursiveHeapFallback setting)");
-        sb.AppendLine("        // ----------------------------------------------------------------");
-        sb.AppendLine("        if (!RecursiveHeapFallback && !ZeroAllocHelper.IsByteBufferAvailable())");
-        sb.AppendLine("        {");
-        sb.AppendLine("            result = default;");
-        sb.AppendLine("            return false;");
-        sb.AppendLine("        }");
-        sb.AppendLine();
-        sb.AppendLine("        byte[] buffer = ZeroAllocHelper.AcquireByteBuffer(DefaultBufferSize, RecursiveHeapFallback, out bool isThreadStatic);");
-        sb.AppendLine("        Span<byte> span = buffer.AsSpan();");
-        sb.AppendLine("        int position = 0;");
-        sb.AppendLine();
+        string paramDocs = string.Join(
+            "\n",
+            Enumerable.Range(0, args.Length)
+                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <see cref=\"{args[i].FullTypeName}\"/>.</param>"));
+        string parameterList = string.Join(", ", parameters);
 
-        // Similar formatting logic with error handling
+        BinaryGeneratorHelpers.AppendCode(sb,$$"""
+            // ========================================================================
+            // TryUtf8() - Safe zero-allocation UTF-8 formatting
+            // ========================================================================
+
+            /// <summary>
+            /// Tries to format the given values into UTF-8 bytes.
+            /// </summary>
+            /// <param name="result">The resulting TempBytes if successful.</param>
+            {{paramDocs}}
+            /// <returns><c>true</c> on success; <c>false</c> if RecursiveHeapFallback is disabled and buffer is busy.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            internal static bool TryUtf8({{parameterList}})
+            {
+                // ----------------------------------------------------------------
+                // Try to acquire buffer (respects RecursiveHeapFallback setting)
+                // ----------------------------------------------------------------
+                if (!RecursiveHeapFallback && !ZeroAllocHelper.IsByteBufferAvailable())
+                {
+                    result = default;
+                    return false;
+                }
+
+                byte[] buffer = ZeroAllocHelper.AcquireByteBuffer(DefaultBufferSize, RecursiveHeapFallback, out bool isThreadStatic);
+                Span<byte> span = buffer.AsSpan();
+                int position = 0;
+
+                // ----------------------------------------------------------------
+                // Format each value as UTF-8 directly into the buffer
+                // ----------------------------------------------------------------
+
+            """);
+
         for (int i = 0; i < args.Length; i++)
         {
-            sb.AppendLine();
-            GenerateTryUtf8FormatCode(sb, args[i], paramNames[i], i);
+            sb.Append('\n');
+            _GenerateTryUtf8FormatCode(sb, args[i], paramNames[i], i);
         }
 
-        sb.AppendLine();
-        sb.AppendLine("        result = new TempBytes(buffer, position, isThreadStatic);");
-        sb.AppendLine("        return true;");
-        sb.AppendLine("    }");
-        sb.AppendLine();
+        BinaryGeneratorHelpers.AppendCode(sb,"""
+
+                result = new TempBytes(buffer, position, isThreadStatic);
+                return true;
+            }
+
+            """);
     }
 
     /// <summary>
@@ -2261,128 +2312,134 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     /// Similar to <see cref="GenerateUtf8FormatCode"/> but used in TryUtf8
     /// where buffer growth is always attempted instead of throwing.
     /// </remarks>
-    private static void GenerateTryUtf8FormatCode(
+    private static void _GenerateTryUtf8FormatCode(
         StringBuilder sb,
         ArgumentTypeInfo arg,
         string paramName,
         int index)
     {
-        // Generate detailed inline comment explaining the formatting strategy
-        sb.AppendLine($"        // ----------------------------------------------------------------");
-        sb.AppendLine($"        // Argument {index}: {arg.FullTypeName}");
-        sb.AppendLine($"        // Strategy: {CommentHelper.GetFormattingStrategy(arg.Category)}");
-        sb.AppendLine($"        // ----------------------------------------------------------------");
+        string formattingStrategy = CommentHelper.GetFormattingStrategy(arg.Category);
+
+        BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                // ----------------------------------------------------------------
+                // Argument {{index}}: {{arg.FullTypeName}}
+                // Strategy: {{formattingStrategy}}
+                // ----------------------------------------------------------------
+
+            """);
 
         switch (arg.Category)
         {
             case TypeCategory.String:
-                // Pre-check byte count before writing
-                sb.AppendLine($"        if ({paramName} is not null)");
-                sb.AppendLine("        {");
-                sb.AppendLine($"            int byteCount{index} = Encoding.UTF8.GetByteCount({paramName});");
-                sb.AppendLine($"            if (position + byteCount{index} > span.Length)");
-                sb.AppendLine("            {");
-                sb.AppendLine("                // Buffer too small - grow like List<T>");
-                sb.AppendLine("                if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();");
-                sb.AppendLine($"                int newSize{index} = Math.Max(buffer.Length * 2, position + byteCount{index});");
-                sb.AppendLine($"                byte[] newBuffer = new byte[newSize{index}];");
-                sb.AppendLine("                span.Slice(0, position).CopyTo(newBuffer);");
-                sb.AppendLine("                buffer = newBuffer;");
-                sb.AppendLine("                span = buffer.AsSpan();");
-                sb.AppendLine("                isThreadStatic = false;");
-                sb.AppendLine("            }");
-                sb.AppendLine($"            position += Encoding.UTF8.GetBytes({paramName}, span.Slice(position));");
-                sb.AppendLine("        }");
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        if ({{paramName}} is not null)
+                        {
+                            int byteCount{{index}} = Encoding.UTF8.GetByteCount({{paramName}});
+                            if (position + byteCount{{index}} > span.Length)
+                            {
+                                // Buffer too small - grow like List<T>
+                                if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();
+                                int newSize{{index}} = Math.Max(buffer.Length * 2, position + byteCount{{index}});
+                                byte[] newBuffer = new byte[newSize{{index}}];
+                                span.Slice(0, position).CopyTo(newBuffer);
+                                buffer = newBuffer;
+                                span = buffer.AsSpan();
+                                isThreadStatic = false;
+                            }
+                            position += Encoding.UTF8.GetBytes({{paramName}}, span.Slice(position));
+                        }
+                """);
                 break;
 
             case TypeCategory.Char:
-                // Single char to UTF-8 - max 4 bytes, pre-check
-                sb.AppendLine("        if (position + 4 > span.Length)");
-                sb.AppendLine("        {");
-                sb.AppendLine("            // Buffer too small - grow like List<T>");
-                sb.AppendLine("            if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();");
-                sb.AppendLine("            byte[] newBuffer = new byte[buffer.Length * 2];");
-                sb.AppendLine("            span.Slice(0, position).CopyTo(newBuffer);");
-                sb.AppendLine("            buffer = newBuffer;");
-                sb.AppendLine("            span = buffer.AsSpan();");
-                sb.AppendLine("            isThreadStatic = false;");
-                sb.AppendLine("        }");
-                sb.AppendLine($"        Span<char> cs{index} = stackalloc char[1] {{ {paramName} }};");
-                sb.AppendLine($"        position += Encoding.UTF8.GetBytes(cs{index}, span.Slice(position));");
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        if (position + 4 > span.Length)
+                        {
+                            // Buffer too small - grow like List<T>
+                            if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();
+                            byte[] newBuffer = new byte[buffer.Length * 2];
+                            span.Slice(0, position).CopyTo(newBuffer);
+                            buffer = newBuffer;
+                            span = buffer.AsSpan();
+                            isThreadStatic = false;
+                        }
+                        Span<char> cs{{index}} = stackalloc char[1] { {{paramName}} };
+                        position += Encoding.UTF8.GetBytes(cs{{index}}, span.Slice(position));
+                """);
                 break;
 
             case TypeCategory.Boolean:
-                // Pre-check for boolean (4 or 5 bytes)
-                sb.AppendLine($"        int boolLen{index} = {paramName} ? 4 : 5;");
-                sb.AppendLine($"        if (position + boolLen{index} > span.Length)");
-                sb.AppendLine("        {");
-                sb.AppendLine("            // Buffer too small - grow like List<T>");
-                sb.AppendLine("            if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();");
-                sb.AppendLine($"            int newSize{index} = Math.Max(buffer.Length * 2, position + boolLen{index});");
-                sb.AppendLine($"            byte[] newBuffer = new byte[newSize{index}];");
-                sb.AppendLine("            span.Slice(0, position).CopyTo(newBuffer);");
-                sb.AppendLine("            buffer = newBuffer;");
-                sb.AppendLine("            span = buffer.AsSpan();");
-                sb.AppendLine("            isThreadStatic = false;");
-                sb.AppendLine("        }");
-                sb.AppendLine($"        ({paramName} ? \"True\"u8 : \"False\"u8).CopyTo(span.Slice(position));");
-                sb.AppendLine($"        position += boolLen{index};");
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        int boolLen{{index}} = {{paramName}} ? 4 : 5;
+                        if (position + boolLen{{index}} > span.Length)
+                        {
+                            // Buffer too small - grow like List<T>
+                            if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();
+                            int newSize{{index}} = Math.Max(buffer.Length * 2, position + boolLen{{index}});
+                            byte[] newBuffer = new byte[newSize{{index}}];
+                            span.Slice(0, position).CopyTo(newBuffer);
+                            buffer = newBuffer;
+                            span = buffer.AsSpan();
+                            isThreadStatic = false;
+                        }
+                        ({{paramName}} ? "True"u8 : "False"u8).CopyTo(span.Slice(position));
+                        position += boolLen{{index}};
+                """);
                 break;
 
             case TypeCategory.BinarySerializable:
-                // Direct binary serialization using TryWrite
-                sb.AppendLine($"        // IBinarySerializable: {arg.FullTypeName}");
-                sb.AppendLine($"        if (!((IBinarySerializable){paramName}).TryWrite(span.Slice(position), out int bw{index}))");
-                sb.AppendLine("        {");
-                sb.AppendLine("            throw new InvalidOperationException(\"Buffer too small for IBinarySerializable value.\");");
-                sb.AppendLine("        }");
-                sb.AppendLine($"        position += bw{index};");
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        // IBinarySerializable: {{arg.FullTypeName}}
+                        if (!((IBinarySerializable){{paramName}}).TryWrite(span.Slice(position), out int bw{{index}}))
+                        {
+                            throw new InvalidOperationException("Buffer too small for IBinarySerializable value.");
+                        }
+                        position += bw{{index}};
+                """);
                 break;
 
             case TypeCategory.RawBytes:
-                // Direct raw bytes copy using TryFormat (Raw ref struct has TryFormat method)
-                sb.AppendLine($"        // Raw bytes: {arg.FullTypeName}");
-                sb.AppendLine($"        if (!{paramName}.TryFormat(span.Slice(position), out int rw{index}, default, null))");
-                sb.AppendLine("        {");
-                sb.AppendLine("            // Buffer too small - grow");
-                sb.AppendLine("            if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();");
-                sb.AppendLine($"            int newSize{index} = Math.Max(buffer.Length * 2, position + {paramName}.Size);");
-                sb.AppendLine($"            byte[] newBuffer = new byte[newSize{index}];");
-                sb.AppendLine("            span.Slice(0, position).CopyTo(newBuffer);");
-                sb.AppendLine("            buffer = newBuffer;");
-                sb.AppendLine("            span = buffer.AsSpan();");
-                sb.AppendLine("            isThreadStatic = false;");
-                sb.AppendLine($"            if (!{paramName}.TryFormat(span.Slice(position), out rw{index}, default, null))");
-                sb.AppendLine("            {");
-                sb.AppendLine("                throw new InvalidOperationException(\"Buffer too small for Raw value after resize.\");");
-                sb.AppendLine("            }");
-                sb.AppendLine("        }");
-                sb.AppendLine($"        position += rw{index};");
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        // Raw bytes: {{arg.FullTypeName}}
+                        if (!{{paramName}}.TryFormat(span.Slice(position), out int rw{{index}}, default, null))
+                        {
+                            // Buffer too small - grow
+                            if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();
+                            int newSize{{index}} = Math.Max(buffer.Length * 2, position + {{paramName}}.Size);
+                            byte[] newBuffer = new byte[newSize{{index}}];
+                            span.Slice(0, position).CopyTo(newBuffer);
+                            buffer = newBuffer;
+                            span = buffer.AsSpan();
+                            isThreadStatic = false;
+                            if (!{{paramName}}.TryFormat(span.Slice(position), out rw{{index}}, default, null))
+                            {
+                                throw new InvalidOperationException("Buffer too small for Raw value after resize.");
+                            }
+                        }
+                        position += rw{{index}};
+                """);
                 break;
 
             default:
-                // Fallback to ToString() with pre-check
-                if (arg.CannotUseNullConditional)
-                {
-                    sb.AppendLine($"        string s{index} = {paramName}.ToString() ?? \"\";");
-                }
-                else
-                {
-                    sb.AppendLine($"        string s{index} = {paramName}?.ToString() ?? \"\";");
-                }
-                sb.AppendLine($"        int sLen{index} = Encoding.UTF8.GetByteCount(s{index});");
-                sb.AppendLine($"        if (position + sLen{index} > span.Length)");
-                sb.AppendLine("        {");
-                sb.AppendLine("            // Buffer too small - grow like List<T>");
-                sb.AppendLine("            if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();");
-                sb.AppendLine($"            int newSize{index} = Math.Max(buffer.Length * 2, position + sLen{index});");
-                sb.AppendLine($"            byte[] newBuffer = new byte[newSize{index}];");
-                sb.AppendLine("            span.Slice(0, position).CopyTo(newBuffer);");
-                sb.AppendLine("            buffer = newBuffer;");
-                sb.AppendLine("            span = buffer.AsSpan();");
-                sb.AppendLine("            isThreadStatic = false;");
-                sb.AppendLine("        }");
-                sb.AppendLine($"        position += Encoding.UTF8.GetBytes(s{index}, span.Slice(position));");
+                string toStringAssignment = arg.CannotUseNullConditional
+                    ? $"string s{index} = {paramName}.ToString() ?? \"\";"
+                    : $"string s{index} = {paramName}?.ToString() ?? \"\";";
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        {{toStringAssignment}}
+                        int sLen{{index}} = Encoding.UTF8.GetByteCount(s{{index}});
+                        if (position + sLen{{index}} > span.Length)
+                        {
+                            // Buffer too small - grow like List<T>
+                            if (isThreadStatic) ZeroAllocHelper.ReleaseByteBuffer();
+                            int newSize{{index}} = Math.Max(buffer.Length * 2, position + sLen{{index}});
+                            byte[] newBuffer = new byte[newSize{{index}}];
+                            span.Slice(0, position).CopyTo(newBuffer);
+                            buffer = newBuffer;
+                            span = buffer.AsSpan();
+                            isThreadStatic = false;
+                        }
+                        position += Encoding.UTF8.GetBytes(s{{index}}, span.Slice(position));
+                """);
                 break;
         }
     }
@@ -2403,17 +2460,10 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     /// </summary>
     /// <param name="sb">The string builder to append generated code to.</param>
     /// <param name="args">The argument types for this overload.</param>
-    /// <param name="options">Generator configuration options.</param>
-    private static void GenerateBytesMethod(
+    private static void _GenerateBytesMethod(
         StringBuilder sb,
-        ImmutableArray<ArgumentTypeInfo> args,
-        GeneratorOptions options)
+        ImmutableArray<ArgumentTypeInfo> args)
     {
-        sb.AppendLine("    // ========================================================================");
-        sb.AppendLine("    // Bytes() - Binary serialization");
-        sb.AppendLine("    // ========================================================================");
-        sb.AppendLine();
-
         List<string> parameters = new List<string>();
         List<string> paramNames = new List<string>();
         for (int i = 0; i < args.Length; i++)
@@ -2423,30 +2473,50 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
             paramNames.Add(paramName);
         }
 
-        sb.AppendLine("    /// <summary>");
-        sb.AppendLine("    /// Serializes the given values into binary bytes.");
-        sb.AppendLine("    /// </summary>");
-        sb.AppendLine("    [MethodImpl(MethodImplOptions.AggressiveInlining)]");
-        sb.AppendLine($"    internal static TempBytes Bytes({string.Join(", ", parameters)})");
-        sb.AppendLine("    {");
-        sb.AppendLine("        // ----------------------------------------------------------------");
-        sb.AppendLine("        // Acquire buffer (ThreadStatic if available, fallback depends on RecursiveHeapFallback setting)");
-        sb.AppendLine("        // ----------------------------------------------------------------");
-        sb.AppendLine("        byte[] buffer = ZeroAllocHelper.AcquireByteBuffer(DefaultBufferSize, RecursiveHeapFallback, out bool isThreadStatic);");
-        sb.AppendLine("        Span<byte> span = buffer.AsSpan();");
-        sb.AppendLine("        int position = 0;");
-        sb.AppendLine();
+        string paramDocs = string.Join(
+            "\n",
+            Enumerable.Range(0, args.Length)
+                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <see cref=\"{args[i].FullTypeName}\"/>.</param>"));
+        string parameterList = string.Join(", ", parameters);
+
+        BinaryGeneratorHelpers.AppendCode(sb,$$"""
+            // ========================================================================
+            // Bytes() - Binary serialization
+            // ========================================================================
+
+            /// <summary>
+            /// Serializes the given values into binary bytes.
+            /// </summary>
+            {{paramDocs}}
+            /// <returns>A <see cref="TempBytes"/> that MUST be disposed with a using statement.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            internal static TempBytes Bytes({{parameterList}})
+            {
+                // ----------------------------------------------------------------
+                // Acquire buffer (ThreadStatic if available, fallback depends on RecursiveHeapFallback setting)
+                // ----------------------------------------------------------------
+                byte[] buffer = ZeroAllocHelper.AcquireByteBuffer(DefaultBufferSize, RecursiveHeapFallback, out bool isThreadStatic);
+                Span<byte> span = buffer.AsSpan();
+                int position = 0;
+
+                // ----------------------------------------------------------------
+                // Serialize each value into the buffer
+                // ----------------------------------------------------------------
+
+            """);
 
         for (int i = 0; i < args.Length; i++)
         {
-            sb.AppendLine();
-            GenerateUtf8FormatCode(sb, args[i], paramNames[i], i);
+            sb.Append('\n');
+            _GenerateUtf8FormatCode(sb, args[i], paramNames[i], i);
         }
 
-        sb.AppendLine();
-        sb.AppendLine("        return new TempBytes(buffer, position, isThreadStatic);");
-        sb.AppendLine("    }");
-        sb.AppendLine();
+        BinaryGeneratorHelpers.AppendCode(sb,"""
+
+                return new TempBytes(buffer, position, isThreadStatic);
+            }
+
+            """);
     }
 
     /// <summary>
@@ -2454,11 +2524,9 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     /// </summary>
     /// <param name="sb">The string builder to append generated code to.</param>
     /// <param name="args">The argument types for this overload.</param>
-    /// <param name="options">Generator configuration options.</param>
-    private static void GenerateTryBytesMethod(
+    private static void _GenerateTryBytesMethod(
         StringBuilder sb,
-        ImmutableArray<ArgumentTypeInfo> args,
-        GeneratorOptions options)
+        ImmutableArray<ArgumentTypeInfo> args)
     {
         List<string> parameters = new List<string> { "out TempBytes result" };
         List<string> paramNames = new List<string>();
@@ -2469,37 +2537,54 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
             paramNames.Add(paramName);
         }
 
-        sb.AppendLine("    /// <summary>");
-        sb.AppendLine("    /// Tries to serialize the given values into binary bytes.");
-        sb.AppendLine("    /// </summary>");
-        sb.AppendLine("    [MethodImpl(MethodImplOptions.AggressiveInlining)]");
-        sb.AppendLine($"    internal static bool TryBytes({string.Join(", ", parameters)})");
-        sb.AppendLine("    {");
-        sb.AppendLine("        // ----------------------------------------------------------------");
-        sb.AppendLine("        // Try to acquire buffer (respects RecursiveHeapFallback setting)");
-        sb.AppendLine("        // ----------------------------------------------------------------");
-        sb.AppendLine("        if (!RecursiveHeapFallback && !ZeroAllocHelper.IsByteBufferAvailable())");
-        sb.AppendLine("        {");
-        sb.AppendLine("            result = default;");
-        sb.AppendLine("            return false;");
-        sb.AppendLine("        }");
-        sb.AppendLine();
-        sb.AppendLine("        byte[] buffer = ZeroAllocHelper.AcquireByteBuffer(DefaultBufferSize, RecursiveHeapFallback, out bool isThreadStatic);");
-        sb.AppendLine("        Span<byte> span = buffer.AsSpan();");
-        sb.AppendLine("        int position = 0;");
-        sb.AppendLine();
+        string paramDocs = string.Join(
+            "\n",
+            Enumerable.Range(0, args.Length)
+                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <see cref=\"{args[i].FullTypeName}\"/>.</param>"));
+        string parameterList = string.Join(", ", parameters);
+
+        BinaryGeneratorHelpers.AppendCode(sb,$$"""
+            /// <summary>
+            /// Tries to serialize the given values into binary bytes.
+            /// </summary>
+            /// <param name="result">The resulting TempBytes if successful.</param>
+            {{paramDocs}}
+            /// <returns><c>true</c> on success; <c>false</c> if RecursiveHeapFallback is disabled and buffer is busy.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            internal static bool TryBytes({{parameterList}})
+            {
+                // ----------------------------------------------------------------
+                // Try to acquire buffer (respects RecursiveHeapFallback setting)
+                // ----------------------------------------------------------------
+                if (!RecursiveHeapFallback && !ZeroAllocHelper.IsByteBufferAvailable())
+                {
+                    result = default;
+                    return false;
+                }
+
+                byte[] buffer = ZeroAllocHelper.AcquireByteBuffer(DefaultBufferSize, RecursiveHeapFallback, out bool isThreadStatic);
+                Span<byte> span = buffer.AsSpan();
+                int position = 0;
+
+                // ----------------------------------------------------------------
+                // Serialize each value into the buffer
+                // ----------------------------------------------------------------
+
+            """);
 
         for (int i = 0; i < args.Length; i++)
         {
-            sb.AppendLine();
-            GenerateTryUtf8FormatCode(sb, args[i], paramNames[i], i);
+            sb.Append('\n');
+            _GenerateTryUtf8FormatCode(sb, args[i], paramNames[i], i);
         }
 
-        sb.AppendLine();
-        sb.AppendLine("        result = new TempBytes(buffer, position, isThreadStatic);");
-        sb.AppendLine("        return true;");
-        sb.AppendLine("    }");
-        sb.AppendLine();
+        BinaryGeneratorHelpers.AppendCode(sb,"""
+
+                result = new TempBytes(buffer, position, isThreadStatic);
+                return true;
+            }
+
+            """);
     }
 
     // ========================================================================
@@ -2514,10 +2599,9 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     /// <summary>
     /// Generates a <c>LocalizedString()</c> method that returns a <see cref="TempString"/>.
     /// </summary>
-    private static void GenerateLocalizedStringMethod(
+    private static void _GenerateLocalizedStringMethod(
         StringBuilder sb,
-        ImmutableArray<ArgumentTypeInfo> args,
-        GeneratorOptions options)
+        ImmutableArray<ArgumentTypeInfo> args)
     {
         // First argument should be IFormatProvider
         if (args.Length == 0 || args[0].Category != TypeCategory.FormatProvider)
@@ -2538,47 +2622,55 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
             paramNames.Add(paramName);
         }
 
-        // Method documentation
-        sb.AppendLine("    // ========================================================================");
-        sb.AppendLine("    // LocalizedString() - Culture-sensitive zero-allocation string formatting");
-        sb.AppendLine("    // ========================================================================");
-        sb.AppendLine();
-        sb.AppendLine("    /// <summary>");
-        sb.AppendLine("    /// Formats the given values into a temporary string using the specified culture.");
-        sb.AppendLine("    /// </summary>");
-        for (int i = 0; i < args.Length; i++)
-        {
-            sb.AppendLine($"    /// <param name=\"{paramNames[i]}\">Value of type <see cref=\"{args[i].FullTypeName}\"/>.</param>");
-        }
-        sb.AppendLine("    /// <returns>A <see cref=\"TempString\"/> that MUST be disposed with a using statement.</returns>");
-        sb.AppendLine("    [MethodImpl(MethodImplOptions.AggressiveInlining)]");
-        sb.AppendLine($"    internal static TempString LocalizedString({string.Join(", ", parameters)})");
-        sb.AppendLine("    {");
-        sb.AppendLine("        char[] buffer = ZeroAllocHelper.AcquireCharBuffer(DefaultBufferSize, RecursiveHeapFallback, out bool isThreadStatic);");
-        sb.AppendLine("        Span<char> span = buffer.AsSpan();");
-        sb.AppendLine("        int position = 0;");
-        sb.AppendLine();
+        string paramDocs = string.Join(
+            "\n",
+            Enumerable.Range(0, args.Length)
+                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <see cref=\"{args[i].FullTypeName}\"/>.</param>"));
+        string parameterList = string.Join(", ", parameters);
 
-        // Generate formatting code for each argument (skip IFormatProvider at index 0)
+        BinaryGeneratorHelpers.AppendCode(sb,$$"""
+            // ========================================================================
+            // LocalizedString() - Culture-sensitive zero-allocation string formatting
+            // ========================================================================
+
+            /// <summary>
+            /// Formats the given values into a temporary string using the specified culture.
+            /// </summary>
+            {{paramDocs}}
+            /// <returns>A <see cref="TempString"/> that MUST be disposed with a using statement.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            internal static TempString LocalizedString({{parameterList}})
+            {
+                char[] buffer = ZeroAllocHelper.AcquireCharBuffer(DefaultBufferSize, RecursiveHeapFallback, out bool isThreadStatic);
+                Span<char> span = buffer.AsSpan();
+                int position = 0;
+
+                // ----------------------------------------------------------------
+                // Format each value into the buffer using the specified culture
+                // ----------------------------------------------------------------
+
+            """);
+
         for (int i = startIndex; i < args.Length; i++)
         {
-            sb.AppendLine();
-            GenerateCharFormatCode(sb, args[i], paramNames[i], i, cultureVar);
+            sb.Append('\n');
+            _GenerateCharFormatCode(sb, args[i], paramNames[i], i, cultureVar);
         }
 
-        sb.AppendLine();
-        sb.AppendLine("        return new TempString(buffer, position, isThreadStatic);");
-        sb.AppendLine("    }");
-        sb.AppendLine();
+        BinaryGeneratorHelpers.AppendCode(sb,"""
+
+                return new TempString(buffer, position, isThreadStatic);
+            }
+
+            """);
     }
 
     /// <summary>
     /// Generates a <c>TryLocalizedString()</c> method for non-throwing localized string formatting.
     /// </summary>
-    private static void GenerateTryLocalizedStringMethod(
+    private static void _GenerateTryLocalizedStringMethod(
         StringBuilder sb,
-        ImmutableArray<ArgumentTypeInfo> args,
-        GeneratorOptions options)
+        ImmutableArray<ArgumentTypeInfo> args)
     {
         // First argument should be IFormatProvider
         if (args.Length == 0 || args[0].Category != TypeCategory.FormatProvider)
@@ -2599,34 +2691,51 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
             paramNames.Add(paramName);
         }
 
-        sb.AppendLine("    /// <summary>");
-        sb.AppendLine("    /// Tries to format the given values into a temporary localized string.");
-        sb.AppendLine("    /// </summary>");
-        sb.AppendLine("    [MethodImpl(MethodImplOptions.AggressiveInlining)]");
-        sb.AppendLine($"    internal static bool TryLocalizedString({string.Join(", ", parameters)})");
-        sb.AppendLine("    {");
-        sb.AppendLine("        if (!RecursiveHeapFallback && !ZeroAllocHelper.IsCharBufferAvailable())");
-        sb.AppendLine("        {");
-        sb.AppendLine("            result = default;");
-        sb.AppendLine("            return false;");
-        sb.AppendLine("        }");
-        sb.AppendLine();
-        sb.AppendLine("        char[] buffer = ZeroAllocHelper.AcquireCharBuffer(DefaultBufferSize, RecursiveHeapFallback, out bool isThreadStatic);");
-        sb.AppendLine("        Span<char> span = buffer.AsSpan();");
-        sb.AppendLine("        int position = 0;");
-        sb.AppendLine();
+        string paramDocs = string.Join(
+            "\n",
+            Enumerable.Range(0, args.Length)
+                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <see cref=\"{args[i].FullTypeName}\"/>.</param>"));
+        string parameterList = string.Join(", ", parameters);
+
+        BinaryGeneratorHelpers.AppendCode(sb,$$"""
+            /// <summary>
+            /// Tries to format the given values into a temporary localized string.
+            /// </summary>
+            /// <param name="result">The resulting TempString if successful.</param>
+            {{paramDocs}}
+            /// <returns><c>true</c> on success; <c>false</c> if RecursiveHeapFallback is disabled and buffer is busy.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            internal static bool TryLocalizedString({{parameterList}})
+            {
+                if (!RecursiveHeapFallback && !ZeroAllocHelper.IsCharBufferAvailable())
+                {
+                    result = default;
+                    return false;
+                }
+
+                char[] buffer = ZeroAllocHelper.AcquireCharBuffer(DefaultBufferSize, RecursiveHeapFallback, out bool isThreadStatic);
+                Span<char> span = buffer.AsSpan();
+                int position = 0;
+
+                // ----------------------------------------------------------------
+                // Format each value into the buffer using the specified culture
+                // ----------------------------------------------------------------
+
+            """);
 
         for (int i = startIndex; i < args.Length; i++)
         {
-            sb.AppendLine();
-            GenerateTryCharFormatCode(sb, args[i], paramNames[i], i, cultureVar);
+            sb.Append('\n');
+            _GenerateTryCharFormatCode(sb, args[i], paramNames[i], i, cultureVar);
         }
 
-        sb.AppendLine();
-        sb.AppendLine("        result = new TempString(buffer, position, isThreadStatic);");
-        sb.AppendLine("        return true;");
-        sb.AppendLine("    }");
-        sb.AppendLine();
+        BinaryGeneratorHelpers.AppendCode(sb,"""
+
+                result = new TempString(buffer, position, isThreadStatic);
+                return true;
+            }
+
+            """);
     }
 
     // ========================================================================
@@ -2641,10 +2750,9 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     /// <summary>
     /// Generates a <c>LocalizedUtf8()</c> method that returns a <see cref="TempBytes"/>.
     /// </summary>
-    private static void GenerateLocalizedUtf8Method(
+    private static void _GenerateLocalizedUtf8Method(
         StringBuilder sb,
-        ImmutableArray<ArgumentTypeInfo> args,
-        GeneratorOptions options)
+        ImmutableArray<ArgumentTypeInfo> args)
     {
         // First argument should be IFormatProvider
         if (args.Length == 0 || args[0].Category != TypeCategory.FormatProvider)
@@ -2665,45 +2773,55 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
             paramNames.Add(paramName);
         }
 
-        sb.AppendLine("    // ========================================================================");
-        sb.AppendLine("    // LocalizedUtf8() - Culture-sensitive zero-allocation UTF-8 formatting");
-        sb.AppendLine("    // ========================================================================");
-        sb.AppendLine();
-        sb.AppendLine("    /// <summary>");
-        sb.AppendLine("    /// Formats the given values into temporary UTF-8 bytes using the specified culture.");
-        sb.AppendLine("    /// </summary>");
-        for (int i = 0; i < args.Length; i++)
-        {
-            sb.AppendLine($"    /// <param name=\"{paramNames[i]}\">Value of type <see cref=\"{args[i].FullTypeName}\"/>.</param>");
-        }
-        sb.AppendLine("    /// <returns>A <see cref=\"TempBytes\"/> that MUST be disposed with a using statement.</returns>");
-        sb.AppendLine("    [MethodImpl(MethodImplOptions.AggressiveInlining)]");
-        sb.AppendLine($"    internal static TempBytes LocalizedUtf8({string.Join(", ", parameters)})");
-        sb.AppendLine("    {");
-        sb.AppendLine("        byte[] buffer = ZeroAllocHelper.AcquireByteBuffer(DefaultBufferSize, RecursiveHeapFallback, out bool isThreadStatic);");
-        sb.AppendLine("        Span<byte> span = buffer.AsSpan();");
-        sb.AppendLine("        int position = 0;");
-        sb.AppendLine();
+        string paramDocs = string.Join(
+            "\n",
+            Enumerable.Range(0, args.Length)
+                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <see cref=\"{args[i].FullTypeName}\"/>.</param>"));
+        string parameterList = string.Join(", ", parameters);
+
+        BinaryGeneratorHelpers.AppendCode(sb,$$"""
+            // ========================================================================
+            // LocalizedUtf8() - Culture-sensitive zero-allocation UTF-8 formatting
+            // ========================================================================
+
+            /// <summary>
+            /// Formats the given values into temporary UTF-8 bytes using the specified culture.
+            /// </summary>
+            {{paramDocs}}
+            /// <returns>A <see cref="TempBytes"/> that MUST be disposed with a using statement.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            internal static TempBytes LocalizedUtf8({{parameterList}})
+            {
+                byte[] buffer = ZeroAllocHelper.AcquireByteBuffer(DefaultBufferSize, RecursiveHeapFallback, out bool isThreadStatic);
+                Span<byte> span = buffer.AsSpan();
+                int position = 0;
+
+                // ----------------------------------------------------------------
+                // Format each value as UTF-8 using the specified culture
+                // ----------------------------------------------------------------
+
+            """);
 
         for (int i = startIndex; i < args.Length; i++)
         {
-            sb.AppendLine();
-            GenerateUtf8FormatCodeWithCulture(sb, args[i], paramNames[i], i, cultureVar);
+            sb.Append('\n');
+            _GenerateUtf8FormatCodeWithCulture(sb, args[i], paramNames[i], i, cultureVar);
         }
 
-        sb.AppendLine();
-        sb.AppendLine("        return new TempBytes(buffer, position, isThreadStatic);");
-        sb.AppendLine("    }");
-        sb.AppendLine();
+        BinaryGeneratorHelpers.AppendCode(sb,"""
+
+                return new TempBytes(buffer, position, isThreadStatic);
+            }
+
+            """);
     }
 
     /// <summary>
     /// Generates a <c>TryLocalizedUtf8()</c> method for non-throwing localized UTF-8 formatting.
     /// </summary>
-    private static void GenerateTryLocalizedUtf8Method(
+    private static void _GenerateTryLocalizedUtf8Method(
         StringBuilder sb,
-        ImmutableArray<ArgumentTypeInfo> args,
-        GeneratorOptions options)
+        ImmutableArray<ArgumentTypeInfo> args)
     {
         // First argument should be IFormatProvider
         if (args.Length == 0 || args[0].Category != TypeCategory.FormatProvider)
@@ -2724,34 +2842,51 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
             paramNames.Add(paramName);
         }
 
-        sb.AppendLine("    /// <summary>");
-        sb.AppendLine("    /// Tries to format the given values into temporary localized UTF-8 bytes.");
-        sb.AppendLine("    /// </summary>");
-        sb.AppendLine("    [MethodImpl(MethodImplOptions.AggressiveInlining)]");
-        sb.AppendLine($"    internal static bool TryLocalizedUtf8({string.Join(", ", parameters)})");
-        sb.AppendLine("    {");
-        sb.AppendLine("        if (!RecursiveHeapFallback && !ZeroAllocHelper.IsByteBufferAvailable())");
-        sb.AppendLine("        {");
-        sb.AppendLine("            result = default;");
-        sb.AppendLine("            return false;");
-        sb.AppendLine("        }");
-        sb.AppendLine();
-        sb.AppendLine("        byte[] buffer = ZeroAllocHelper.AcquireByteBuffer(DefaultBufferSize, RecursiveHeapFallback, out bool isThreadStatic);");
-        sb.AppendLine("        Span<byte> span = buffer.AsSpan();");
-        sb.AppendLine("        int position = 0;");
-        sb.AppendLine();
+        string paramDocs = string.Join(
+            "\n",
+            Enumerable.Range(0, args.Length)
+                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <see cref=\"{args[i].FullTypeName}\"/>.</param>"));
+        string parameterList = string.Join(", ", parameters);
+
+        BinaryGeneratorHelpers.AppendCode(sb,$$"""
+            /// <summary>
+            /// Tries to format the given values into temporary localized UTF-8 bytes.
+            /// </summary>
+            /// <param name="result">The resulting TempBytes if successful.</param>
+            {{paramDocs}}
+            /// <returns><c>true</c> on success; <c>false</c> if RecursiveHeapFallback is disabled and buffer is busy.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            internal static bool TryLocalizedUtf8({{parameterList}})
+            {
+                if (!RecursiveHeapFallback && !ZeroAllocHelper.IsByteBufferAvailable())
+                {
+                    result = default;
+                    return false;
+                }
+
+                byte[] buffer = ZeroAllocHelper.AcquireByteBuffer(DefaultBufferSize, RecursiveHeapFallback, out bool isThreadStatic);
+                Span<byte> span = buffer.AsSpan();
+                int position = 0;
+
+                // ----------------------------------------------------------------
+                // Format each value as UTF-8 using the specified culture
+                // ----------------------------------------------------------------
+
+            """);
 
         for (int i = startIndex; i < args.Length; i++)
         {
-            sb.AppendLine();
-            GenerateUtf8FormatCodeWithCulture(sb, args[i], paramNames[i], i, cultureVar);
+            sb.Append('\n');
+            _GenerateUtf8FormatCodeWithCulture(sb, args[i], paramNames[i], i, cultureVar);
         }
 
-        sb.AppendLine();
-        sb.AppendLine("        result = new TempBytes(buffer, position, isThreadStatic);");
-        sb.AppendLine("        return true;");
-        sb.AppendLine("    }");
-        sb.AppendLine();
+        BinaryGeneratorHelpers.AppendCode(sb,"""
+
+                result = new TempBytes(buffer, position, isThreadStatic);
+                return true;
+            }
+
+            """);
     }
 
     // ========================================================================
@@ -2774,7 +2909,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     /// </summary>
     /// <param name="sb">The string builder to append generated code to.</param>
     /// <param name="args">The argument types for this overload.</param>
-    private static void GenerateLazyMethod(
+    private static void _GenerateLazyMethod(
         StringBuilder sb,
         ImmutableArray<ArgumentTypeInfo> args)
     {
@@ -2788,43 +2923,53 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
             paramNames.Add(paramName);
         }
 
-        // Method documentation
-        sb.AppendLine("    // ========================================================================");
-        sb.AppendLine("    // Lazy() - Deferred zero-allocation string formatting");
-        sb.AppendLine("    // ========================================================================");
-        sb.AppendLine();
-        sb.AppendLine("    /// <summary>");
-        sb.AppendLine("    /// Creates a <see cref=\"LazyString\"/> that defers formatting until first access.");
-        sb.AppendLine("    /// On evaluation, uses the generated <c>String()</c> method for zero-allocation formatting.");
-        sb.AppendLine("    /// </summary>");
-        for (int i = 0; i < args.Length; i++)
-        {
-            sb.AppendLine($"    /// <param name=\"{paramNames[i]}\">Value of type <see cref=\"{args[i].FullTypeName}\"/>.</param>");
-        }
-        sb.AppendLine("    /// <returns>A <see cref=\"LazyString\"/> that evaluates lazily on first access.</returns>");
-        sb.AppendLine("    [MethodImpl(MethodImplOptions.AggressiveInlining)]");
-        sb.AppendLine($"    internal static LazyString Lazy({string.Join(", ", parameters)})");
-        sb.AppendLine("    {");
+        string paramDocs = string.Join(
+            "\n",
+            Enumerable.Range(0, args.Length)
+                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <see cref=\"{args[i].FullTypeName}\"/>.</param>"));
+        string parameterList = string.Join(", ", parameters);
+
+        BinaryGeneratorHelpers.AppendCode(sb,$$"""
+            // ========================================================================
+            // Lazy() - Deferred zero-allocation string formatting
+            // ========================================================================
+
+            /// <summary>
+            /// Creates a <see cref="LazyString"/> that defers formatting until first access.
+            /// On evaluation, uses the generated <c>String()</c> method for zero-allocation formatting.
+            /// </summary>
+            {{paramDocs}}
+            /// <returns>A <see cref="LazyString"/> that evaluates lazily on first access.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            internal static LazyString Lazy({{parameterList}})
+            {
+
+            """);
 
         if (args.Length == 1)
         {
-            // Single argument: capture directly without tuple wrapping
-            sb.AppendLine($"        return LazyString.FormatLazy(");
-            sb.AppendLine($"            {paramNames[0]},");
-            sb.AppendLine($"            static s => String(s));");
+            BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                    return LazyString.FormatLazy(
+                        {{paramNames[0]}},
+                        static s => String(s));
+            """);
         }
         else
         {
-            // Multiple arguments: capture as value tuple
             string tupleArgs = string.Join(", ", paramNames);
             string tupleAccess = string.Join(", ", Enumerable.Range(1, args.Length).Select(i => $"s.Item{i}"));
-            sb.AppendLine($"        return LazyString.FormatLazy(");
-            sb.AppendLine($"            ({tupleArgs}),");
-            sb.AppendLine($"            static s => String({tupleAccess}));");
+            BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                    return LazyString.FormatLazy(
+                        ({{tupleArgs}}),
+                        static s => String({{tupleAccess}}));
+            """);
         }
 
-        sb.AppendLine("    }");
-        sb.AppendLine();
+        BinaryGeneratorHelpers.AppendCode(sb,"""
+
+            }
+
+            """);
     }
 
     // ========================================================================
@@ -2849,7 +2994,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
     /// </summary>
     /// <param name="sb">The string builder to append generated code to.</param>
     /// <param name="args">The argument types for this overload.</param>
-    private static void GenerateLazyInterpolatedMethod(
+    private static void _GenerateLazyInterpolatedMethod(
         StringBuilder sb,
         ImmutableArray<ArgumentTypeInfo> args)
     {
@@ -2863,44 +3008,55 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
             paramNames.Add(paramName);
         }
 
-        // Method documentation
-        sb.AppendLine("    // ========================================================================");
-        sb.AppendLine("    // LazyInterpolated() - Deferred string formatting via interpolation");
-        sb.AppendLine("    // ========================================================================");
-        sb.AppendLine();
-        sb.AppendLine("    /// <summary>");
-        sb.AppendLine("    /// Creates a <see cref=\"LazyString\"/> that defers formatting until first access.");
-        sb.AppendLine("    /// On evaluation, uses string interpolation (allocates on eval but avoids");
-        sb.AppendLine("    /// ThreadStatic buffer contention with nested <c>String()</c> calls).");
-        sb.AppendLine("    /// </summary>");
-        for (int i = 0; i < args.Length; i++)
-        {
-            sb.AppendLine($"    /// <param name=\"{paramNames[i]}\">Value of type <see cref=\"{args[i].FullTypeName}\"/>.</param>");
-        }
-        sb.AppendLine("    /// <returns>A <see cref=\"LazyString\"/> that evaluates lazily on first access.</returns>");
-        sb.AppendLine("    [MethodImpl(MethodImplOptions.AggressiveInlining)]");
-        sb.AppendLine($"    internal static LazyString LazyInterpolated({string.Join(", ", parameters)})");
-        sb.AppendLine("    {");
+        string paramDocs = string.Join(
+            "\n",
+            Enumerable.Range(0, args.Length)
+                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <see cref=\"{args[i].FullTypeName}\"/>.</param>"));
+        string parameterList = string.Join(", ", parameters);
+
+        BinaryGeneratorHelpers.AppendCode(sb,$$"""
+            // ========================================================================
+            // LazyInterpolated() - Deferred string formatting via interpolation
+            // ========================================================================
+
+            /// <summary>
+            /// Creates a <see cref="LazyString"/> that defers formatting until first access.
+            /// On evaluation, uses string interpolation (allocates on eval but avoids
+            /// ThreadStatic buffer contention with nested <c>String()</c> calls).
+            /// </summary>
+            {{paramDocs}}
+            /// <returns>A <see cref="LazyString"/> that evaluates lazily on first access.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            internal static LazyString LazyInterpolated({{parameterList}})
+            {
+
+            """);
 
         if (args.Length == 1)
         {
-            // Single argument: use ToString() directly
-            sb.AppendLine($"        return LazyString.FormatLazy(");
-            sb.AppendLine($"            {paramNames[0]},");
-            sb.AppendLine($"            static s => s.ToString()!);");
+            BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                    return LazyString.FormatLazy(
+                        {{paramNames[0]}},
+                        static s => s.ToString()!);
+            """);
         }
         else
         {
-            // Multiple arguments: capture as value tuple, use string interpolation
             string tupleArgs = string.Join(", ", paramNames);
             string interpolationParts = string.Join("", Enumerable.Range(1, args.Length).Select(i => $"{{s.Item{i}}}"));
-            sb.AppendLine($"        return LazyString.FormatLazy(");
-            sb.AppendLine($"            ({tupleArgs}),");
-            sb.AppendLine($"            static s => $\"{interpolationParts}\");");
+            string evalLambda = $"static s => $\"{interpolationParts}\"";
+            BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                    return LazyString.FormatLazy(
+                        ({{tupleArgs}}),
+                        {{evalLambda}});
+            """);
         }
 
-        sb.AppendLine("    }");
-        sb.AppendLine();
+        BinaryGeneratorHelpers.AppendCode(sb,"""
+
+            }
+
+            """);
     }
 }
 

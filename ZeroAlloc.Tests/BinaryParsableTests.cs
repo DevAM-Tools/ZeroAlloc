@@ -1564,24 +1564,23 @@ public sealed class VarIntTests
     }
 
     [Test]
-    public async Task VarInt_TryGetSerializedSize_Instance_ReturnsEncodedSize()
+    public async Task VarInt_TryGetWrittenSize_ReturnsEncodedSize()
     {
-        // VarInt instance TryGetSerializedSize returns the actual encoded size
         VarInt varInt0 = new(0);
         VarInt varInt127 = new(127);
         VarInt varInt128 = new(128);
         VarInt varInt16383 = new(16383);
 
-        await Assert.That(varInt0.TryGetSerializedSize(out int size0)).IsTrue();
+        await Assert.That(varInt0.TryGetWrittenSize(out int size0)).IsTrue();
         await Assert.That(size0).IsEqualTo(1);
 
-        await Assert.That(varInt127.TryGetSerializedSize(out int size127)).IsTrue();
+        await Assert.That(varInt127.TryGetWrittenSize(out int size127)).IsTrue();
         await Assert.That(size127).IsEqualTo(1);
 
-        await Assert.That(varInt128.TryGetSerializedSize(out int size128)).IsTrue();
+        await Assert.That(varInt128.TryGetWrittenSize(out int size128)).IsTrue();
         await Assert.That(size128).IsEqualTo(2);
 
-        await Assert.That(varInt16383.TryGetSerializedSize(out int size16383)).IsTrue();
+        await Assert.That(varInt16383.TryGetWrittenSize(out int size16383)).IsTrue();
         await Assert.That(size16383).IsEqualTo(2);
     }
 

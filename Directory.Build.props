@@ -1,16 +1,17 @@
 <Project>
-
-  <!-- Common build properties for all projects -->
+  <!-- Shared compile settings (all projects) -->
   <PropertyGroup>
-    <LangVersion>latest</LangVersion>
+    <LangVersion>14</LangVersion>
     <Nullable>enable</Nullable>
-    <ImplicitUsings>disable</ImplicitUsings>
+    <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <Deterministic>true</Deterministic>
   </PropertyGroup>
 
-  <!-- Shared NuGet package metadata -->
-  <PropertyGroup>
-    <Version>0.4.0</Version>
+  <!-- NuGet / release metadata (packable projects only) -->
+  <PropertyGroup Condition="'$(IsPackable)' != 'false'">
+    <Version>0.5.0</Version>
     <Authors>DevAM</Authors>
     <Company>DevAM</Company>
     <Copyright>Copyright © 2026 DevAM. All rights reserved.</Copyright>
@@ -23,9 +24,4 @@
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
-  </PropertyGroup>
-
 </Project>

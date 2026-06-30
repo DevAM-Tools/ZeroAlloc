@@ -1,4 +1,4 @@
-﻿// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
+// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
 namespace ZeroAlloc;
 
@@ -1077,7 +1077,7 @@ public ref struct SpanStringBuilder
 
     #region Hex/Binary
 
-    private static ReadOnlySpan<char> HexChars => "0123456789ABCDEF";
+    private static ReadOnlySpan<char> _HexChars => "0123456789ABCDEF";
 
     /// <summary>Appends a byte as 2 hexadecimal characters to the buffer.</summary>
     /// <param name="value">The byte value to format.</param>
@@ -1178,8 +1178,8 @@ public ref struct SpanStringBuilder
             return false;
         }
 
-        _Buffer[_Position++] = HexChars[value >> 4];
-        _Buffer[_Position++] = HexChars[value & 0xF];
+        _Buffer[_Position++] = _HexChars[value >> 4];
+        _Buffer[_Position++] = _HexChars[value & 0xF];
         return true;
     }
 
@@ -1194,10 +1194,10 @@ public ref struct SpanStringBuilder
             return false;
         }
 
-        _Buffer[_Position++] = HexChars[(value >> 12) & 0xF];
-        _Buffer[_Position++] = HexChars[(value >> 8) & 0xF];
-        _Buffer[_Position++] = HexChars[(value >> 4) & 0xF];
-        _Buffer[_Position++] = HexChars[value & 0xF];
+        _Buffer[_Position++] = _HexChars[(value >> 12) & 0xF];
+        _Buffer[_Position++] = _HexChars[(value >> 8) & 0xF];
+        _Buffer[_Position++] = _HexChars[(value >> 4) & 0xF];
+        _Buffer[_Position++] = _HexChars[value & 0xF];
         return true;
     }
 

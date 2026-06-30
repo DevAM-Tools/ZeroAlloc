@@ -65,6 +65,22 @@ public sealed class TempBytesTests
     }
 
     [Test]
+    [Arguments(0, "TempBytes[0 bytes]")]
+    [Arguments(5, "TempBytes[5 bytes]")]
+    [Arguments(128, "TempBytes[128 bytes]")]
+    public async Task TempBytes_ToString_ReturnsDebugRepresentation(int byteCount, string expected)
+    {
+        byte[] buffer = new byte[byteCount];
+        string representation;
+        {
+            using TempBytes temp = new(buffer, byteCount, isThreadStatic: false);
+            representation = temp.ToString();
+        }
+
+        await Assert.That(representation).IsEqualTo(expected);
+    }
+
+    [Test]
     public async Task Utf8_EmptyString_ReturnsEmpty()
     {
         int length;
@@ -73,6 +89,56 @@ public sealed class TempBytesTests
             length = temp.Length;
         }
         await Assert.That(length).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task TempBytes_ToArray_Empty_ReturnsEmptyArray()
+    {
+        byte[] array;
+        {
+            using TempBytes temp = ZA.Utf8("");
+            array = temp.ToArray();
+        }
+
+        await Assert.That(array).IsEmpty();
+        await Assert.That(array).IsSameReferenceAs(Array.Empty<byte>());
+    }
+
+    [Test]
+    public async Task TempBytes_ToArray_NonEmpty_ReturnsIndependentCopy()
+    {
+        byte[] array;
+        {
+            using TempBytes temp = ZA.Utf8("abc");
+            array = temp.ToArray();
+        }
+
+        await Assert.That(array).IsEquivalentTo("abc"u8.ToArray());
+    }
+
+    [Test]
+    public async Task TempBytes_IsEmpty_TrueForZeroLength()
+    {
+        bool isEmpty;
+        {
+            using TempBytes temp = ZA.Utf8("");
+            isEmpty = temp.IsEmpty;
+        }
+
+        await Assert.That(isEmpty).IsTrue();
+    }
+
+    [Test]
+    public async Task TempBytes_Dispose_HeapAllocated_CompletesWithoutError()
+    {
+        bool innerWasHeapAllocated;
+        {
+            using TempBytes outer = ZA.Utf8("outer");
+            using TempBytes inner = ZA.Utf8("inner");
+            innerWasHeapAllocated = inner.IsHeapAllocated;
+        }
+
+        await Assert.That(innerWasHeapAllocated).IsTrue();
     }
 
     [Test]

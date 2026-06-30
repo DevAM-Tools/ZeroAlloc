@@ -51,14 +51,6 @@
 // - ZA2005-ZA2013: Various validation errors
 // ============================================================================
 
-using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Linq;
-using System.Text;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ZeroAlloc.Generator;
 
@@ -491,11 +483,11 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
             .ForAttributeWithMetadataName(
                 fullyQualifiedMetadataName: "ZeroAlloc.BinaryParsableAttribute",
                 predicate: static (node, _) => node is StructDeclarationSyntax or RecordDeclarationSyntax,
-                transform: static (ctx, _) => GetParsableTypeInfo(ctx))
+                transform: static (ctx, _) => _GetParsableTypeInfo(ctx))
             .Where(static info => info is not null);
 
         // Generate parsing code for each [BinaryParsable] type
-        context.RegisterSourceOutput(parsableTypes, GenerateParsingCode);
+        context.RegisterSourceOutput(parsableTypes, _GenerateParsingCode);
     }
 
     /// <summary>
@@ -511,7 +503,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
     /// </remarks>
     /// <param name="ctx">The generator attribute syntax context.</param>
     /// <returns>Type information if valid; otherwise <c>null</c>.</returns>
-    private static ParsableTypeInfo? GetParsableTypeInfo(GeneratorAttributeSyntaxContext ctx)
+    private static ParsableTypeInfo? _GetParsableTypeInfo(GeneratorAttributeSyntaxContext ctx)
     {
         // Get the struct/record symbol
         if (ctx.TargetSymbol is not INamedTypeSymbol typeSymbol)
@@ -584,7 +576,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
             if (member is IFieldSymbol field)
             {
                 // Skip compiler-generated backing fields for auto-properties
-                if (field.IsImplicitlyDeclared || field.Name.StartsWith("<"))
+                if (field.IsImplicitlyDeclared || field.Name.StartsWith("<", StringComparison.Ordinal))
                 {
                     continue;
                 }
@@ -800,7 +792,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
             // If BitCount is specified, it's a bit field regardless of the underlying type
             ParsableMemberKind kind = bitCount.HasValue && bitCount.Value > 0
                 ? ParsableMemberKind.BitField
-                : AnalyzeMemberKind(memberType, stringEncoding.HasValue, bytesEncoding.HasValue);
+                : _AnalyzeMemberKind(memberType, stringEncoding.HasValue, bytesEncoding.HasValue);
 
             members.Add(new ParsableMemberInfo(
                 member.Name,
@@ -836,7 +828,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
     /// <summary>
     /// Analyzes a member type to determine how to parse it.
     /// </summary>
-    private static ParsableMemberKind AnalyzeMemberKind(ITypeSymbol type, bool hasStringEncoding, bool hasBytesEncoding)
+    private static ParsableMemberKind _AnalyzeMemberKind(ITypeSymbol type, bool hasStringEncoding, bool hasBytesEncoding)
     {
         string typeName = type.Name;
         string fullName = type.ToDisplayString();
@@ -844,11 +836,16 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
         // Check for string with encoding
         if (type.SpecialType == SpecialType.System_String)
         {
-            return hasStringEncoding ? ParsableMemberKind.String : ParsableMemberKind.Unknown;
+            if (hasStringEncoding)
+            {
+                return ParsableMemberKind.String;
+            }
+
+            return ParsableMemberKind.Unknown;
         }
 
         // Check for endian wrappers
-        if (IsEndianWrapper(typeName))
+        if (_IsEndianWrapper(typeName))
         {
             return ParsableMemberKind.EndianWrapper;
         }
@@ -868,13 +865,23 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
         // Check for byte[]
         if (type is IArrayTypeSymbol arrayType && arrayType.ElementType.SpecialType == SpecialType.System_Byte)
         {
-            return hasBytesEncoding ? ParsableMemberKind.ByteArrayDynamic : ParsableMemberKind.ByteArray;
+            if (hasBytesEncoding)
+            {
+                return ParsableMemberKind.ByteArrayDynamic;
+            }
+
+            return ParsableMemberKind.ByteArray;
         }
 
         // Check for Memory<byte> and ReadOnlyMemory<byte>
         if (fullName is "System.Memory<byte>" or "System.ReadOnlyMemory<byte>")
         {
-            return hasBytesEncoding ? ParsableMemberKind.MemoryDynamic : ParsableMemberKind.Unknown;
+            if (hasBytesEncoding)
+            {
+                return ParsableMemberKind.MemoryDynamic;
+            }
+
+            return ParsableMemberKind.Unknown;
         }
 
         // Check for [BinaryParsable] nested type
@@ -894,7 +901,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
         }
 
         // Check for primitive integers (need explicit endianness)
-        if (IsPrimitiveInteger(type))
+        if (_IsPrimitiveInteger(type))
         {
             return ParsableMemberKind.PrimitiveInteger;
         }
@@ -903,8 +910,8 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
     }
 
     // Type recognition helpers delegate to BinaryGeneratorHelpers
-    private static bool IsEndianWrapper(string typeName) => BinaryGeneratorHelpers.IsEndianWrapper(typeName);
-    private static bool IsPrimitiveInteger(ITypeSymbol type) => BinaryGeneratorHelpers.IsPrimitiveInteger(type);
+    private static bool _IsEndianWrapper(string typeName) => BinaryGeneratorHelpers.IsEndianWrapper(typeName);
+    private static bool _IsPrimitiveInteger(ITypeSymbol type) => BinaryGeneratorHelpers.IsPrimitiveInteger(type);
 
     // ========================================================================
     // CODE GENERATION
@@ -935,7 +942,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
     /// </remarks>
     /// <param name="ctx">The source production context for output and diagnostics.</param>
     /// <param name="typeInfoNullable">The type information, or null if invalid.</param>
-    private static void GenerateParsingCode(SourceProductionContext ctx, ParsableTypeInfo? typeInfoNullable)
+    private static void _GenerateParsingCode(SourceProductionContext ctx, ParsableTypeInfo? typeInfoNullable)
     {
         if (typeInfoNullable is not ParsableTypeInfo typeInfo)
         {
@@ -943,7 +950,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
         }
 
         // Validate members
-        List<ParsableMemberInfo> orderedMembers = ValidateAndOrderMembers(ctx, typeInfo);
+        List<ParsableMemberInfo> orderedMembers = _ValidateAndOrderMembers(ctx, typeInfo);
         if (orderedMembers.Count == 0 && typeInfo.Members.Length > 0)
         {
             return; // Errors were reported
@@ -956,26 +963,36 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
         StringBuilder sb = new();
 
         // File header — two using directives are always emitted; ZeroAlloc is added only for BitReader types
-        sb.Append("""
-        // <auto-generated />
-        // Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
-        #nullable enable
-
-        using System;
-        using System.Buffers.Binary;
-        """);
         if (usesBitReader)
         {
-            sb.AppendLine();
-            sb.Append("using ZeroAlloc;");
+            BinaryGeneratorHelpers.AppendCode(sb,"""
+            // <auto-generated />
+            // Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
+            #nullable enable
+
+            using System;
+            using System.Buffers.Binary;
+            using ZeroAlloc;
+
+            """);
         }
-        sb.AppendLine();
-        sb.AppendLine();
+        else
+        {
+            BinaryGeneratorHelpers.AppendCode(sb,"""
+            // <auto-generated />
+            // Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
+            #nullable enable
+
+            using System;
+            using System.Buffers.Binary;
+
+            """);
+        }
 
         // Namespace
         if (typeInfo.Namespace is not null)
         {
-            sb.Append($$"""
+            BinaryGeneratorHelpers.AppendCode(sb,$$"""
             namespace {{typeInfo.Namespace}};
 
             """);
@@ -984,18 +1001,18 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
         // Struct declaration
         string modifiers = typeInfo.IsReadOnly ? "readonly partial" : "partial";
         string keyword = typeInfo.IsRecordStruct ? "record struct" : "struct";
-        sb.Append($$"""
+        BinaryGeneratorHelpers.AppendCode(sb,$$"""
         {{modifiers}} {{keyword}} {{typeInfo.TypeName}}
         {
 
         """);
 
         // Calculate fixed size if possible
-        int? fixedSize = CalculateFixedSize(orderedMembers);
-        int? fixedBits = usesBitReader ? CalculateFixedBits(orderedMembers) : null;
+        int? fixedSize = _CalculateFixedSize(orderedMembers);
+        int? fixedBits = usesBitReader ? _CalculateFixedBits(orderedMembers) : null;
 
         // Generate TryGetSerializedSize method
-        sb.Append("""
+        BinaryGeneratorHelpers.AppendCode(sb,"""
             /// <summary>
             /// Tries to get the fixed size in bytes of this type.
             /// </summary>
@@ -1006,7 +1023,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
         if (fixedBits.HasValue)
         {
             int byteSize = (fixedBits.Value + 7) / 8;
-            sb.Append($$"""
+            BinaryGeneratorHelpers.AppendCode(sb,$$"""
                     size = {{byteSize}};
                     return true;
 
@@ -1014,7 +1031,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
         }
         else if (fixedSize.HasValue)
         {
-            sb.Append($$"""
+            BinaryGeneratorHelpers.AppendCode(sb,$$"""
                     size = {{fixedSize.Value}};
                     return true;
 
@@ -1022,19 +1039,19 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
         }
         else
         {
-            sb.Append("""
+            BinaryGeneratorHelpers.AppendCode(sb,"""
                     size = -1;
                     return false;
 
             """);
         }
-        sb.Append("""
+        BinaryGeneratorHelpers.AppendCode(sb,"""
             }
 
         """);
 
         // Generate TryParse method
-        sb.Append($$"""
+        BinaryGeneratorHelpers.AppendCode(sb,$$"""
             /// <summary>
             /// Attempts to parse an instance from binary data.
             /// </summary>
@@ -1047,7 +1064,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
         int requiredBytes = fixedBits.HasValue ? (fixedBits.Value + 7) / 8 : (fixedSize ?? 0);
         if (requiredBytes > 0)
         {
-            sb.Append($$"""
+            BinaryGeneratorHelpers.AppendCode(sb,$$"""
                     if (source.Length < {{requiredBytes}})
                     {
                         value = default;
@@ -1060,14 +1077,14 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
 
         if (usesBitReader)
         {
-            sb.Append("""
+            BinaryGeneratorHelpers.AppendCode(sb,"""
                     var reader = new BitReader(source);
 
             """);
         }
         else
         {
-            sb.Append("""
+            BinaryGeneratorHelpers.AppendCode(sb,"""
                     int offset = 0;
 
             """);
@@ -1084,7 +1101,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
             // Emit a single bounds check before the first member of each fixed-size run
             if (groupChecks.TryGetValue(mi, out int groupSize))
             {
-                sb.Append($$"""
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
                         if (source.Length - offset < {{groupSize}})
                         {
                             value = default;
@@ -1094,23 +1111,19 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
 
                 """);
             }
-            GenerateMemberParsing(sb, orderedMembers[mi], typeInfo.DefaultEndianness, usesBitReader);
+            _GenerateMemberParsing(sb, orderedMembers[mi], typeInfo.DefaultEndianness, usesBitReader);
         }
 
         // Construct result
-        sb.AppendLine();
-        sb.Append($$"""
+        string memberInitializers = string.Join(
+            "\n",
+            orderedMembers.Select((m, i) =>
+                $"            {m.Name} = _{m.Name}{(i < orderedMembers.Count - 1 ? "," : "")}"));
+        BinaryGeneratorHelpers.AppendCode(sb,$$"""
+
                 value = new {{typeInfo.TypeName}}
                 {
-
-        """);
-        for (int i = 0; i < orderedMembers.Count; i++)
-        {
-            ParsableMemberInfo member = orderedMembers[i];
-            string comma = i < orderedMembers.Count - 1 ? "," : "";
-            sb.AppendLine($"            {member.Name} = _{member.Name}{comma}");
-        }
-        sb.Append("""
+            {{memberInitializers}}
                 };
 
         """);
@@ -1118,7 +1131,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
         if (usesBitReader)
         {
             // Calculate bytes consumed: (totalBitsRead + 7) / 8
-            sb.Append("""
+            BinaryGeneratorHelpers.AppendCode(sb,"""
                     bytesConsumed = (reader.BitOffset + 7) / 8;
                     return true;
                 }
@@ -1126,7 +1139,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
         }
         else
         {
-            sb.Append("""
+            BinaryGeneratorHelpers.AppendCode(sb,"""
                     bytesConsumed = offset;
                     return true;
                 }
@@ -1134,7 +1147,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
         }
 
         // Generate Parse method (throws on failure)
-        sb.Append($$"""
+        BinaryGeneratorHelpers.AppendCode(sb,$$"""
 
             /// <summary>
             /// Parses an instance from binary data. Throws if data is insufficient.
@@ -1150,11 +1163,11 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
         // If any member uses FromField, generate helper method
         if (orderedMembers.Any(m => m.LengthFromField is not null))
         {
-            sb.Append("""
+            BinaryGeneratorHelpers.AppendCode(sb,"""
 
                 // Helper method to extract length from various field types
                 [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-                private static int GetLengthFromField<T>(T value) where T : struct
+                private static int _GetLengthFromField<T>(T value) where T : struct
                 {
                     // Handle primitive types and endian wrapper types
                     return value switch
@@ -1189,7 +1202,9 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
             """);
         }
 
-        sb.AppendLine("}");
+        BinaryGeneratorHelpers.AppendCode(sb,"""
+        }
+        """);
 
         // Add source
         ctx.AddSource($"{typeInfo.TypeName}.Parsing.g.cs", sb.ToString());
@@ -1227,7 +1242,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
     /// <param name="ctx">The source production context for reporting diagnostics.</param>
     /// <param name="typeInfo">The type information to validate.</param>
     /// <returns>Ordered list of members, or empty list if validation failed.</returns>
-    private static List<ParsableMemberInfo> ValidateAndOrderMembers(
+    private static List<ParsableMemberInfo> _ValidateAndOrderMembers(
         SourceProductionContext ctx,
         ParsableTypeInfo typeInfo)
     {
@@ -1389,13 +1404,13 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
             : members.OrderBy(m => m.DeclaredOrder).ToList();
 
         // Validate LengthFromField references
-        if (!ValidateLengthFromFieldReferences(ctx, orderedMembers))
+        if (!_ValidateLengthFromFieldReferences(ctx, orderedMembers))
         {
             return new List<ParsableMemberInfo>();
         }
 
         // Validate byte alignment for types that require it
-        if (!ValidateByteAlignment(ctx, orderedMembers))
+        if (!_ValidateByteAlignment(ctx, orderedMembers))
         {
             return new List<ParsableMemberInfo>();
         }
@@ -1421,7 +1436,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
     /// <param name="ctx">The source production context for diagnostics.</param>
     /// <param name="orderedMembers">Members in parsing order.</param>
     /// <returns><c>true</c> if all references are valid; otherwise <c>false</c>.</returns>
-    private static bool ValidateLengthFromFieldReferences(SourceProductionContext ctx, List<ParsableMemberInfo> orderedMembers)
+    private static bool _ValidateLengthFromFieldReferences(SourceProductionContext ctx, List<ParsableMemberInfo> orderedMembers)
     {
         HashSet<string> parsedFieldNames = new();
 
@@ -1432,8 +1447,8 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
             if (member.LengthFromField is not null)
             {
                 // Check if the referenced field exists
-                ParsableMemberInfo? referencedField = orderedMembers.FirstOrDefault(m => m.Name == member.LengthFromField);
-                if (referencedField is null)
+                ParsableMemberInfo referencedField = orderedMembers.FirstOrDefault(m => m.Name == member.LengthFromField);
+                if (string.IsNullOrEmpty(referencedField.Name))
                 {
                     ctx.ReportDiagnostic(Diagnostic.Create(
                         ParseDiagnostics.LengthFieldNotFound,
@@ -1482,7 +1497,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
     /// <param name="ctx">The source production context for diagnostics.</param>
     /// <param name="orderedMembers">Members in parsing order.</param>
     /// <returns><c>true</c> if alignment is valid; otherwise <c>false</c>.</returns>
-    private static bool ValidateByteAlignment(SourceProductionContext ctx, List<ParsableMemberInfo> orderedMembers)
+    private static bool _ValidateByteAlignment(SourceProductionContext ctx, List<ParsableMemberInfo> orderedMembers)
     {
         int bitOffset = 0;
 
@@ -1516,8 +1531,8 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
             {
                 ParsableMemberKind.BitField => member.BitCount ?? 0,
                 ParsableMemberKind.Byte => 8,
-                ParsableMemberKind.EndianWrapper => (GetEndianWrapperSize(member.TypeName) ?? 4) * 8,
-                ParsableMemberKind.PrimitiveInteger => (GetPrimitiveSize(member.FullTypeName) ?? 4) * 8,
+                ParsableMemberKind.EndianWrapper => (_GetEndianWrapperSize(member.TypeName) ?? 4) * 8,
+                ParsableMemberKind.PrimitiveInteger => (_GetPrimitiveSize(member.FullTypeName) ?? 4) * 8,
                 // Variable-length types: we just track that they're byte-aligned
                 ParsableMemberKind.VarInt or
                 ParsableMemberKind.ByteArray or
@@ -1552,13 +1567,13 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
     // Fixed sizes enable early length validation in generated code.
     // ========================================================================
 
-    private static int? CalculateFixedSize(List<ParsableMemberInfo> members) => BinaryGeneratorHelpers.CalculateFixedSize(members);
+    private static int? _CalculateFixedSize(List<ParsableMemberInfo> members) => BinaryGeneratorHelpers.CalculateFixedSize(members);
 
     // Size calculation helpers delegate to BinaryGeneratorHelpers
-    private static int? GetEndianWrapperSize(string typeName) => BinaryGeneratorHelpers.GetEndianWrapperSize(typeName);
-    private static int? GetPrimitiveSize(string fullTypeName) => BinaryGeneratorHelpers.GetPrimitiveSize(fullTypeName);
+    private static int? _GetEndianWrapperSize(string typeName) => BinaryGeneratorHelpers.GetEndianWrapperSize(typeName);
+    private static int? _GetPrimitiveSize(string fullTypeName) => BinaryGeneratorHelpers.GetPrimitiveSize(fullTypeName);
 
-    private static int? CalculateFixedBits(List<ParsableMemberInfo> members) => BinaryGeneratorHelpers.CalculateFixedBits(members);
+    private static int? _CalculateFixedBits(List<ParsableMemberInfo> members) => BinaryGeneratorHelpers.CalculateFixedBits(members);
 
     // ========================================================================
     // MEMBER-SPECIFIC PARSING CODE GENERATION
@@ -1588,26 +1603,30 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
     /// <param name="member">The member to generate parsing for.</param>
     /// <param name="defaultEndianness">Default byte order when not specified.</param>
     /// <param name="usesBitReader">Whether bit-level parsing is used.</param>
-    private static void GenerateMemberParsing(StringBuilder sb, ParsableMemberInfo member, Endianness defaultEndianness, bool usesBitReader)
+    private static void _GenerateMemberParsing(StringBuilder sb, ParsableMemberInfo member, Endianness defaultEndianness, bool usesBitReader)
     {
         string varName = $"_{member.Name}";
+        string kindComment = member.BitCount.HasValue ? $", {member.BitCount} bits" : "";
 
-        sb.AppendLine($"        // Parse {member.Name} ({member.Kind}{(member.BitCount.HasValue ? $", {member.BitCount} bits" : "")})");
+        BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                // Parse {{member.Name}} ({{member.Kind}}{{kindComment}})
+
+        """);
 
         // If we're using BitReader, all members use bit-level parsing
         if (usesBitReader)
         {
-            GenerateBitReaderParsing(sb, member, varName, defaultEndianness);
+            _GenerateBitReaderParsing(sb, member, varName);
 
             // Skip padding bits AFTER reading this field
             if (member.PaddingBits > 0)
             {
-                sb.Append($$"""
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
                         // Skip {{member.PaddingBits}} padding bits after {{member.Name}}
                         reader.SkipBits({{member.PaddingBits}});
+
                 """);
             }
-            sb.AppendLine();
             return;
         }
 
@@ -1615,7 +1634,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
         switch (member.Kind)
         {
             case ParsableMemberKind.Byte:
-                sb.Append($$"""
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
                         byte {{varName}} = source[offset];
                         offset += 1;
                 """);
@@ -1623,22 +1642,22 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
 
             case ParsableMemberKind.ByteArray:
                 int length = member.FixedLength!.Value;
-                sb.Append($$"""
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
                         byte[] {{varName}} = source.Slice(offset, {{length}}).ToArray();
                         offset += {{length}};
                 """);
                 break;
 
             case ParsableMemberKind.EndianWrapper:
-                GenerateEndianWrapperParsing(sb, member, varName);
+                _GenerateEndianWrapperParsing(sb, member, varName);
                 break;
 
             case ParsableMemberKind.VarInt:
-                GenerateVarIntParsing(sb, member, varName);
+                _GenerateVarIntParsing(sb, member, varName);
                 break;
 
             case ParsableMemberKind.NestedParsable:
-                sb.Append($$"""
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
                         if (!{{member.FullTypeName}}.TryParse(source.Slice(offset), out {{member.FullTypeName}} {{varName}}, out int {{varName}}Consumed))
                         {
                             value = default;
@@ -1650,19 +1669,19 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
                 break;
 
             case ParsableMemberKind.PrimitiveInteger:
-                GeneratePrimitiveIntegerParsing(sb, member, varName, member.ExplicitEndianness ?? defaultEndianness);
+                _GeneratePrimitiveIntegerParsing(sb, member, varName, member.ExplicitEndianness ?? defaultEndianness);
                 break;
 
             case ParsableMemberKind.String:
-                GenerateStringParsing(sb, member, varName);
+                _GenerateStringParsing(sb, member, varName);
                 break;
 
             case ParsableMemberKind.ByteArrayDynamic:
-                GenerateByteArrayDynamicParsing(sb, member, varName);
+                _GenerateByteArrayDynamicParsing(sb, member, varName);
                 break;
 
             case ParsableMemberKind.MemoryDynamic:
-                GenerateMemoryDynamicParsing(sb, member, varName);
+                _GenerateMemoryDynamicParsing(sb, member, varName);
                 break;
         }
 
@@ -1673,14 +1692,13 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
             int paddingBytes = member.PaddingBits / 8;
             if (paddingBytes > 0)
             {
-                sb.Append($$"""
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
                         // Skip {{member.PaddingBits}} padding bits ({{paddingBytes}} bytes) after {{member.Name}}
                         offset += {{paddingBytes}};
+
                 """);
             }
         }
-
-        sb.AppendLine();
     }
 
     /// <summary>
@@ -1699,14 +1717,14 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
     /// <param name="sb">The string builder to append code to.</param>
     /// <param name="member">The string member to parse.</param>
     /// <param name="varName">Variable name for the parsed string.</param>
-    private static void GenerateStringParsing(StringBuilder sb, ParsableMemberInfo member, string varName)
+    private static void _GenerateStringParsing(StringBuilder sb, ParsableMemberInfo member, string varName)
     {
         StringLengthEncodingInfo encoding = member.StringEncoding!.Value;
 
         switch (encoding.Encoding)
         {
             case StringLengthEncodingKind.VarInt:
-                sb.Append($$"""
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
                         if (!ZeroAlloc.VarInt.TryParse(source.Slice(offset), out ZeroAlloc.VarInt {{varName}}Length, out int {{varName}}LengthBytes))
                         {
                             value = default;
@@ -1728,58 +1746,46 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
 
             case StringLengthEncodingKind.FixedBE:
             case StringLengthEncodingKind.FixedLE:
-                bool isBE = encoding.Encoding == StringLengthEncodingKind.FixedBE;
-                string endianSuffix = isBE ? "BigEndian" : "LittleEndian";
-
-                // Guard against reading the length-prefix bytes when the buffer is too short
-                sb.Append($$"""
-                        if (source.Length - offset < {{encoding.LengthBytes}})
-                        {
-                            value = default;
-                            bytesConsumed = 0;
-                            return false;
-                        }
-                """);
-                sb.AppendLine();
-                switch (encoding.LengthBytes)
                 {
-                    case 1:
-                        sb.Append($$"""
+                    bool isBE = encoding.Encoding == StringLengthEncodingKind.FixedBE;
+                    string endianSuffix = isBE ? "BigEndian" : "LittleEndian";
+                    string lengthReadCode = encoding.LengthBytes switch
+                    {
+                        1 => $$"""
                                 int {{varName}}ByteLen = source[offset];
                                 offset += 1;
-                        """);
-                        sb.AppendLine();
-                        break;
-                    case 2:
-                        sb.Append($$"""
+                        """,
+                        2 => $$"""
                                 int {{varName}}ByteLen = BinaryPrimitives.ReadUInt16{{endianSuffix}}(source.Slice(offset));
                                 offset += 2;
-                        """);
-                        sb.AppendLine();
-                        break;
-                    case 4:
-                    default:
-                        sb.Append($$"""
+                        """,
+                        _ => $$"""
                                 int {{varName}}ByteLen = (int)BinaryPrimitives.ReadUInt32{{endianSuffix}}(source.Slice(offset));
                                 offset += 4;
-                        """);
-                        sb.AppendLine();
-                        break;
+                        """,
+                    };
+                    BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                            if (source.Length - offset < {{encoding.LengthBytes}})
+                            {
+                                value = default;
+                                bytesConsumed = 0;
+                                return false;
+                            }
+                    {{lengthReadCode}}
+                            if (source.Length - offset < {{varName}}ByteLen)
+                            {
+                                value = default;
+                                bytesConsumed = 0;
+                                return false;
+                            }
+                            string {{varName}} = System.Text.Encoding.UTF8.GetString(source.Slice(offset, {{varName}}ByteLen));
+                            offset += {{varName}}ByteLen;
+                    """);
+                    break;
                 }
-                sb.Append($$"""
-                        if (source.Length - offset < {{varName}}ByteLen)
-                        {
-                            value = default;
-                            bytesConsumed = 0;
-                            return false;
-                        }
-                        string {{varName}} = System.Text.Encoding.UTF8.GetString(source.Slice(offset, {{varName}}ByteLen));
-                        offset += {{varName}}ByteLen;
-                """);
-                break;
 
             case StringLengthEncodingKind.NullTerminated:
-                sb.Append($$"""
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
                         int {{varName}}End = source.Slice(offset).IndexOf((byte)0);
                         if ({{varName}}End < 0)
                         {
@@ -1794,7 +1800,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
 
             case StringLengthEncodingKind.Fixed:
                 int fixedLen = encoding.FixedLength > 0 ? encoding.FixedLength : 0;
-                sb.Append($$"""
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
                         if (source.Length - offset < {{fixedLen}})
                         {
                             value = default;
@@ -1812,8 +1818,8 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
             case StringLengthEncodingKind.FromField:
                 string lengthField = member.LengthFromField ?? "0";
                 // Handle endian wrapper types (.Value) and primitive types
-                sb.Append($$"""
-                        int {{varName}}ByteLen = GetLengthFromField(_{{lengthField}});
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        int {{varName}}ByteLen = _GetLengthFromField(_{{lengthField}});
                         if (source.Length - offset < {{varName}}ByteLen)
                         {
                             value = default;
@@ -1841,14 +1847,14 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
     /// <param name="sb">The string builder to append code to.</param>
     /// <param name="member">The byte[] member to parse.</param>
     /// <param name="varName">Variable name for the parsed array.</param>
-    private static void GenerateByteArrayDynamicParsing(StringBuilder sb, ParsableMemberInfo member, string varName)
+    private static void _GenerateByteArrayDynamicParsing(StringBuilder sb, ParsableMemberInfo member, string varName)
     {
         BytesLengthEncodingInfo encoding = member.BytesEncoding!.Value;
 
         switch (encoding.Encoding)
         {
             case BytesLengthEncodingKind.VarInt:
-                sb.Append($$"""
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
                         if (!ZeroAlloc.VarInt.TryParse(source.Slice(offset), out ZeroAlloc.VarInt {{varName}}Length, out int {{varName}}LengthBytes))
                         {
                             value = default;
@@ -1870,60 +1876,48 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
 
             case BytesLengthEncodingKind.FixedBE:
             case BytesLengthEncodingKind.FixedLE:
-                bool isBE = encoding.Encoding == BytesLengthEncodingKind.FixedBE;
-                string endianSuffix = isBE ? "BigEndian" : "LittleEndian";
-
-                // Guard against reading the length-prefix bytes when the buffer is too short
-                sb.Append($$"""
-                        if (source.Length - offset < {{encoding.LengthBytes}})
-                        {
-                            value = default;
-                            bytesConsumed = 0;
-                            return false;
-                        }
-                """);
-                sb.AppendLine();
-                switch (encoding.LengthBytes)
                 {
-                    case 1:
-                        sb.Append($$"""
+                    bool isBE = encoding.Encoding == BytesLengthEncodingKind.FixedBE;
+                    string endianSuffix = isBE ? "BigEndian" : "LittleEndian";
+                    string lengthReadCode = encoding.LengthBytes switch
+                    {
+                        1 => $$"""
                                 int {{varName}}ByteLen = source[offset];
                                 offset += 1;
-                        """);
-                        sb.AppendLine();
-                        break;
-                    case 2:
-                        sb.Append($$"""
+                        """,
+                        2 => $$"""
                                 int {{varName}}ByteLen = BinaryPrimitives.ReadUInt16{{endianSuffix}}(source.Slice(offset));
                                 offset += 2;
-                        """);
-                        sb.AppendLine();
-                        break;
-                    case 4:
-                    default:
-                        sb.Append($$"""
+                        """,
+                        _ => $$"""
                                 int {{varName}}ByteLen = (int)BinaryPrimitives.ReadUInt32{{endianSuffix}}(source.Slice(offset));
                                 offset += 4;
-                        """);
-                        sb.AppendLine();
-                        break;
+                        """,
+                    };
+                    BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                            if (source.Length - offset < {{encoding.LengthBytes}})
+                            {
+                                value = default;
+                                bytesConsumed = 0;
+                                return false;
+                            }
+                    {{lengthReadCode}}
+                            if (source.Length - offset < {{varName}}ByteLen)
+                            {
+                                value = default;
+                                bytesConsumed = 0;
+                                return false;
+                            }
+                            byte[] {{varName}} = source.Slice(offset, {{varName}}ByteLen).ToArray();
+                            offset += {{varName}}ByteLen;
+                    """);
+                    break;
                 }
-                sb.Append($$"""
-                        if (source.Length - offset < {{varName}}ByteLen)
-                        {
-                            value = default;
-                            bytesConsumed = 0;
-                            return false;
-                        }
-                        byte[] {{varName}} = source.Slice(offset, {{varName}}ByteLen).ToArray();
-                        offset += {{varName}}ByteLen;
-                """);
-                break;
 
             case BytesLengthEncodingKind.FromField:
                 string lengthField = member.LengthFromField ?? "0";
-                sb.Append($$"""
-                        int {{varName}}ByteLen = GetLengthFromField(_{{lengthField}});
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        int {{varName}}ByteLen = _GetLengthFromField(_{{lengthField}});
                         if (source.Length - offset < {{varName}}ByteLen)
                         {
                             value = default;
@@ -1947,7 +1941,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
     /// <param name="sb">The string builder to append code to.</param>
     /// <param name="member">The Memory member to parse.</param>
     /// <param name="varName">Variable name for the parsed Memory.</param>
-    private static void GenerateMemoryDynamicParsing(StringBuilder sb, ParsableMemberInfo member, string varName)
+    private static void _GenerateMemoryDynamicParsing(StringBuilder sb, ParsableMemberInfo member, string varName)
     {
         BytesLengthEncodingInfo encoding = member.BytesEncoding!.Value;
         bool isReadOnly = member.FullTypeName.Contains("ReadOnlyMemory");
@@ -1956,7 +1950,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
         switch (encoding.Encoding)
         {
             case BytesLengthEncodingKind.VarInt:
-                sb.Append($$"""
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
                         if (!ZeroAlloc.VarInt.TryParse(source.Slice(offset), out ZeroAlloc.VarInt {{varName}}Length, out int {{varName}}LengthBytes))
                         {
                             value = default;
@@ -1978,60 +1972,48 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
 
             case BytesLengthEncodingKind.FixedBE:
             case BytesLengthEncodingKind.FixedLE:
-                bool isBE = encoding.Encoding == BytesLengthEncodingKind.FixedBE;
-                string endianSuffix = isBE ? "BigEndian" : "LittleEndian";
-
-                // Guard against reading the length-prefix bytes when the buffer is too short
-                sb.Append($$"""
-                        if (source.Length - offset < {{encoding.LengthBytes}})
-                        {
-                            value = default;
-                            bytesConsumed = 0;
-                            return false;
-                        }
-                """);
-                sb.AppendLine();
-                switch (encoding.LengthBytes)
                 {
-                    case 1:
-                        sb.Append($$"""
+                    bool isBE = encoding.Encoding == BytesLengthEncodingKind.FixedBE;
+                    string endianSuffix = isBE ? "BigEndian" : "LittleEndian";
+                    string lengthReadCode = encoding.LengthBytes switch
+                    {
+                        1 => $$"""
                                 int {{varName}}ByteLen = source[offset];
                                 offset += 1;
-                        """);
-                        sb.AppendLine();
-                        break;
-                    case 2:
-                        sb.Append($$"""
+                        """,
+                        2 => $$"""
                                 int {{varName}}ByteLen = BinaryPrimitives.ReadUInt16{{endianSuffix}}(source.Slice(offset));
                                 offset += 2;
-                        """);
-                        sb.AppendLine();
-                        break;
-                    case 4:
-                    default:
-                        sb.Append($$"""
+                        """,
+                        _ => $$"""
                                 int {{varName}}ByteLen = (int)BinaryPrimitives.ReadUInt32{{endianSuffix}}(source.Slice(offset));
                                 offset += 4;
-                        """);
-                        sb.AppendLine();
-                        break;
+                        """,
+                    };
+                    BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                            if (source.Length - offset < {{encoding.LengthBytes}})
+                            {
+                                value = default;
+                                bytesConsumed = 0;
+                                return false;
+                            }
+                    {{lengthReadCode}}
+                            if (source.Length - offset < {{varName}}ByteLen)
+                            {
+                                value = default;
+                                bytesConsumed = 0;
+                                return false;
+                            }
+                            {{memoryType}} {{varName}} = source.Slice(offset, {{varName}}ByteLen).ToArray();
+                            offset += {{varName}}ByteLen;
+                    """);
+                    break;
                 }
-                sb.Append($$"""
-                        if (source.Length - offset < {{varName}}ByteLen)
-                        {
-                            value = default;
-                            bytesConsumed = 0;
-                            return false;
-                        }
-                        {{memoryType}} {{varName}} = source.Slice(offset, {{varName}}ByteLen).ToArray();
-                        offset += {{varName}}ByteLen;
-                """);
-                break;
 
             case BytesLengthEncodingKind.FromField:
                 string lengthField = member.LengthFromField ?? "0";
-                sb.Append($$"""
-                        int {{varName}}ByteLen = GetLengthFromField(_{{lengthField}});
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        int {{varName}}ByteLen = _GetLengthFromField(_{{lengthField}});
                         if (source.Length - offset < {{varName}}ByteLen)
                         {
                             value = default;
@@ -2069,10 +2051,9 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
     /// <param name="sb">The string builder to append code to.</param>
     /// <param name="member">The member to generate parsing for.</param>
     /// <param name="varName">Variable name for the parsed value.</param>
-    /// <param name="defaultEndianness">Default byte order for multi-byte reads.</param>
-    private static void GenerateBitReaderParsing(StringBuilder sb, ParsableMemberInfo member, string varName, Endianness defaultEndianness)
+    private static void _GenerateBitReaderParsing(StringBuilder sb, ParsableMemberInfo member, string varName)
     {
-        int bitCount = member.BitCount ?? GetDefaultBitCount(member);
+        int bitCount = member.BitCount ?? _GetDefaultBitCount(member);
 
         // Determine the target type for the cast
         string targetType = member.FullTypeName;
@@ -2083,24 +2064,28 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
                 // Bit field - read exact number of bits using ReadBits(int) which returns ulong
                 if (bitCount == 1)
                 {
-                    // Special case for single bit -> bool or byte
                     if (member.FullTypeName is "bool" or "System.Boolean")
                     {
-                        sb.AppendLine($"        bool {varName} = reader.ReadBits(1) != 0;");
+                        BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                                bool {{varName}} = reader.ReadBits(1) != 0;
+                        """);
                     }
                     else
                     {
-                        sb.AppendLine($"        {targetType} {varName} = ({targetType})reader.ReadBits(1);");
+                        BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                                {{targetType}} {{varName}} = ({{targetType}})reader.ReadBits(1);
+                        """);
                     }
                 }
                 else if (bitCount <= 64)
                 {
-                    sb.AppendLine($"        {targetType} {varName} = ({targetType})reader.ReadBits({bitCount});");
+                    BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                            {{targetType}} {{varName}} = ({{targetType}})reader.ReadBits({{bitCount}});
+                    """);
                 }
                 else
                 {
-                    // For > 64 bits, not directly supported
-                    sb.Append($$"""
+                    BinaryGeneratorHelpers.AppendCode(sb,$$"""
                             // WARNING: {{bitCount}} bits exceeds 64-bit limit
                             {{targetType}} {{varName}} = default;
                     """);
@@ -2108,20 +2093,22 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
                 break;
 
             case ParsableMemberKind.Byte:
-                sb.AppendLine($"        byte {varName} = reader.ReadByte();");
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                        byte {{varName}} = reader.ReadByte();
+                """);
                 break;
 
             case ParsableMemberKind.EndianWrapper:
-                GenerateBitReaderEndianWrapperParsing(sb, member, varName);
+                _GenerateBitReaderEndianWrapperParsing(sb, member, varName);
                 break;
 
             case ParsableMemberKind.PrimitiveInteger:
-                GenerateBitReaderPrimitiveIntegerParsing(sb, member, varName);
+                _GenerateBitReaderPrimitiveIntegerParsing(sb, member, varName);
                 break;
 
             default:
                 // Unsupported in bit mode
-                sb.Append($$"""
+                BinaryGeneratorHelpers.AppendCode(sb,$$"""
                         // WARNING: {{member.Kind}} not supported in bit-level parsing mode
                         {{targetType}} {{varName}} = default;
                 """);
@@ -2129,9 +2116,9 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
         }
     }
 
-    private static int GetDefaultBitCount(ParsableMemberInfo member) => BinaryGeneratorHelpers.GetDefaultBitCount(member);
+    private static int _GetDefaultBitCount(ParsableMemberInfo member) => BinaryGeneratorHelpers.GetDefaultBitCount(member);
 
-    private static void GenerateBitReaderEndianWrapperParsing(StringBuilder sb, ParsableMemberInfo member, string varName)
+    private static void _GenerateBitReaderEndianWrapperParsing(StringBuilder sb, ParsableMemberInfo member, string varName)
     {
         string typeName = member.TypeName;
 
@@ -2153,10 +2140,12 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
             _ => "0" // Unreachable: all IsEndianWrapper types are handled above.
         };
 
-        sb.AppendLine($"        {member.FullTypeName} {varName} = new {member.FullTypeName}({readMethod});");
+        BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                {{member.FullTypeName}} {{varName}} = new {{member.FullTypeName}}({{readMethod}});
+        """);
     }
 
-    private static void GenerateBitReaderPrimitiveIntegerParsing(StringBuilder sb, ParsableMemberInfo member, string varName)
+    private static void _GenerateBitReaderPrimitiveIntegerParsing(StringBuilder sb, ParsableMemberInfo member, string varName)
     {
         string readMethod = member.FullTypeName switch
         {
@@ -2178,14 +2167,16 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
             _ => "0" // Unreachable: all types recognised by IsPrimitiveInteger are handled above.
         };
 
-        sb.AppendLine($"        {member.FullTypeName} {varName} = {readMethod};");
+        BinaryGeneratorHelpers.AppendCode(sb,$$"""
+                {{member.FullTypeName}} {{varName}} = {{readMethod}};
+        """);
     }
 
-    private static void GenerateEndianWrapperParsing(StringBuilder sb, ParsableMemberInfo member, string varName)
+    private static void _GenerateEndianWrapperParsing(StringBuilder sb, ParsableMemberInfo member, string varName)
     {
         string typeName = member.TypeName;
-        int size = GetEndianWrapperSize(typeName) ?? 4;
-        bool isBigEndian = typeName.EndsWith("BE");
+        int size = _GetEndianWrapperSize(typeName) ?? 4;
+        bool isBigEndian = typeName.EndsWith("BE", StringComparison.Ordinal);
 
         string primitiveType = typeName switch
         {
@@ -2217,17 +2208,17 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
             _ => "0"
         };
 
-        sb.Append($$"""
+        BinaryGeneratorHelpers.AppendCode(sb,$$"""
                 {{member.FullTypeName}} {{varName}} = new {{member.FullTypeName}}({{readMethod}});
                 offset += {{size}};
         """);
     }
 
-    private static void GenerateVarIntParsing(StringBuilder sb, ParsableMemberInfo member, string varName)
+    private static void _GenerateVarIntParsing(StringBuilder sb, ParsableMemberInfo member, string varName)
     {
         if (member.TypeName == "VarInt")
         {
-            sb.Append($$"""
+            BinaryGeneratorHelpers.AppendCode(sb,$$"""
                     if (!ZeroAlloc.VarInt.TryParse(source.Slice(offset), out ZeroAlloc.VarInt {{varName}}, out int {{varName}}Consumed))
                     {
                         value = default;
@@ -2239,7 +2230,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
         }
         else // VarIntZigZag
         {
-            sb.Append($$"""
+            BinaryGeneratorHelpers.AppendCode(sb,$$"""
                     if (!ZeroAlloc.VarIntZigZag.TryParse(source.Slice(offset), out ZeroAlloc.VarIntZigZag {{varName}}, out int {{varName}}Consumed))
                     {
                         value = default;
@@ -2251,7 +2242,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
         }
     }
 
-    private static void GeneratePrimitiveIntegerParsing(StringBuilder sb, ParsableMemberInfo member, string varName, Endianness endianness)
+    private static void _GeneratePrimitiveIntegerParsing(StringBuilder sb, ParsableMemberInfo member, string varName, Endianness endianness)
     {
         string endianSuffix = endianness == Endianness.BigEndian ? "BigEndian" : "LittleEndian";
 
@@ -2284,7 +2275,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
             _ => ("0", 0)
         };
 
-        sb.Append($$"""
+        BinaryGeneratorHelpers.AppendCode(sb,$$"""
                 {{member.FullTypeName}} {{varName}} = {{readMethod}};
                 offset += {{size}};
         """);

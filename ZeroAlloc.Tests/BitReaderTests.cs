@@ -1764,4 +1764,119 @@ public sealed class BitReaderTests
         catch (ArgumentOutOfRangeException) { threw = true; }
         await Assert.That(threw).IsTrue();
     }
+
+    // ========================================================================
+    // EXIT-POINT COVERAGE — ReadBits throw / TryRead failure paths
+    // ========================================================================
+
+    [Test]
+    public async Task BitReader_ReadBits_InsufficientData_ThrowsInvalidOperationException()
+    {
+        byte[] data = [0xFF];
+        bool threw = false;
+        {
+            BitReader reader = new(data);
+            reader.ReadBits(6);
+            try { reader.ReadBits(8); }
+            catch (InvalidOperationException) { threw = true; }
+        }
+
+        await Assert.That(threw).IsTrue();
+    }
+
+    [Test]
+    [Arguments(6, 3)]
+    [Arguments(4, 5)]
+    [Arguments(3, 6)]
+    [Arguments(2, 7)]
+    public async Task BitReader_TryReadBitFields_InsufficientBits_ReturnsFalse(int consumedBits, int fieldBits)
+    {
+        byte[] data = [0xFF];
+        bool ok;
+        int bitOffset;
+        {
+            BitReader reader = new(data);
+            reader.ReadBits(consumedBits);
+            ok = fieldBits switch
+            {
+                3 => reader.TryReadBit3(out Bit3 _),
+                5 => reader.TryReadBit5(out Bit5 _),
+                6 => reader.TryReadBit6(out Bit6 _),
+                7 => reader.TryReadBit7(out Bit7 _),
+                _ => throw new InvalidOperationException("Unsupported field width."),
+            };
+            bitOffset = reader.BitOffset;
+        }
+
+        await Assert.That(ok).IsFalse();
+        await Assert.That(bitOffset).IsEqualTo(consumedBits);
+    }
+
+    [Test]
+    public async Task BitReader_TryReadUIntBits_InsufficientBits_ReturnsFalse()
+    {
+        byte[] data = [0xFF];
+        bool ok;
+        int bitOffset;
+        {
+            BitReader reader = new(data);
+            reader.ReadBits(1);
+            ok = reader.TryReadUIntBits(8, out UIntBits _);
+            bitOffset = reader.BitOffset;
+        }
+
+        await Assert.That(ok).IsFalse();
+        await Assert.That(bitOffset).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task BitReader_TryReadIntBits_InsufficientBits_ReturnsFalse()
+    {
+        byte[] data = [0xFF];
+        bool ok;
+        int bitOffset;
+        {
+            BitReader reader = new(data);
+            reader.ReadBits(5);
+            ok = reader.TryReadIntBits(4, out IntBits _);
+            bitOffset = reader.BitOffset;
+        }
+
+        await Assert.That(ok).IsFalse();
+        await Assert.That(bitOffset).IsEqualTo(5);
+    }
+
+    [Test]
+    public async Task BitReader_TryReadInt16_InsufficientBits_ReturnsFalse()
+    {
+        byte[] data = [0xFF];
+        bool ok;
+        int bitOffset;
+        {
+            BitReader reader = new(data);
+            reader.ReadBits(1);
+            ok = reader.TryReadInt16(out short _);
+            bitOffset = reader.BitOffset;
+        }
+
+        await Assert.That(ok).IsFalse();
+        await Assert.That(bitOffset).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task BitReader_TryReadInt64_InsufficientBits_ReturnsFalse()
+    {
+        byte[] data = [0xFF, 0xFF, 0xFF, 0xFF];
+        bool ok;
+        int bitOffset;
+        {
+            BitReader reader = new(data);
+            reader.ReadBits(1);
+            ok = reader.TryReadInt64(out long _);
+            bitOffset = reader.BitOffset;
+        }
+
+        await Assert.That(ok).IsFalse();
+        await Assert.That(bitOffset).IsEqualTo(1);
+    }
 }

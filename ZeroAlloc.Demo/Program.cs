@@ -46,7 +46,10 @@ public readonly struct IpAddress : ISpanFormattable, IStringSize
 
     // Max: "255.255.255.255" = 15 chars
     public bool TryGetStringSize(ReadOnlySpan<char> format, IFormatProvider? provider, out int size)
-    { size = 15; return true; }
+    {
+        size = 15;
+        return true;
+    }
 
     public bool TryFormat(Span<char> destination, out int charsWritten,
         ReadOnlySpan<char> format, IFormatProvider? provider)
@@ -85,7 +88,10 @@ public readonly struct DynamicMessage : ISpanFormattable, IStringSize
 
     // Size is unknown at compile time
     public bool TryGetStringSize(ReadOnlySpan<char> format, IFormatProvider? provider, out int size)
-    { size = 0; return false; }
+    {
+        size = 0;
+        return false;
+    }
 
     public bool TryFormat(Span<char> destination, out int charsWritten,
         ReadOnlySpan<char> format, IFormatProvider? provider)
@@ -119,7 +125,10 @@ public readonly struct StatusCode : IUtf8SpanFormattable, IUtf8Size
 
     // HTTP status codes: 100-599, always 3 digits
     public bool TryGetUtf8Size(ReadOnlySpan<char> format, IFormatProvider? provider, out int size)
-    { size = 3; return true; }
+    {
+        size = 3;
+        return true;
+    }
 
     public bool TryFormat(Span<byte> utf8Destination, out int bytesWritten,
         ReadOnlySpan<char> format, IFormatProvider? provider)
@@ -142,7 +151,11 @@ public readonly struct PacketHeader : IBinarySerializable
 
     public const int Size = 6;
 
-    public bool TryGetSerializedSize(out int size) { size = Size; return true; }
+    public bool TryGetWrittenSize(out int size)
+    {
+        size = Size;
+        return true;
+    }
 
     public bool TryWrite(Span<byte> destination, out int bytesWritten)
     {
@@ -163,7 +176,11 @@ public readonly struct DynamicPacket : IBinarySerializable
     public byte[] Payload { get; init; }
 
     // Size is dynamic, return false
-    public bool TryGetSerializedSize(out int size) { size = 0; return false; }
+    public bool TryGetWrittenSize(out int size)
+    {
+        size = 0;
+        return false;
+    }
 
     public bool TryWrite(Span<byte> destination, out int bytesWritten)
     {
@@ -185,7 +202,11 @@ public readonly struct ComputedSizePacket : IBinarySerializable
     public byte[] Data { get; init; }
 
     // Size can be computed: 4 bytes header + data length
-    public bool TryGetSerializedSize(out int size) { size = 4 + Data.Length; return true; }
+    public bool TryGetWrittenSize(out int size)
+    {
+        size = 4 + Data.Length;
+        return true;
+    }
 
     public bool TryWrite(Span<byte> destination, out int bytesWritten)
     {
@@ -203,7 +224,7 @@ public readonly struct ComputedSizePacket : IBinarySerializable
 /// </summary>
 class Program
 {
-    static void Main()
+    public static void Main()
     {
         Console.WriteLine("=== ZeroAlloc Demo - Radically Simplified ===");
         Console.WriteLine();
@@ -345,7 +366,7 @@ class Program
         // ====================================================================
         Console.WriteLine("Test 9: ISpanFormattable only (Temperature)");
         // Generator uses TryFormat directly without pre-check
-        var temp1 = new Temperature { Celsius = 23.5 };
+        Temperature temp1 = new Temperature { Celsius = 23.5 };
         using (TempString ts = ZA.String("Temperature: ", temp1, "°C"))
         {
             Console.WriteLine($"  Result: {ts.AsSpan().ToString()}");
@@ -358,7 +379,7 @@ class Program
         // ====================================================================
         Console.WriteLine("Test 10: ISpanFormattable + IStringSize (IpAddress)");
         // Generator can pre-check buffer: GetCharCount() returns 15
-        var ip = new IpAddress { A = 192, B = 168, C = 1, D = 100 };
+        IpAddress ip = new IpAddress { A = 192, B = 168, C = 1, D = 100 };
         using (TempString ts = ZA.String("Server: ", ip))
         {
             Console.WriteLine($"  Result: {ts.AsSpan().ToString()}");
@@ -372,7 +393,7 @@ class Program
         // ====================================================================
         Console.WriteLine("Test 11: IStringSize returning null (DynamicMessage)");
         // Generator cannot pre-check: GetCharCount() returns null
-        var msg = new DynamicMessage { Text = "Hello, World!" };
+        DynamicMessage msg = new DynamicMessage { Text = "Hello, World!" };
         using (TempString ts = ZA.String("Message: ", msg))
         {
             Console.WriteLine($"  Result: {ts.AsSpan().ToString()}");
@@ -386,7 +407,7 @@ class Program
         // ====================================================================
         Console.WriteLine("Test 12: IUtf8SpanFormattable + IUtf8Size (StatusCode)");
         // Generator can pre-check UTF-8 buffer: GetUtf8ByteCount() returns 3
-        var status = new StatusCode { Code = 200 };
+        StatusCode status = new StatusCode { Code = 200 };
         using (TempBytes tb = ZA.Utf8("HTTP ", status, " OK"))
         {
             Console.WriteLine($"  Result: {System.Text.Encoding.UTF8.GetString(tb.AsSpan())}");
@@ -399,7 +420,7 @@ class Program
         // Test 13: IBinarySerializable with known fixed size
         // ====================================================================
         Console.WriteLine("Test 13: IBinarySerializable with fixed size (PacketHeader)");
-        var header = new PacketHeader { Type = 0x0800, Length = 1500 };
+        PacketHeader header = new PacketHeader { Type = 0x0800, Length = 1500 };
         using (TempBytes tb = ZA.Bytes(header))
         {
             ReadOnlySpan<byte> bytes = tb.AsSpan();
@@ -409,7 +430,7 @@ class Program
                 Console.Write($"{b:X2} ");
             }
             Console.WriteLine();
-            Console.WriteLine($"  PacketHeader.TryGetSerializedSize() = 6 (fixed size)");
+            Console.WriteLine($"  PacketHeader.TryGetWrittenSize() = 6 (fixed size)");
         }
 
         Console.WriteLine();
@@ -418,7 +439,7 @@ class Program
         // Test 14: IBinarySerializable returning null (unknown size)
         // ====================================================================
         Console.WriteLine("Test 14: IBinarySerializable returning null (DynamicPacket)");
-        var dynPacket = new DynamicPacket { Payload = new byte[] { 0xCA, 0xFE, 0xBA, 0xBE } };
+        DynamicPacket dynPacket = new DynamicPacket { Payload = new byte[] { 0xCA, 0xFE, 0xBA, 0xBE } };
         using (TempBytes tb = ZA.Bytes(dynPacket))
         {
             ReadOnlySpan<byte> bytes = tb.AsSpan();
@@ -428,7 +449,7 @@ class Program
                 Console.Write($"{b:X2} ");
             }
             Console.WriteLine();
-            Console.WriteLine($"  DynamicPacket.TryGetSerializedSize() = false (unknown size)");
+            Console.WriteLine($"  DynamicPacket.TryGetWrittenSize() = false (unknown size)");
         }
 
         Console.WriteLine();
@@ -437,7 +458,7 @@ class Program
         // Test 15: IBinarySerializable with computable size
         // ====================================================================
         Console.WriteLine("Test 15: IBinarySerializable with computable size (ComputedSizePacket)");
-        var computed = new ComputedSizePacket { Data = new byte[] { 0x01, 0x02, 0x03 } };
+        ComputedSizePacket computed = new ComputedSizePacket { Data = new byte[] { 0x01, 0x02, 0x03 } };
         using (TempBytes tb = ZA.Bytes(computed))
         {
             ReadOnlySpan<byte> bytes = tb.AsSpan();
@@ -447,8 +468,8 @@ class Program
                 Console.Write($"{b:X2} ");
             }
             Console.WriteLine();
-            computed.TryGetSerializedSize(out int computedSize);
-            Console.WriteLine($"  ComputedSizePacket.TryGetSerializedSize() = {computedSize} (computable)");
+            computed.TryGetWrittenSize(out int computedSize);
+            Console.WriteLine($"  ComputedSizePacket.TryGetWrittenSize() = {computedSize} (computable)");
         }
 
         Console.WriteLine();

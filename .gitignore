@@ -9,8 +9,8 @@
 # Local helper files
 commit_message.md
 
-# Repository metadata (ignored by request)
-.github/
+# Local NuGet feed (copy from nuget.config.example)
+nuget.config
 
 # User-specific files
 *.rsuser
@@ -30,8 +30,9 @@ mono_crash.*
 [Dd]ebugPublic/
 # Ignore Release build folders in project directories
 **/[Rr]elease/
-# But keep the root-level Release folder for NuGet packages
-!/Release/
+# Root-level NuGet package output (contents: *.nupkg / *.snupkg are ignored below)
+artifacts/
+!/artifacts/
 [Rr]eleases/
 x64/
 x86/
@@ -72,7 +73,6 @@ BenchmarkDotNet.Artifacts/
 # .NET
 project.lock.json
 project.fragment.lock.json
-artifacts/
 
 # Tye
 .tye/

@@ -1,4 +1,4 @@
-﻿// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
+// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
 // ============================================================================
 // ZeroAlloc - TempBytesBuilder: Zero-Allocation Byte Builder
@@ -26,6 +26,11 @@ namespace ZeroAlloc;
 /// A disposable ref struct for building binary data without heap allocation.
 /// </summary>
 /// <remarks>
+/// <para>
+/// <b>Thread-safety:</b> Not thread-safe. Each builder instance must be used from a single thread.
+/// The underlying buffer is thread-local via <see cref="ZeroAllocHelper"/>; do not share one builder
+/// across threads.
+/// </para>
 /// <para>
 /// <see cref="TempBytesBuilder"/> uses the thread-local buffer from 
 /// <see cref="ZeroAllocHelper"/>. Overflow behavior depends on configuration:
@@ -208,7 +213,7 @@ public ref struct TempBytesBuilder : IDisposable
     /// When using a heap-fallback buffer (nested call), grows the private array without touching the ThreadStatic field.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void EnsureCapacity(int requiredCapacity)
+    private void _EnsureCapacity(int requiredCapacity)
     {
         if (requiredCapacity <= _Span.Length)
         {
@@ -240,7 +245,7 @@ public ref struct TempBytesBuilder : IDisposable
     /// <param name="requiredCapacity">The minimum required capacity.</param>
     /// <returns>True if capacity is available or was successfully grown; false otherwise.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool TryEnsureCapacity(int requiredCapacity)
+    private bool _TryEnsureCapacity(int requiredCapacity)
     {
         if (requiredCapacity <= _Span.Length)
         {
@@ -281,7 +286,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(byte value)
     {
-        EnsureCapacity(_Position + 1);
+        _EnsureCapacity(_Position + 1);
         _Span[_Position++] = value;
     }
 
@@ -310,7 +315,7 @@ public ref struct TempBytesBuilder : IDisposable
             return;
         }
 
-        EnsureCapacity(_Position + value.Length);
+        _EnsureCapacity(_Position + value.Length);
         value.CopyTo(_Span.Slice(_Position));
         _Position += value.Length;
     }
@@ -326,7 +331,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppend(byte value)
     {
-        if (!TryEnsureCapacity(_Position + 1))
+        if (!_TryEnsureCapacity(_Position + 1))
         {
             return false;
         }
@@ -362,7 +367,7 @@ public ref struct TempBytesBuilder : IDisposable
             return true;
         }
 
-        if (!TryEnsureCapacity(_Position + value.Length))
+        if (!_TryEnsureCapacity(_Position + value.Length))
         {
             return false;
         }
@@ -380,7 +385,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendInt16BigEndian(short value)
     {
-        EnsureCapacity(_Position + 2);
+        _EnsureCapacity(_Position + 2);
         BinaryPrimitives.WriteInt16BigEndian(_Span.Slice(_Position), value);
         _Position += 2;
     }
@@ -389,7 +394,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendInt32BigEndian(int value)
     {
-        EnsureCapacity(_Position + 4);
+        _EnsureCapacity(_Position + 4);
         BinaryPrimitives.WriteInt32BigEndian(_Span.Slice(_Position), value);
         _Position += 4;
     }
@@ -398,7 +403,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendInt64BigEndian(long value)
     {
-        EnsureCapacity(_Position + 8);
+        _EnsureCapacity(_Position + 8);
         BinaryPrimitives.WriteInt64BigEndian(_Span.Slice(_Position), value);
         _Position += 8;
     }
@@ -407,7 +412,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendInt128BigEndian(Int128 value)
     {
-        EnsureCapacity(_Position + 16);
+        _EnsureCapacity(_Position + 16);
         BinaryPrimitives.WriteInt128BigEndian(_Span.Slice(_Position), value);
         _Position += 16;
     }
@@ -416,7 +421,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUInt16BigEndian(ushort value)
     {
-        EnsureCapacity(_Position + 2);
+        _EnsureCapacity(_Position + 2);
         BinaryPrimitives.WriteUInt16BigEndian(_Span.Slice(_Position), value);
         _Position += 2;
     }
@@ -425,7 +430,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUInt32BigEndian(uint value)
     {
-        EnsureCapacity(_Position + 4);
+        _EnsureCapacity(_Position + 4);
         BinaryPrimitives.WriteUInt32BigEndian(_Span.Slice(_Position), value);
         _Position += 4;
     }
@@ -434,7 +439,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUInt64BigEndian(ulong value)
     {
-        EnsureCapacity(_Position + 8);
+        _EnsureCapacity(_Position + 8);
         BinaryPrimitives.WriteUInt64BigEndian(_Span.Slice(_Position), value);
         _Position += 8;
     }
@@ -443,7 +448,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUInt128BigEndian(UInt128 value)
     {
-        EnsureCapacity(_Position + 16);
+        _EnsureCapacity(_Position + 16);
         BinaryPrimitives.WriteUInt128BigEndian(_Span.Slice(_Position), value);
         _Position += 16;
     }
@@ -456,7 +461,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendInt16LittleEndian(short value)
     {
-        EnsureCapacity(_Position + 2);
+        _EnsureCapacity(_Position + 2);
         BinaryPrimitives.WriteInt16LittleEndian(_Span.Slice(_Position), value);
         _Position += 2;
     }
@@ -465,7 +470,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendInt32LittleEndian(int value)
     {
-        EnsureCapacity(_Position + 4);
+        _EnsureCapacity(_Position + 4);
         BinaryPrimitives.WriteInt32LittleEndian(_Span.Slice(_Position), value);
         _Position += 4;
     }
@@ -474,7 +479,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendInt64LittleEndian(long value)
     {
-        EnsureCapacity(_Position + 8);
+        _EnsureCapacity(_Position + 8);
         BinaryPrimitives.WriteInt64LittleEndian(_Span.Slice(_Position), value);
         _Position += 8;
     }
@@ -483,7 +488,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendInt128LittleEndian(Int128 value)
     {
-        EnsureCapacity(_Position + 16);
+        _EnsureCapacity(_Position + 16);
         BinaryPrimitives.WriteInt128LittleEndian(_Span.Slice(_Position), value);
         _Position += 16;
     }
@@ -492,7 +497,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUInt16LittleEndian(ushort value)
     {
-        EnsureCapacity(_Position + 2);
+        _EnsureCapacity(_Position + 2);
         BinaryPrimitives.WriteUInt16LittleEndian(_Span.Slice(_Position), value);
         _Position += 2;
     }
@@ -501,7 +506,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUInt32LittleEndian(uint value)
     {
-        EnsureCapacity(_Position + 4);
+        _EnsureCapacity(_Position + 4);
         BinaryPrimitives.WriteUInt32LittleEndian(_Span.Slice(_Position), value);
         _Position += 4;
     }
@@ -510,7 +515,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUInt64LittleEndian(ulong value)
     {
-        EnsureCapacity(_Position + 8);
+        _EnsureCapacity(_Position + 8);
         BinaryPrimitives.WriteUInt64LittleEndian(_Span.Slice(_Position), value);
         _Position += 8;
     }
@@ -519,7 +524,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUInt128LittleEndian(UInt128 value)
     {
-        EnsureCapacity(_Position + 16);
+        _EnsureCapacity(_Position + 16);
         BinaryPrimitives.WriteUInt128LittleEndian(_Span.Slice(_Position), value);
         _Position += 16;
     }
@@ -532,7 +537,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendHalfBigEndian(Half value)
     {
-        EnsureCapacity(_Position + 2);
+        _EnsureCapacity(_Position + 2);
         BinaryPrimitives.WriteHalfBigEndian(_Span.Slice(_Position), value);
         _Position += 2;
     }
@@ -541,7 +546,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendHalfLittleEndian(Half value)
     {
-        EnsureCapacity(_Position + 2);
+        _EnsureCapacity(_Position + 2);
         BinaryPrimitives.WriteHalfLittleEndian(_Span.Slice(_Position), value);
         _Position += 2;
     }
@@ -550,7 +555,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendSingleBigEndian(float value)
     {
-        EnsureCapacity(_Position + 4);
+        _EnsureCapacity(_Position + 4);
         BinaryPrimitives.WriteSingleBigEndian(_Span.Slice(_Position), value);
         _Position += 4;
     }
@@ -559,7 +564,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendSingleLittleEndian(float value)
     {
-        EnsureCapacity(_Position + 4);
+        _EnsureCapacity(_Position + 4);
         BinaryPrimitives.WriteSingleLittleEndian(_Span.Slice(_Position), value);
         _Position += 4;
     }
@@ -568,7 +573,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendDoubleBigEndian(double value)
     {
-        EnsureCapacity(_Position + 8);
+        _EnsureCapacity(_Position + 8);
         BinaryPrimitives.WriteDoubleBigEndian(_Span.Slice(_Position), value);
         _Position += 8;
     }
@@ -577,7 +582,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendDoubleLittleEndian(double value)
     {
-        EnsureCapacity(_Position + 8);
+        _EnsureCapacity(_Position + 8);
         BinaryPrimitives.WriteDoubleLittleEndian(_Span.Slice(_Position), value);
         _Position += 8;
     }
@@ -591,7 +596,7 @@ public ref struct TempBytesBuilder : IDisposable
     public void AppendVarInt(ulong value)
     {
         // Max 10 bytes for 64-bit value
-        EnsureCapacity(_Position + VarInt.MaxSize);
+        _EnsureCapacity(_Position + VarInt.MaxSize);
 
         while (value >= 0x80)
         {
@@ -633,7 +638,7 @@ public ref struct TempBytesBuilder : IDisposable
         }
 
         int maxBytes = Encoding.UTF8.GetMaxByteCount(value.Length);
-        EnsureCapacity(_Position + maxBytes);
+        _EnsureCapacity(_Position + maxBytes);
 
         int written = Encoding.UTF8.GetBytes(value, _Span.Slice(_Position));
         _Position += written;
@@ -660,7 +665,7 @@ public ref struct TempBytesBuilder : IDisposable
         int byteCount = Encoding.UTF8.GetByteCount(value);
         AppendVarInt((ulong)byteCount);
 
-        EnsureCapacity(_Position + byteCount);
+        _EnsureCapacity(_Position + byteCount);
         int written = Encoding.UTF8.GetBytes(value, _Span.Slice(_Position));
         _Position += written;
     }
@@ -678,7 +683,7 @@ public ref struct TempBytesBuilder : IDisposable
         int byteCount = Encoding.UTF8.GetByteCount(value);
         AppendUInt32BigEndian((uint)byteCount);
 
-        EnsureCapacity(_Position + byteCount);
+        _EnsureCapacity(_Position + byteCount);
         int written = Encoding.UTF8.GetBytes(value, _Span.Slice(_Position));
         _Position += written;
     }
@@ -696,7 +701,7 @@ public ref struct TempBytesBuilder : IDisposable
         int byteCount = Encoding.UTF8.GetByteCount(value);
         AppendUInt32LittleEndian((uint)byteCount);
 
-        EnsureCapacity(_Position + byteCount);
+        _EnsureCapacity(_Position + byteCount);
         int written = Encoding.UTF8.GetBytes(value, _Span.Slice(_Position));
         _Position += written;
     }
@@ -770,9 +775,9 @@ public ref struct TempBytesBuilder : IDisposable
     public void Append<T>(T value) where T : IBinarySerializable
     {
         // Try to get the size hint for optimal pre-allocation
-        if (value.TryGetSerializedSize(out int size))
+        if (value.TryGetWrittenSize(out int size))
         {
-            EnsureCapacity(_Position + size);
+            _EnsureCapacity(_Position + size);
         }
 
         int bytesWritten;
@@ -786,7 +791,7 @@ public ref struct TempBytesBuilder : IDisposable
             _Span = _Array.AsSpan();
 
             // Safety guard: if the buffer didn't actually grow, TryWrite will never succeed
-            if (_Span.Length <= previousLength)
+            if (_Span.Length <= previousLength || ZeroAllocHelper.ConsumeSimulatedGrowStall())
             {
                 throw new InvalidOperationException("Buffer failed to grow during serialization.");
             }
@@ -801,9 +806,9 @@ public ref struct TempBytesBuilder : IDisposable
     public bool TryAppend<T>(T value) where T : IBinarySerializable
     {
         // Try to get the size hint for optimal pre-allocation
-        if (value.TryGetSerializedSize(out int size))
+        if (value.TryGetWrittenSize(out int size))
         {
-            if (!TryEnsureCapacity(_Position + size))
+            if (!_TryEnsureCapacity(_Position + size))
             {
                 return false;
             }
@@ -825,7 +830,7 @@ public ref struct TempBytesBuilder : IDisposable
             _Span = _Array.AsSpan();
 
             // Safety guard: if the buffer didn't actually grow, TryWrite will never succeed
-            if (_Span.Length <= previousLength)
+            if (_Span.Length <= previousLength || ZeroAllocHelper.ConsumeSimulatedGrowStall())
             {
                 return false;
             }
@@ -854,7 +859,7 @@ public ref struct TempBytesBuilder : IDisposable
             _Span = _Array.AsSpan();
 
             // Safety guard: if the buffer didn't actually grow, TryFormat will never succeed
-            if (_Span.Length <= previousLength)
+            if (_Span.Length <= previousLength || ZeroAllocHelper.ConsumeSimulatedGrowStall())
             {
                 throw new InvalidOperationException("Buffer failed to grow during UTF-8 formatting.");
             }
@@ -884,7 +889,7 @@ public ref struct TempBytesBuilder : IDisposable
             _Span = _Array.AsSpan();
 
             // Safety guard: if the buffer didn't actually grow, TryFormat will never succeed
-            if (_Span.Length <= previousLength)
+            if (_Span.Length <= previousLength || ZeroAllocHelper.ConsumeSimulatedGrowStall())
             {
                 return false;
             }
@@ -898,26 +903,26 @@ public ref struct TempBytesBuilder : IDisposable
     // HEX/BINARY FORMATTING (ASCII OUTPUT)
     // ========================================================================
 
-    private static ReadOnlySpan<byte> HexCharsBytes => "0123456789ABCDEF"u8;
+    private static ReadOnlySpan<byte> _HexCharsBytes => "0123456789ABCDEF"u8;
 
     /// <summary>Appends a byte as 2 hexadecimal ASCII bytes.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendHex2(byte value)
     {
-        EnsureCapacity(_Position + 2);
-        _Span[_Position++] = HexCharsBytes[value >> 4];
-        _Span[_Position++] = HexCharsBytes[value & 0xF];
+        _EnsureCapacity(_Position + 2);
+        _Span[_Position++] = _HexCharsBytes[value >> 4];
+        _Span[_Position++] = _HexCharsBytes[value & 0xF];
     }
 
     /// <summary>Appends a ushort as 4 hexadecimal ASCII bytes.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendHex4(ushort value)
     {
-        EnsureCapacity(_Position + 4);
-        _Span[_Position++] = HexCharsBytes[(value >> 12) & 0xF];
-        _Span[_Position++] = HexCharsBytes[(value >> 8) & 0xF];
-        _Span[_Position++] = HexCharsBytes[(value >> 4) & 0xF];
-        _Span[_Position++] = HexCharsBytes[value & 0xF];
+        _EnsureCapacity(_Position + 4);
+        _Span[_Position++] = _HexCharsBytes[(value >> 12) & 0xF];
+        _Span[_Position++] = _HexCharsBytes[(value >> 8) & 0xF];
+        _Span[_Position++] = _HexCharsBytes[(value >> 4) & 0xF];
+        _Span[_Position++] = _HexCharsBytes[value & 0xF];
     }
 
     /// <summary>Appends a uint as 8 hexadecimal ASCII bytes.</summary>
@@ -940,7 +945,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendBinary8(byte value)
     {
-        EnsureCapacity(_Position + 8);
+        _EnsureCapacity(_Position + 8);
         for (int i = 7; i >= 0; i--)
         {
             _Span[_Position++] = (byte)('0' + ((value >> i) & 1));
@@ -951,7 +956,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendBinary16(ushort value)
     {
-        EnsureCapacity(_Position + 16);
+        _EnsureCapacity(_Position + 16);
         for (int i = 15; i >= 0; i--)
         {
             _Span[_Position++] = (byte)('0' + ((value >> i) & 1));
@@ -962,7 +967,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendBinary32(uint value)
     {
-        EnsureCapacity(_Position + 32);
+        _EnsureCapacity(_Position + 32);
         for (int i = 31; i >= 0; i--)
         {
             _Span[_Position++] = (byte)('0' + ((value >> i) & 1));
@@ -973,7 +978,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendBinary64(ulong value)
     {
-        EnsureCapacity(_Position + 64);
+        _EnsureCapacity(_Position + 64);
         for (int i = 63; i >= 0; i--)
         {
             _Span[_Position++] = (byte)('0' + (int)((value >> i) & 1));
@@ -986,13 +991,13 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendHex2(byte value)
     {
-        if (!TryEnsureCapacity(_Position + 2))
+        if (!_TryEnsureCapacity(_Position + 2))
         {
             return false;
         }
 
-        _Span[_Position++] = HexCharsBytes[value >> 4];
-        _Span[_Position++] = HexCharsBytes[value & 0xF];
+        _Span[_Position++] = _HexCharsBytes[value >> 4];
+        _Span[_Position++] = _HexCharsBytes[value & 0xF];
         return true;
     }
 
@@ -1002,15 +1007,15 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendHex4(ushort value)
     {
-        if (!TryEnsureCapacity(_Position + 4))
+        if (!_TryEnsureCapacity(_Position + 4))
         {
             return false;
         }
 
-        _Span[_Position++] = HexCharsBytes[(value >> 12) & 0xF];
-        _Span[_Position++] = HexCharsBytes[(value >> 8) & 0xF];
-        _Span[_Position++] = HexCharsBytes[(value >> 4) & 0xF];
-        _Span[_Position++] = HexCharsBytes[value & 0xF];
+        _Span[_Position++] = _HexCharsBytes[(value >> 12) & 0xF];
+        _Span[_Position++] = _HexCharsBytes[(value >> 8) & 0xF];
+        _Span[_Position++] = _HexCharsBytes[(value >> 4) & 0xF];
+        _Span[_Position++] = _HexCharsBytes[value & 0xF];
         return true;
     }
 
@@ -1020,7 +1025,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendHex8(uint value)
     {
-        if (!TryEnsureCapacity(_Position + 8))
+        if (!_TryEnsureCapacity(_Position + 8))
         {
             return false;
         }
@@ -1036,7 +1041,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendHex16(ulong value)
     {
-        if (!TryEnsureCapacity(_Position + 16))
+        if (!_TryEnsureCapacity(_Position + 16))
         {
             return false;
         }
@@ -1052,7 +1057,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendBinary8(byte value)
     {
-        if (!TryEnsureCapacity(_Position + 8))
+        if (!_TryEnsureCapacity(_Position + 8))
         {
             return false;
         }
@@ -1070,7 +1075,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendBinary16(ushort value)
     {
-        if (!TryEnsureCapacity(_Position + 16))
+        if (!_TryEnsureCapacity(_Position + 16))
         {
             return false;
         }
@@ -1088,7 +1093,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendBinary32(uint value)
     {
-        if (!TryEnsureCapacity(_Position + 32))
+        if (!_TryEnsureCapacity(_Position + 32))
         {
             return false;
         }
@@ -1106,7 +1111,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendBinary64(ulong value)
     {
-        if (!TryEnsureCapacity(_Position + 64))
+        if (!_TryEnsureCapacity(_Position + 64))
         {
             return false;
         }

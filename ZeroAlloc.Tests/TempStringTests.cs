@@ -87,6 +87,41 @@ public sealed class TempStringTests
     }
 
     [Test]
+    public async Task TempString_ToString_Empty_ReturnsEmpty()
+    {
+        string content;
+        {
+            using TempString temp = ZA.String("");
+            content = temp.ToString();
+        }
+        await Assert.That(content).IsEqualTo(string.Empty);
+    }
+
+    [Test]
+    public async Task TempString_IsEmpty_TrueForZeroLength()
+    {
+        bool isEmpty;
+        {
+            using TempString temp = ZA.String("");
+            isEmpty = temp.IsEmpty;
+        }
+        await Assert.That(isEmpty).IsTrue();
+    }
+
+    [Test]
+    public async Task TempString_Dispose_HeapAllocated_CompletesWithoutError()
+    {
+        bool innerWasHeapAllocated;
+        {
+            using TempString outer = ZA.String("outer");
+            using TempString inner = ZA.String("inner");
+            innerWasHeapAllocated = inner.IsHeapAllocated;
+        }
+
+        await Assert.That(innerWasHeapAllocated).IsTrue();
+    }
+
+    [Test]
     public async Task String_AsSpan_ReturnsSameAsToString()
     {
         string spanContent;

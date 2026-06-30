@@ -72,12 +72,12 @@ public sealed class BinaryParsableAttribute : Attribute
 /// </summary>
 /// <remarks>
 /// <para>The generator will implement <see cref="IBinarySerializable"/> with
-/// <c>TryWrite</c> and <c>TryGetSerializedSize</c> methods that write
+/// <c>TryWrite</c> and <c>TryGetWrittenSize</c> methods that write
 /// members in declaration order (or explicit order if <see cref="BinaryOrderAttribute"/> is used).</para>
 /// <para><b>Generated method signatures:</b></para>
 /// <code>
 /// public bool TryWrite(Span&lt;byte&gt; destination, out int bytesWritten)
-/// public bool TryGetSerializedSize(out int size)
+/// public bool TryGetWrittenSize(out int size)
 /// </code>
 /// <para><b>Supported member types:</b></para>
 /// <list type="bullet">

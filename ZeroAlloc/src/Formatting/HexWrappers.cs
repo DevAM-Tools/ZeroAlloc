@@ -1,4 +1,4 @@
-﻿// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
+// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
 // ============================================================================
 // ZeroAlloc - Hex Formatting Wrappers
@@ -37,12 +37,12 @@ public readonly struct Hex1 : ISpanFormattable, IUtf8SpanFormattable
     /// <summary>
     /// Uppercase hex character lookup table.
     /// </summary>
-    private static ReadOnlySpan<char> HexChars => "0123456789ABCDEF";
+    private static ReadOnlySpan<char> _HexChars => "0123456789ABCDEF";
 
     /// <summary>
     /// Uppercase hex byte lookup table (ASCII).
     /// </summary>
-    private static ReadOnlySpan<byte> HexBytes => "0123456789ABCDEF"u8;
+    private static ReadOnlySpan<byte> _HexBytes => "0123456789ABCDEF"u8;
 
     // ========================================================================
     // FIELDS
@@ -83,7 +83,7 @@ public readonly struct Hex1 : ISpanFormattable, IUtf8SpanFormattable
             return false;
         }
 
-        destination[0] = HexChars[_Value];
+        destination[0] = _HexChars[_Value];
         charsWritten = FormattedLength;
         return true;
     }
@@ -100,7 +100,7 @@ public readonly struct Hex1 : ISpanFormattable, IUtf8SpanFormattable
             return false;
         }
 
-        destination[0] = HexBytes[_Value];
+        destination[0] = _HexBytes[_Value];
         bytesWritten = FormattedLength;
         return true;
     }
@@ -157,12 +157,12 @@ public readonly struct Hex2 : ISpanFormattable, IUtf8SpanFormattable
     /// <summary>
     /// Uppercase hex character lookup table.
     /// </summary>
-    private static ReadOnlySpan<char> HexChars => "0123456789ABCDEF";
+    private static ReadOnlySpan<char> _HexChars => "0123456789ABCDEF";
 
     /// <summary>
     /// Uppercase hex byte lookup table (ASCII).
     /// </summary>
-    private static ReadOnlySpan<byte> HexBytes => "0123456789ABCDEF"u8;
+    private static ReadOnlySpan<byte> _HexBytes => "0123456789ABCDEF"u8;
 
     // ========================================================================
     // FIELDS
@@ -203,8 +203,8 @@ public readonly struct Hex2 : ISpanFormattable, IUtf8SpanFormattable
             return false;
         }
 
-        destination[0] = HexChars[_Value >> 4];
-        destination[1] = HexChars[_Value & 0xF];
+        destination[0] = _HexChars[_Value >> 4];
+        destination[1] = _HexChars[_Value & 0xF];
         charsWritten = FormattedLength;
         return true;
     }
@@ -221,8 +221,8 @@ public readonly struct Hex2 : ISpanFormattable, IUtf8SpanFormattable
             return false;
         }
 
-        destination[0] = HexBytes[_Value >> 4];
-        destination[1] = HexBytes[_Value & 0xF];
+        destination[0] = _HexBytes[_Value >> 4];
+        destination[1] = _HexBytes[_Value & 0xF];
         bytesWritten = FormattedLength;
         return true;
     }
@@ -264,8 +264,8 @@ public readonly struct Hex3 : ISpanFormattable, IUtf8SpanFormattable
 {
     /// <summary>The formatted length (3 characters).</summary>
     public const int FormattedLength = 3;
-    private static ReadOnlySpan<char> HexChars => "0123456789ABCDEF";
-    private static ReadOnlySpan<byte> HexBytes => "0123456789ABCDEF"u8;
+    private static ReadOnlySpan<char> _HexChars => "0123456789ABCDEF";
+    private static ReadOnlySpan<byte> _HexBytes => "0123456789ABCDEF"u8;
 
     private readonly ushort _Value;
 
@@ -287,9 +287,9 @@ public readonly struct Hex3 : ISpanFormattable, IUtf8SpanFormattable
             return false;
         }
 
-        destination[0] = HexChars[(_Value >> 8) & 0xF];
-        destination[1] = HexChars[(_Value >> 4) & 0xF];
-        destination[2] = HexChars[_Value & 0xF];
+        destination[0] = _HexChars[(_Value >> 8) & 0xF];
+        destination[1] = _HexChars[(_Value >> 4) & 0xF];
+        destination[2] = _HexChars[_Value & 0xF];
         charsWritten = FormattedLength;
         return true;
     }
@@ -304,9 +304,9 @@ public readonly struct Hex3 : ISpanFormattable, IUtf8SpanFormattable
             return false;
         }
 
-        destination[0] = HexBytes[(_Value >> 8) & 0xF];
-        destination[1] = HexBytes[(_Value >> 4) & 0xF];
-        destination[2] = HexBytes[_Value & 0xF];
+        destination[0] = _HexBytes[(_Value >> 8) & 0xF];
+        destination[1] = _HexBytes[(_Value >> 4) & 0xF];
+        destination[2] = _HexBytes[_Value & 0xF];
         bytesWritten = FormattedLength;
         return true;
     }
@@ -339,8 +339,8 @@ public readonly struct Hex4 : ISpanFormattable, IUtf8SpanFormattable
 {
     /// <summary>The formatted length (4 characters).</summary>
     public const int FormattedLength = 4;
-    private static ReadOnlySpan<char> HexChars => "0123456789ABCDEF";
-    private static ReadOnlySpan<byte> HexBytes => "0123456789ABCDEF"u8;
+    private static ReadOnlySpan<char> _HexChars => "0123456789ABCDEF";
+    private static ReadOnlySpan<byte> _HexBytes => "0123456789ABCDEF"u8;
 
     private readonly ushort _Value;
 
@@ -362,10 +362,10 @@ public readonly struct Hex4 : ISpanFormattable, IUtf8SpanFormattable
             return false;
         }
 
-        destination[0] = HexChars[(_Value >> 12) & 0xF];
-        destination[1] = HexChars[(_Value >> 8) & 0xF];
-        destination[2] = HexChars[(_Value >> 4) & 0xF];
-        destination[3] = HexChars[_Value & 0xF];
+        destination[0] = _HexChars[(_Value >> 12) & 0xF];
+        destination[1] = _HexChars[(_Value >> 8) & 0xF];
+        destination[2] = _HexChars[(_Value >> 4) & 0xF];
+        destination[3] = _HexChars[_Value & 0xF];
         charsWritten = FormattedLength;
         return true;
     }
@@ -380,10 +380,10 @@ public readonly struct Hex4 : ISpanFormattable, IUtf8SpanFormattable
             return false;
         }
 
-        destination[0] = HexBytes[(_Value >> 12) & 0xF];
-        destination[1] = HexBytes[(_Value >> 8) & 0xF];
-        destination[2] = HexBytes[(_Value >> 4) & 0xF];
-        destination[3] = HexBytes[_Value & 0xF];
+        destination[0] = _HexBytes[(_Value >> 12) & 0xF];
+        destination[1] = _HexBytes[(_Value >> 8) & 0xF];
+        destination[2] = _HexBytes[(_Value >> 4) & 0xF];
+        destination[3] = _HexBytes[_Value & 0xF];
         bytesWritten = FormattedLength;
         return true;
     }
@@ -418,8 +418,8 @@ public readonly struct Hex5 : ISpanFormattable, IUtf8SpanFormattable
 {
     /// <summary>The formatted length (5 characters).</summary>
     public const int FormattedLength = 5;
-    private static ReadOnlySpan<char> HexChars => "0123456789ABCDEF";
-    private static ReadOnlySpan<byte> HexBytes => "0123456789ABCDEF"u8;
+    private static ReadOnlySpan<char> _HexChars => "0123456789ABCDEF";
+    private static ReadOnlySpan<byte> _HexBytes => "0123456789ABCDEF"u8;
 
     private readonly uint _Value;
 
@@ -441,11 +441,11 @@ public readonly struct Hex5 : ISpanFormattable, IUtf8SpanFormattable
             return false;
         }
 
-        destination[0] = HexChars[(int)(_Value >> 16) & 0xF];
-        destination[1] = HexChars[(int)(_Value >> 12) & 0xF];
-        destination[2] = HexChars[(int)(_Value >> 8) & 0xF];
-        destination[3] = HexChars[(int)(_Value >> 4) & 0xF];
-        destination[4] = HexChars[(int)_Value & 0xF];
+        destination[0] = _HexChars[(int)(_Value >> 16) & 0xF];
+        destination[1] = _HexChars[(int)(_Value >> 12) & 0xF];
+        destination[2] = _HexChars[(int)(_Value >> 8) & 0xF];
+        destination[3] = _HexChars[(int)(_Value >> 4) & 0xF];
+        destination[4] = _HexChars[(int)_Value & 0xF];
         charsWritten = FormattedLength;
         return true;
     }
@@ -460,11 +460,11 @@ public readonly struct Hex5 : ISpanFormattable, IUtf8SpanFormattable
             return false;
         }
 
-        destination[0] = HexBytes[(int)(_Value >> 16) & 0xF];
-        destination[1] = HexBytes[(int)(_Value >> 12) & 0xF];
-        destination[2] = HexBytes[(int)(_Value >> 8) & 0xF];
-        destination[3] = HexBytes[(int)(_Value >> 4) & 0xF];
-        destination[4] = HexBytes[(int)_Value & 0xF];
+        destination[0] = _HexBytes[(int)(_Value >> 16) & 0xF];
+        destination[1] = _HexBytes[(int)(_Value >> 12) & 0xF];
+        destination[2] = _HexBytes[(int)(_Value >> 8) & 0xF];
+        destination[3] = _HexBytes[(int)(_Value >> 4) & 0xF];
+        destination[4] = _HexBytes[(int)_Value & 0xF];
         bytesWritten = FormattedLength;
         return true;
     }
@@ -500,8 +500,8 @@ public readonly struct Hex6 : ISpanFormattable, IUtf8SpanFormattable
 {
     /// <summary>The formatted length (6 characters).</summary>
     public const int FormattedLength = 6;
-    private static ReadOnlySpan<char> HexChars => "0123456789ABCDEF";
-    private static ReadOnlySpan<byte> HexBytes => "0123456789ABCDEF"u8;
+    private static ReadOnlySpan<char> _HexChars => "0123456789ABCDEF";
+    private static ReadOnlySpan<byte> _HexBytes => "0123456789ABCDEF"u8;
 
     private readonly uint _Value;
 
@@ -523,12 +523,12 @@ public readonly struct Hex6 : ISpanFormattable, IUtf8SpanFormattable
             return false;
         }
 
-        destination[0] = HexChars[(int)(_Value >> 20) & 0xF];
-        destination[1] = HexChars[(int)(_Value >> 16) & 0xF];
-        destination[2] = HexChars[(int)(_Value >> 12) & 0xF];
-        destination[3] = HexChars[(int)(_Value >> 8) & 0xF];
-        destination[4] = HexChars[(int)(_Value >> 4) & 0xF];
-        destination[5] = HexChars[(int)_Value & 0xF];
+        destination[0] = _HexChars[(int)(_Value >> 20) & 0xF];
+        destination[1] = _HexChars[(int)(_Value >> 16) & 0xF];
+        destination[2] = _HexChars[(int)(_Value >> 12) & 0xF];
+        destination[3] = _HexChars[(int)(_Value >> 8) & 0xF];
+        destination[4] = _HexChars[(int)(_Value >> 4) & 0xF];
+        destination[5] = _HexChars[(int)_Value & 0xF];
         charsWritten = FormattedLength;
         return true;
     }
@@ -543,12 +543,12 @@ public readonly struct Hex6 : ISpanFormattable, IUtf8SpanFormattable
             return false;
         }
 
-        destination[0] = HexBytes[(int)(_Value >> 20) & 0xF];
-        destination[1] = HexBytes[(int)(_Value >> 16) & 0xF];
-        destination[2] = HexBytes[(int)(_Value >> 12) & 0xF];
-        destination[3] = HexBytes[(int)(_Value >> 8) & 0xF];
-        destination[4] = HexBytes[(int)(_Value >> 4) & 0xF];
-        destination[5] = HexBytes[(int)_Value & 0xF];
+        destination[0] = _HexBytes[(int)(_Value >> 20) & 0xF];
+        destination[1] = _HexBytes[(int)(_Value >> 16) & 0xF];
+        destination[2] = _HexBytes[(int)(_Value >> 12) & 0xF];
+        destination[3] = _HexBytes[(int)(_Value >> 8) & 0xF];
+        destination[4] = _HexBytes[(int)(_Value >> 4) & 0xF];
+        destination[5] = _HexBytes[(int)_Value & 0xF];
         bytesWritten = FormattedLength;
         return true;
     }
@@ -585,8 +585,8 @@ public readonly struct Hex7 : ISpanFormattable, IUtf8SpanFormattable
 {
     /// <summary>The formatted length (7 characters).</summary>
     public const int FormattedLength = 7;
-    private static ReadOnlySpan<char> HexChars => "0123456789ABCDEF";
-    private static ReadOnlySpan<byte> HexBytes => "0123456789ABCDEF"u8;
+    private static ReadOnlySpan<char> _HexChars => "0123456789ABCDEF";
+    private static ReadOnlySpan<byte> _HexBytes => "0123456789ABCDEF"u8;
 
     private readonly uint _Value;
 
@@ -608,13 +608,13 @@ public readonly struct Hex7 : ISpanFormattable, IUtf8SpanFormattable
             return false;
         }
 
-        destination[0] = HexChars[(int)(_Value >> 24) & 0xF];
-        destination[1] = HexChars[(int)(_Value >> 20) & 0xF];
-        destination[2] = HexChars[(int)(_Value >> 16) & 0xF];
-        destination[3] = HexChars[(int)(_Value >> 12) & 0xF];
-        destination[4] = HexChars[(int)(_Value >> 8) & 0xF];
-        destination[5] = HexChars[(int)(_Value >> 4) & 0xF];
-        destination[6] = HexChars[(int)_Value & 0xF];
+        destination[0] = _HexChars[(int)(_Value >> 24) & 0xF];
+        destination[1] = _HexChars[(int)(_Value >> 20) & 0xF];
+        destination[2] = _HexChars[(int)(_Value >> 16) & 0xF];
+        destination[3] = _HexChars[(int)(_Value >> 12) & 0xF];
+        destination[4] = _HexChars[(int)(_Value >> 8) & 0xF];
+        destination[5] = _HexChars[(int)(_Value >> 4) & 0xF];
+        destination[6] = _HexChars[(int)_Value & 0xF];
         charsWritten = FormattedLength;
         return true;
     }
@@ -629,13 +629,13 @@ public readonly struct Hex7 : ISpanFormattable, IUtf8SpanFormattable
             return false;
         }
 
-        destination[0] = HexBytes[(int)(_Value >> 24) & 0xF];
-        destination[1] = HexBytes[(int)(_Value >> 20) & 0xF];
-        destination[2] = HexBytes[(int)(_Value >> 16) & 0xF];
-        destination[3] = HexBytes[(int)(_Value >> 12) & 0xF];
-        destination[4] = HexBytes[(int)(_Value >> 8) & 0xF];
-        destination[5] = HexBytes[(int)(_Value >> 4) & 0xF];
-        destination[6] = HexBytes[(int)_Value & 0xF];
+        destination[0] = _HexBytes[(int)(_Value >> 24) & 0xF];
+        destination[1] = _HexBytes[(int)(_Value >> 20) & 0xF];
+        destination[2] = _HexBytes[(int)(_Value >> 16) & 0xF];
+        destination[3] = _HexBytes[(int)(_Value >> 12) & 0xF];
+        destination[4] = _HexBytes[(int)(_Value >> 8) & 0xF];
+        destination[5] = _HexBytes[(int)(_Value >> 4) & 0xF];
+        destination[6] = _HexBytes[(int)_Value & 0xF];
         bytesWritten = FormattedLength;
         return true;
     }
@@ -672,8 +672,8 @@ public readonly struct Hex8 : ISpanFormattable, IUtf8SpanFormattable
 {
     /// <summary>The formatted length (8 characters).</summary>
     public const int FormattedLength = 8;
-    private static ReadOnlySpan<char> HexChars => "0123456789ABCDEF";
-    private static ReadOnlySpan<byte> HexBytes => "0123456789ABCDEF"u8;
+    private static ReadOnlySpan<char> _HexChars => "0123456789ABCDEF";
+    private static ReadOnlySpan<byte> _HexBytes => "0123456789ABCDEF"u8;
 
     private readonly uint _Value;
 
@@ -697,7 +697,7 @@ public readonly struct Hex8 : ISpanFormattable, IUtf8SpanFormattable
 
         for (int i = 0; i < 8; i++)
         {
-            destination[i] = HexChars[(int)(_Value >> (28 - i * 4)) & 0xF];
+            destination[i] = _HexChars[(int)(_Value >> (28 - i * 4)) & 0xF];
         }
         charsWritten = FormattedLength;
         return true;
@@ -715,7 +715,7 @@ public readonly struct Hex8 : ISpanFormattable, IUtf8SpanFormattable
 
         for (int i = 0; i < 8; i++)
         {
-            destination[i] = HexBytes[(int)(_Value >> (28 - i * 4)) & 0xF];
+            destination[i] = _HexBytes[(int)(_Value >> (28 - i * 4)) & 0xF];
         }
         bytesWritten = FormattedLength;
         return true;
@@ -750,8 +750,8 @@ public readonly struct Hex16 : ISpanFormattable, IUtf8SpanFormattable
 {
     /// <summary>The formatted length (16 characters).</summary>
     public const int FormattedLength = 16;
-    private static ReadOnlySpan<char> HexChars => "0123456789ABCDEF";
-    private static ReadOnlySpan<byte> HexBytes => "0123456789ABCDEF"u8;
+    private static ReadOnlySpan<char> _HexChars => "0123456789ABCDEF";
+    private static ReadOnlySpan<byte> _HexBytes => "0123456789ABCDEF"u8;
 
     private readonly ulong _Value;
 
@@ -775,7 +775,7 @@ public readonly struct Hex16 : ISpanFormattable, IUtf8SpanFormattable
 
         for (int i = 0; i < 16; i++)
         {
-            destination[i] = HexChars[(int)(_Value >> (60 - i * 4)) & 0xF];
+            destination[i] = _HexChars[(int)(_Value >> (60 - i * 4)) & 0xF];
         }
         charsWritten = FormattedLength;
         return true;
@@ -793,7 +793,7 @@ public readonly struct Hex16 : ISpanFormattable, IUtf8SpanFormattable
 
         for (int i = 0; i < 16; i++)
         {
-            destination[i] = HexBytes[(int)(_Value >> (60 - i * 4)) & 0xF];
+            destination[i] = _HexBytes[(int)(_Value >> (60 - i * 4)) & 0xF];
         }
         bytesWritten = FormattedLength;
         return true;

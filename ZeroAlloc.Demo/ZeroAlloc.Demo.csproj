@@ -4,16 +4,15 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>ZeroAlloc.Demo</RootNamespace>
-
-    <!-- Emit generated source files for debugging -->
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)Generated</CompilerGeneratedFilesOutputPath>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\ZeroAlloc\ZeroAlloc.csproj" />
-    <ProjectReference Include="..\ZeroAlloc.Generator\ZeroAlloc.Generator.csproj" 
-                      OutputItemType="Analyzer" 
+    <!-- Analyzer does not flow from ProjectReference; required for ZA source generation. -->
+    <ProjectReference Include="..\ZeroAlloc.Generator\ZeroAlloc.Generator.csproj"
+                      OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />
   </ItemGroup>
 

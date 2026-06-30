@@ -1,4 +1,4 @@
-﻿// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
+// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
 // ============================================================================
 // ZeroAlloc Binary Generator Helpers
@@ -9,8 +9,6 @@
 // ensure consistency when new wrapper types are added.
 // ============================================================================
 
-using System.Collections.Generic;
-using Microsoft.CodeAnalysis;
 
 namespace ZeroAlloc.Generator;
 
@@ -21,6 +19,18 @@ namespace ZeroAlloc.Generator;
 /// </summary>
 internal static class BinaryGeneratorHelpers
 {
+    /// <summary>
+    /// Appends generated source text, ensuring a trailing newline when the block omits one.
+    /// </summary>
+    internal static void AppendCode(StringBuilder sb, string code)
+    {
+        sb.Append(code);
+        if (code.Length == 0 || code[code.Length - 1] != '\n')
+        {
+            sb.Append('\n');
+        }
+    }
+
     #region Type Recognition
 
     /// <summary>

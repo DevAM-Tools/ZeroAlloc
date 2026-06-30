@@ -1,4 +1,4 @@
-﻿// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
+// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
 namespace ZeroAlloc;
 
@@ -73,7 +73,7 @@ public ref struct BitWriter
                 + $"but only {RemainingBits} bits remaining (buffer length: {_Buffer.Length} bytes).");
         }
 
-        WriteBitsCore(value, bitCount);
+        _WriteBitsCore(value, bitCount);
     }
 
     /// <summary>
@@ -82,7 +82,7 @@ public ref struct BitWriter
     /// sufficient buffer capacity remains before calling this method.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void WriteBitsCore(ulong value, int bitCount)
+    private void _WriteBitsCore(ulong value, int bitCount)
     {
         int bytePos = _BitOffset >> 3;
         int bitPos = _BitOffset & 7;
@@ -96,12 +96,12 @@ public ref struct BitWriter
         // Fast path: byte-aligned writes
         if (bitPos == 0)
         {
-            WriteBitsAligned(bytePos, value, bitCount);
+            _WriteBitsAligned(bytePos, value, bitCount);
         }
         else
         {
             // General path: non-aligned writes
-            WriteBitsGeneric(bytePos, bitPos, value, bitCount);
+            _WriteBitsGeneric(bytePos, bitPos, value, bitCount);
         }
 
         _BitOffset += bitCount;
@@ -111,7 +111,7 @@ public ref struct BitWriter
     /// Optimized write for byte-aligned positions using direct integer writes.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void WriteBitsAligned(int bytePos, ulong value, int bitCount)
+    private void _WriteBitsAligned(int bytePos, ulong value, int bitCount)
     {
         switch (bitCount)
         {
@@ -128,7 +128,7 @@ public ref struct BitWriter
                 BinaryPrimitives.WriteUInt64BigEndian(_Buffer.Slice(bytePos), value);
                 return;
             default:
-                WriteBitsGeneric(bytePos, 0, value, bitCount);
+                _WriteBitsGeneric(bytePos, 0, value, bitCount);
                 return;
         }
     }
@@ -137,7 +137,7 @@ public ref struct BitWriter
     /// General bit-level write for arbitrary alignment and bit counts.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void WriteBitsGeneric(int bytePos, int bitPos, ulong value, int bitCount)
+    private void _WriteBitsGeneric(int bytePos, int bitPos, ulong value, int bitCount)
     {
         int bitsRemaining = bitCount;
 
@@ -346,7 +346,7 @@ public ref struct BitWriter
             return false;
         }
 
-        WriteBitsCore(value, bitCount);
+        _WriteBitsCore(value, bitCount);
         return true;
     }
 
@@ -370,7 +370,7 @@ public ref struct BitWriter
         }
         else
         {
-            WriteBitsCore(value, 8);
+            _WriteBitsCore(value, 8);
         }
 
         return true;
@@ -388,7 +388,7 @@ public ref struct BitWriter
             return false;
         }
 
-        WriteBitsCore(value, 16);
+        _WriteBitsCore(value, 16);
         return true;
     }
 
@@ -404,7 +404,7 @@ public ref struct BitWriter
             return false;
         }
 
-        WriteBitsCore(value, 32);
+        _WriteBitsCore(value, 32);
         return true;
     }
 
@@ -420,7 +420,7 @@ public ref struct BitWriter
             return false;
         }
 
-        WriteBitsCore(value, 64);
+        _WriteBitsCore(value, 64);
         return true;
     }
 
@@ -436,7 +436,7 @@ public ref struct BitWriter
             return false;
         }
 
-        WriteBitsCore((ulong)(ushort)value, 16);
+        _WriteBitsCore((ulong)(ushort)value, 16);
         return true;
     }
 
@@ -452,7 +452,7 @@ public ref struct BitWriter
             return false;
         }
 
-        WriteBitsCore((ulong)(uint)value, 32);
+        _WriteBitsCore((ulong)(uint)value, 32);
         return true;
     }
 
@@ -468,7 +468,7 @@ public ref struct BitWriter
             return false;
         }
 
-        WriteBitsCore((ulong)value, 64);
+        _WriteBitsCore((ulong)value, 64);
         return true;
     }
 

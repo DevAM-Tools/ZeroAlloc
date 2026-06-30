@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "coveragegap.tool": {
+      "version": "2.1.0",
+      "commands": [
+        "coveragegap"
+      ]
+    }
+  }
+}

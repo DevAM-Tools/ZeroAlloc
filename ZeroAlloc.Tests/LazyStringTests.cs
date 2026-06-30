@@ -123,6 +123,25 @@ public sealed class LazyStringTests
     }
 
     [Test]
+    [Arguments("")]
+    public async Task Append_DirectEmptyString_ReturnsOther(string emptyText)
+    {
+        LazyString a = new("hello");
+        LazyString empty = new(emptyText);
+        LazyString result = a.Append(empty);
+        await Assert.That(result.AsString).IsEqualTo("hello");
+    }
+
+    [Test]
+    public async Task Append_DirectEmptyString_OnOtherSide_ReturnsThis()
+    {
+        LazyString empty = new("");
+        LazyString value = new("hello");
+        LazyString result = empty.Append(value);
+        await Assert.That(result.AsString).IsEqualTo("hello");
+    }
+
+    [Test]
     public async Task Append_NullOptimization()
     {
         LazyString a = new("hello");
@@ -210,6 +229,43 @@ public sealed class LazyStringTests
         LazyString absent = default;
         await Assert.That(a.CompareTo(absent) > 0).IsTrue();
         await Assert.That(absent.CompareTo(a) < 0).IsTrue();
+    }
+
+    [Test]
+    public async Task CompareTo_BothNull_ReturnsZero()
+    {
+        LazyString left = default;
+        LazyString right = default;
+        await Assert.That(left.CompareTo(right)).IsEqualTo(0);
+    }
+
+    [Test]
+    [Arguments(true)]
+    [Arguments(false)]
+    public async Task IsEmpty_LazyDeferredValue_UsesEvaluatedLength(bool useFormatLazy)
+    {
+        LazyString lazy = useFormatLazy
+            ? LazyString.FormatLazy(0, static _ => string.Empty)
+            : LazyString.Lazy(static () => string.Empty);
+
+        await Assert.That(lazy.IsLazy).IsTrue();
+        await Assert.That(lazy.IsEmpty).IsTrue();
+    }
+
+    [Test]
+    public async Task GetHashCode_NullValue_ReturnsZero()
+    {
+        LazyString absent = default;
+        await Assert.That(absent.GetHashCode()).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task FromRawValue_UnknownType_EvaluatesToEmpty()
+    {
+        LazyString s = LazyString.FromRawValue(42);
+        await Assert.That(s.AsString).IsEqualTo(string.Empty);
+        await Assert.That(s.TryGetString(out string result)).IsTrue();
+        await Assert.That(result).IsEqualTo(string.Empty);
     }
 
     [Test]
@@ -301,6 +357,24 @@ public sealed class LazyStringTests
         bool success = s.TryGetString(out string result);
         await Assert.That(success).IsTrue();
         await Assert.That(result).IsEqualTo("lazy result");
+    }
+
+    [Test]
+    public async Task TryGetString_FormatLazy_Succeeds()
+    {
+        LazyString s = LazyString.FormatLazy(7, static n => $"N={n}");
+        bool success = s.TryGetString(out string result);
+        await Assert.That(success).IsTrue();
+        await Assert.That(result).IsEqualTo("N=7");
+    }
+
+    [Test]
+    public async Task TryGetString_FormatLazyThrows_ReturnsFalseWithEmpty()
+    {
+        LazyString s = LazyString.FormatLazy(0, static _ => throw new InvalidOperationException("boom"));
+        bool success = s.TryGetString(out string result);
+        await Assert.That(success).IsFalse();
+        await Assert.That(result).IsEqualTo(string.Empty);
     }
 
     [Test]

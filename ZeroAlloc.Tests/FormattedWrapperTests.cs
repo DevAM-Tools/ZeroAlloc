@@ -58,14 +58,22 @@ public sealed class FormattedWrapperTests
     [Test]
     public async Task Formatted_ToString_FallbackForLargeValue()
     {
-        // Create a value that formats to more than 256 chars
-        // A double with many decimal places using a custom format
-        Formatted<double> formatted = new(1.0 / 3.0, "R", CultureInfo.InvariantCulture);
+        Formatted<LargeSpanFormattedValue> formatted = new(new LargeSpanFormattedValue("fallback-text"));
 
         string result = formatted.ToString();
 
-        await Assert.That(result).IsNotNull();
-        await Assert.That(result).IsNotEmpty();
+        await Assert.That(result).IsEqualTo("fallback-text");
+    }
+
+    /// <summary>Verifies ToString fallback when TryFormat fails and ToString returns null.</summary>
+    [Test]
+    public async Task Formatted_ToString_FallbackWhenToStringReturnsNull_ReturnsEmpty()
+    {
+        Formatted<NullToStringSpanFormattedValue> formatted = new(new NullToStringSpanFormattedValue());
+
+        string result = formatted.ToString();
+
+        await Assert.That(result).IsEqualTo(string.Empty);
     }
 
     /// <summary>Verifies the Create factory method.</summary>
@@ -89,6 +97,26 @@ public sealed class FormattedWrapperTests
         string result2 = formatted.ToString(null, null);
 
         await Assert.That(result2).IsEqualTo(result1);
+    }
+
+    /// <summary>Verifies TryFormat falls back to the passed provider when none is stored.</summary>
+    [Test]
+    public async Task Formatted_TryFormat_NullStoredProvider_UsesPassedProvider()
+    {
+        CultureInfo german = CultureInfo.GetCultureInfo("de-DE");
+        Formatted<double> formatted = new(1234.5, "N2", provider: null);
+
+        bool success;
+        int written;
+        string writtenContent;
+        {
+            Span<char> buffer = stackalloc char[64];
+            success = formatted.TryFormat(buffer, out written, default, german);
+            writtenContent = new string(buffer.Slice(0, written));
+        }
+
+        await Assert.That(success).IsTrue();
+        await Assert.That(writtenContent).IsEqualTo("1.234,50");
     }
 
     /// <summary>Verifies TryFormat returns false when destination is too small.</summary>
@@ -155,6 +183,28 @@ public sealed class FormattedWrapperTests
         await Assert.That(writtenContent).IsEqualTo("00042");
     }
 
+    /// <summary>Verifies ToString fallback when stackalloc TryFormat fails for UTF-8 values.</summary>
+    [Test]
+    public async Task Utf8Formatted_ToString_FallbackForLargeValue()
+    {
+        Utf8Formatted<LargeUtf8FormattedValue> formatted = new(new LargeUtf8FormattedValue("utf8-fallback"));
+
+        string result = formatted.ToString();
+
+        await Assert.That(result).IsEqualTo("utf8-fallback");
+    }
+
+    /// <summary>Verifies UTF-8 ToString fallback when ToString returns null.</summary>
+    [Test]
+    public async Task Utf8Formatted_ToString_FallbackWhenToStringReturnsNull_ReturnsEmpty()
+    {
+        Utf8Formatted<NullToStringUtf8FormattedValue> formatted = new(new NullToStringUtf8FormattedValue());
+
+        string result = formatted.ToString();
+
+        await Assert.That(result).IsEqualTo(string.Empty);
+    }
+
     /// <summary>Verifies the Create factory method for UTF-8.</summary>
     [Test]
     public async Task Utf8Formatted_Create_FactoryMethod()
@@ -176,6 +226,26 @@ public sealed class FormattedWrapperTests
         string result2 = formatted.ToString(null, null);
 
         await Assert.That(result2).IsEqualTo(result1);
+    }
+
+    /// <summary>Verifies UTF-8 TryFormat falls back to the passed provider when none is stored.</summary>
+    [Test]
+    public async Task Utf8Formatted_TryFormat_NullStoredProvider_UsesPassedProvider()
+    {
+        CultureInfo german = CultureInfo.GetCultureInfo("de-DE");
+        Utf8Formatted<double> formatted = new(1234.5, "N2", provider: null);
+
+        bool success;
+        int written;
+        string writtenContent;
+        {
+            Span<byte> buffer = stackalloc byte[64];
+            success = formatted.TryFormat(buffer, out written, default, german);
+            writtenContent = Encoding.UTF8.GetString(buffer.Slice(0, written));
+        }
+
+        await Assert.That(success).IsTrue();
+        await Assert.That(writtenContent).IsEqualTo("1.234,50");
     }
 
     /// <summary>Verifies TryFormat returns false when destination is too small.</summary>
@@ -568,7 +638,7 @@ public sealed class FormattedWrapperTests
     [Arguments(nameof(Latin1FixLE))]
     public async Task FixedLengthWrapper_TryFormat_NullValue_EmptyDestination_ReturnsFalse(string wrapperName)
     {
-        bool result = TryFormatNullFixedLengthWrapper(wrapperName, Span<byte>.Empty, out int bytesWritten);
+        bool result = _TryFormatNullFixedLengthWrapper(wrapperName, Span<byte>.Empty, out int bytesWritten);
 
         await Assert.That(result).IsFalse();
         await Assert.That(bytesWritten).IsEqualTo(0);
@@ -599,7 +669,7 @@ public sealed class FormattedWrapperTests
         {
             Span<byte> destination = stackalloc byte[prefixLength];
             destination.Fill(0xCC);
-            result = TryFormatNullFixedLengthWrapper(wrapperName, destination, out bytesWritten);
+            result = _TryFormatNullFixedLengthWrapper(wrapperName, destination, out bytesWritten);
             snapshot = destination.ToArray();
         }
 
@@ -609,7 +679,7 @@ public sealed class FormattedWrapperTests
     }
 
     /// <summary>Formats a null fixed-length string wrapper chosen by name.</summary>
-    private static bool TryFormatNullFixedLengthWrapper(string wrapperName, Span<byte> destination, out int bytesWritten)
+    private static bool _TryFormatNullFixedLengthWrapper(string wrapperName, Span<byte> destination, out int bytesWritten)
     {
         switch (wrapperName)
         {
@@ -649,4 +719,56 @@ public sealed class FormattedWrapperTests
     }
 
     #endregion
+
+    private readonly struct LargeSpanFormattedValue(string text) : ISpanFormattable
+    {
+        private readonly string _Text = text;
+
+        public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+        {
+            charsWritten = 0;
+            return false;
+        }
+
+        public string ToString(string? format, IFormatProvider? formatProvider) => _Text;
+
+        public override string ToString() => _Text;
+    }
+
+    private readonly struct NullToStringSpanFormattedValue : ISpanFormattable
+    {
+        public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+        {
+            charsWritten = 0;
+            return false;
+        }
+
+        public string ToString(string? format, IFormatProvider? formatProvider) => null!;
+
+        public override string ToString() => null!;
+    }
+
+    private readonly struct LargeUtf8FormattedValue(string text) : IUtf8SpanFormattable
+    {
+        private readonly string _Text = text;
+
+        public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+        {
+            bytesWritten = 0;
+            return false;
+        }
+
+        public override string ToString() => _Text;
+    }
+
+    private readonly struct NullToStringUtf8FormattedValue : IUtf8SpanFormattable
+    {
+        public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+        {
+            bytesWritten = 0;
+            return false;
+        }
+
+        public override string ToString() => null!;
+    }
 }

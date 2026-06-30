@@ -1106,4 +1106,91 @@ public sealed class BitWriterTests
         catch (ArgumentOutOfRangeException) { threw = true; }
         await Assert.That(threw).IsTrue();
     }
+
+    // ========================================================================
+    // EXIT-POINT COVERAGE — BitPositionInByte / aligned 8-bit / unaligned WriteByte
+    // ========================================================================
+
+    [Test]
+    [Arguments(0, 0)]
+    [Arguments(3, 3)]
+    [Arguments(7, 7)]
+    [Arguments(8, 0)]
+    public async Task BitWriter_BitPositionInByte_ReturnsOffsetModuloEight(int bitsWritten, int expectedPosition)
+    {
+        byte[] buffer = new byte[2];
+        int position;
+        {
+            BitWriter writer = new(buffer);
+            if (bitsWritten > 0)
+            {
+                writer.WriteBits(0, bitsWritten);
+            }
+
+            position = writer.BitPositionInByte;
+        }
+
+        await Assert.That(position).IsEqualTo(expectedPosition);
+    }
+
+    [Test]
+    public async Task BitWriter_WriteBits_EightBitsAligned_UsesAlignedFastPath()
+    {
+        byte[] buffer = new byte[1];
+        {
+            BitWriter writer = new(buffer);
+            writer.WriteBits(0xAB, 8);
+        }
+
+        await Assert.That((int)buffer[0]).IsEqualTo(0xAB);
+    }
+
+    [Test]
+    public async Task BitWriter_WriteByte_WhenUnaligned_DelegatesToWriteBits()
+    {
+        byte[] buffer = new byte[2];
+        int bitOffset;
+        {
+            BitWriter writer = new(buffer);
+            writer.WriteBits(0xF, 4);
+            writer.WriteByte(0xAB);
+            bitOffset = writer.BitOffset;
+        }
+
+        await Assert.That((int)buffer[0]).IsEqualTo(0xFA);
+        await Assert.That((int)buffer[1]).IsEqualTo(0xB0);
+        await Assert.That(bitOffset).IsEqualTo(12);
+    }
+
+    [Test]
+    public async Task BitWriter_TryWriteInt16_InsufficientCapacity_ReturnsFalse()
+    {
+        byte[] buffer = new byte[1];
+        bool ok;
+        int bitOffset;
+        {
+            BitWriter writer = new(buffer);
+            ok = writer.TryWriteInt16(0x1234);
+            bitOffset = writer.BitOffset;
+        }
+
+        await Assert.That(ok).IsFalse();
+        await Assert.That(bitOffset).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task BitWriter_TryWriteInt64_InsufficientCapacity_ReturnsFalse()
+    {
+        byte[] buffer = new byte[4];
+        bool ok;
+        int bitOffset;
+        {
+            BitWriter writer = new(buffer);
+            ok = writer.TryWriteInt64(0x123456789ABCDEF0L);
+            bitOffset = writer.BitOffset;
+        }
+
+        await Assert.That(ok).IsFalse();
+        await Assert.That(bitOffset).IsEqualTo(0);
+    }
 }

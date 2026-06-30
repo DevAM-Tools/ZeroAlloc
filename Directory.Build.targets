@@ -1,0 +1,11 @@
+<Project>
+  <PropertyGroup>
+    <ApplyCSharpStyleValidator Condition="'$(ApplyCSharpStyleValidator)' == '' and ('$(TargetFrameworkIdentifier)' == '.NETCoreApp' or '$(TargetFrameworkIdentifier)' == '.NETStandard')">true</ApplyCSharpStyleValidator>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(ApplyCSharpStyleValidator)' == 'true'">
+    <PackageReference Include="CSharpStyleValidator">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+</Project>

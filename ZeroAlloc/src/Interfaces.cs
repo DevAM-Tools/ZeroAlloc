@@ -24,7 +24,7 @@ namespace ZeroAlloc;
 ///     public ushort Type { get; init; }
 ///     public uint Length { get; init; }
 ///     
-///     public bool TryGetSerializedSize(out int size) { size = 6; return true; }
+///     public bool TryGetWrittenSize(out int size) { size = 6; return true; }
 ///     
 ///     public bool TryWrite(Span&lt;byte&gt; destination, out int bytesWritten)
 ///     {
@@ -48,7 +48,7 @@ public interface IBinarySerializable
     /// Return <c>false</c> if the size cannot be efficiently determined in advance.
     /// This allows the serializer to use alternative strategies for dynamic-size types.
     /// </remarks>
-    bool TryGetSerializedSize(out int size);
+    bool TryGetWrittenSize(out int size);
 
     /// <summary>
     /// Tries to write this instance to the given span.

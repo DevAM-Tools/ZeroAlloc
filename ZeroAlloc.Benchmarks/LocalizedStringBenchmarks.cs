@@ -1,4 +1,4 @@
-﻿// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
+// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
 namespace ZeroAlloc.Benchmarks;
 
@@ -21,21 +21,21 @@ namespace ZeroAlloc.Benchmarks;
 public class LocalizedStringBenchmarks
 {
     // === Test Data ===
-    private int _userId = 12345;
-    private string _userName = "JohnDoe";
-    private DateTime _timestamp = new(2025, 6, 15, 14, 30, 45);
-    private double _balance = 1234567.89;
-    private decimal _price = 9876543.21m;
-    private double _percentage = 0.15678;
-    private long _orderId = 987654321012345;
+    private int _UserId = 12345;
+    private string _UserName = "JohnDoe";
+    private DateTime _Timestamp = new(2025, 6, 15, 14, 30, 45);
+    private double _Balance = 1234567.89;
+    private decimal _Price = 9876543.21m;
+    private double _Percentage = 0.15678;
+    private long _OrderId = 987654321012345;
 
-    private static readonly CultureInfo GermanCulture = CultureInfo.GetCultureInfo("de-DE");
+    private static readonly CultureInfo _GermanCulture = CultureInfo.GetCultureInfo("de-DE");
 
     [GlobalSetup]
     public void Setup()
     {
         // Set German culture for culture-sensitive formatting tests
-        CultureInfo.CurrentCulture = GermanCulture;
+        CultureInfo.CurrentCulture = _GermanCulture;
     }
 
     #region Output Verification (Debug helper)
@@ -46,15 +46,15 @@ public class LocalizedStringBenchmarks
     /// </summary>
     public static void VerifyOutputEquality()
     {
-        CultureInfo germanCulture = CultureInfo.GetCultureInfo("de-DE");
-        CultureInfo.CurrentCulture = germanCulture;
+        CultureInfo _GermanCulture = CultureInfo.GetCultureInfo("de-DE");
+        CultureInfo.CurrentCulture = _GermanCulture;
 
         int userId = 12345;
         double balance = 1234567.89;
         DateTime timestamp = new(2025, 6, 15, 14, 30, 45);
 
         string interpolated = $"User {userId} has balance {balance} at {timestamp}";
-        string localizedString = Z.LocalizedString(germanCulture, "User ", userId, " has balance ", balance, " at ", timestamp);
+        string localizedString = Z.LocalizedString(_GermanCulture, "User ", userId, " has balance ", balance, " at ", timestamp);
 
         Console.WriteLine($"Interpolated:      {interpolated}");
         Console.WriteLine($"LocalizedString:   {localizedString}");
@@ -70,13 +70,13 @@ public class LocalizedStringBenchmarks
     [BenchmarkCategory("Simple"), Benchmark(Baseline = true)]
     public string Simple_Interpolation()
     {
-        return $"User {_userId} logged in";
+        return $"User {_UserId} logged in";
     }
 
     [BenchmarkCategory("Simple"), Benchmark]
     public string Simple_LocalizedString()
     {
-        return Z.LocalizedString(GermanCulture, "User ", _userId, " logged in");
+        return Z.LocalizedString(_GermanCulture, "User ", _UserId, " logged in");
     }
 
     #endregion
@@ -89,13 +89,13 @@ public class LocalizedStringBenchmarks
     public string Numbers_Interpolation()
     {
         // German culture: 1234567,89 (comma as decimal separator)
-        return $"Balance: {_balance}, Price: {_price}";
+        return $"Balance: {_Balance}, Price: {_Price}";
     }
 
     [BenchmarkCategory("Numbers"), Benchmark]
     public string Numbers_LocalizedString()
     {
-        return Z.LocalizedString(GermanCulture, "Balance: ", _balance, ", Price: ", _price);
+        return Z.LocalizedString(_GermanCulture, "Balance: ", _Balance, ", Price: ", _Price);
     }
 
     #endregion
@@ -108,13 +108,13 @@ public class LocalizedStringBenchmarks
     public string DateTime_Interpolation()
     {
         // German: 15.06.2025 14:30:45
-        return $"Logged in at {_timestamp}";
+        return $"Logged in at {_Timestamp}";
     }
 
     [BenchmarkCategory("DateTime"), Benchmark]
     public string DateTime_LocalizedString()
     {
-        return Z.LocalizedString(GermanCulture, "Logged in at ", _timestamp);
+        return Z.LocalizedString(_GermanCulture, "Logged in at ", _Timestamp);
     }
 
     #endregion
@@ -126,15 +126,15 @@ public class LocalizedStringBenchmarks
     [BenchmarkCategory("Complex"), Benchmark(Baseline = true)]
     public string Complex_Interpolation()
     {
-        return $"Order #{_orderId}: User {_userName} spent {_balance} ({_percentage}%) at {_timestamp}";
+        return $"Order #{_OrderId}: User {_UserName} spent {_Balance} ({_Percentage}%) at {_Timestamp}";
     }
 
     [BenchmarkCategory("Complex"), Benchmark]
     public string Complex_LocalizedString()
     {
-        return Z.LocalizedString(GermanCulture,
-            "Order #", _orderId, ": User ", _userName,
-            " spent ", _balance, " (", _percentage, "%) at ", _timestamp);
+        return Z.LocalizedString(_GermanCulture,
+            "Order #", _OrderId, ": User ", _UserName,
+            " spent ", _Balance, " (", _Percentage, "%) at ", _Timestamp);
     }
 
     #endregion
@@ -146,13 +146,13 @@ public class LocalizedStringBenchmarks
     [BenchmarkCategory("Mixed"), Benchmark(Baseline = true)]
     public string Mixed_Interpolation()
     {
-        return $"User {_userName} has ID {_userId} with balance {_balance}";
+        return $"User {_UserName} has ID {_UserId} with balance {_Balance}";
     }
 
     [BenchmarkCategory("Mixed"), Benchmark]
     public string Mixed_LocalizedString()
     {
-        return Z.LocalizedString(GermanCulture, "User ", _userName, " has ID ", _userId, " with balance ", _balance);
+        return Z.LocalizedString(_GermanCulture, "User ", _UserName, " has ID ", _UserId, " with balance ", _Balance);
     }
 
     #endregion
