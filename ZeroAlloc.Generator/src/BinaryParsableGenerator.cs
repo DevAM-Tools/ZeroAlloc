@@ -1257,7 +1257,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
                     ParseDiagnostics.OrderAndIgnoreConflict,
                     member.Location,
                     member.Name));
-                return new List<ParsableMemberInfo>();
+                return [];
             }
         }
 
@@ -1300,7 +1300,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
                         member.Name,
                         member.FullTypeName));
                 }
-                return new List<ParsableMemberInfo>();
+                return [];
             }
 
             if (member.Kind == ParsableMemberKind.ByteArray && member.FixedLength is null)
@@ -1309,7 +1309,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
                     ParseDiagnostics.ByteArrayWithoutLength,
                     member.Location,
                     member.Name));
-                return new List<ParsableMemberInfo>();
+                return [];
             }
 
             // Validate PaddingBits
@@ -1319,7 +1319,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
                     ParseDiagnostics.InvalidPaddingBits,
                     member.Location,
                     member.PaddingBits));
-                return new List<ParsableMemberInfo>();
+                return [];
             }
 
             // ZA2014: Validate FixedLength > 0 (for [BinaryFixedLength] and [StringFixedLength])
@@ -1330,7 +1330,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
                     member.Location,
                     member.Name,
                     member.FixedLength));
-                return new List<ParsableMemberInfo>();
+                return [];
             }
 
             if (member.StringEncoding is { Encoding: StringLengthEncodingKind.Fixed, FixedLength: <= 0 })
@@ -1340,7 +1340,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
                     member.Location,
                     member.Name,
                     member.StringEncoding.Value.FixedLength));
-                return new List<ParsableMemberInfo>();
+                return [];
             }
 
             // ZA2015: Validate no conflicting encoding attributes
@@ -1350,7 +1350,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
                     ParseDiagnostics.ConflictingEncodingAttributes,
                     member.Location,
                     member.Name));
-                return new List<ParsableMemberInfo>();
+                return [];
             }
 
             if (member.BytesEncodingAttributeCount > 1)
@@ -1359,7 +1359,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
                     ParseDiagnostics.ConflictingEncodingAttributes,
                     member.Location,
                     member.Name));
-                return new List<ParsableMemberInfo>();
+                return [];
             }
         }
 
@@ -1377,7 +1377,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
                 ParseDiagnostics.InconsistentOrdering,
                 typeInfo.Location,
                 string.Join(", ", missing)));
-            return new List<ParsableMemberInfo>();
+            return [];
         }
 
         // Check for duplicate orders
@@ -1394,7 +1394,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
                     typeInfo.Location,
                     dup.Key,
                     string.Join(", ", dup.Select(m => m.Name))));
-                return new List<ParsableMemberInfo>();
+                return [];
             }
         }
 
@@ -1406,13 +1406,13 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
         // Validate LengthFromField references
         if (!_ValidateLengthFromFieldReferences(ctx, orderedMembers))
         {
-            return new List<ParsableMemberInfo>();
+            return [];
         }
 
         // Validate byte alignment for types that require it
         if (!_ValidateByteAlignment(ctx, orderedMembers))
         {
-            return new List<ParsableMemberInfo>();
+            return [];
         }
 
         return orderedMembers;

@@ -51,7 +51,7 @@ public class StringBenchmarks
     [BenchmarkCategory("Simple"), Benchmark]
     public string Simple_StringBuilder()
     {
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new();
         sb.Append("User ");
         sb.Append(_UserId);
         sb.Append(" logged in");
@@ -114,7 +114,7 @@ public class StringBenchmarks
     [BenchmarkCategory("Medium"), Benchmark]
     public string Medium_StringBuilder()
     {
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new();
         sb.Append("User ");
         sb.Append(_UserName);
         sb.Append(" (ID: ");

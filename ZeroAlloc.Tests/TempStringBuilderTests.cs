@@ -704,7 +704,7 @@ public sealed class TempStringBuilderTests
                 boolFail = builder.TryAppend(false);
                 boolTrueFail = builder.TryAppend(true);
                 genericFail = builder.TryAppend(255, "X4");
-                formattableFail = builder.TryAppend<AlwaysFailSpanFormat>(new AlwaysFailSpanFormat(), default);
+                formattableFail = builder.TryAppend<AlwaysFailSpanFormat>(new(), default);
                 hexFail = builder.TryAppendHex2(0xAB);
             }
             finally
@@ -755,7 +755,7 @@ public sealed class TempStringBuilderTests
             try
             {
                 ZeroAllocHelper.SimulateGrowStallForCoverage = true;
-                try { builder.Append<AlwaysFailSpanFormat>(new AlwaysFailSpanFormat(), default); }
+                try { builder.Append<AlwaysFailSpanFormat>(new(), default); }
                 catch (InvalidOperationException) { threw = true; }
             }
             finally
@@ -778,7 +778,7 @@ public sealed class TempStringBuilderTests
             try
             {
                 ZeroAllocHelper.SimulateGrowStallForCoverage = true;
-                failed = !builder.TryAppend<AlwaysFailSpanFormat>(new AlwaysFailSpanFormat(), default);
+                failed = !builder.TryAppend<AlwaysFailSpanFormat>(new(), default);
             }
             finally
             {

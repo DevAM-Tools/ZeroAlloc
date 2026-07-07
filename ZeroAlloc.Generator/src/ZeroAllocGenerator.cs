@@ -374,7 +374,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         }
 
         // Collect argument type information
-        List<ArgumentTypeInfo> argTypes = new List<ArgumentTypeInfo>();
+        List<ArgumentTypeInfo> argTypes = [];
         foreach (ArgumentSyntax arg in invocation.ArgumentList.Arguments)
         {
             TypeInfo typeInfo = ctx.SemanticModel.GetTypeInfo(arg.Expression);
@@ -847,7 +847,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         GeneratorOptions options = input.Options;
 
         // Group user classes by full name
-        Dictionary<string, UserClassInfo> classMap = new Dictionary<string, UserClassInfo>();
+        Dictionary<string, UserClassInfo> classMap = [];
         foreach (UserClassInfo? info in userClasses)
         {
             if (info is not null && !classMap.ContainsKey(info.Value.FullName))
@@ -857,14 +857,14 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         }
 
         // Group method calls by target class
-        Dictionary<string, List<MethodCallInfo>> callsByClass = new Dictionary<string, List<MethodCallInfo>>();
+        Dictionary<string, List<MethodCallInfo>> callsByClass = [];
         foreach (MethodCallInfo? call in methodCalls)
         {
             if (call is not null)
             {
                 if (!callsByClass.TryGetValue(call.Value.TargetClass, out List<MethodCallInfo>? classCalls))
                 {
-                    classCalls = new List<MethodCallInfo>();
+                    classCalls = [];
                     callsByClass[call.Value.TargetClass] = classCalls;
                 }
                 classCalls.Add(call.Value);
@@ -922,7 +922,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
             // Get all method calls for this class
             if (!callsByClass.TryGetValue(classInfo.FullName, out List<MethodCallInfo>? calls))
             {
-                calls = new List<MethodCallInfo>();
+                calls = [];
             }
 
             // Generate the partial class
@@ -940,7 +940,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         List<MethodCallInfo> calls,
         GeneratorOptions options)
     {
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new();
         string recursiveHeapFallbackLiteral = options.RecursiveHeapFallback ? "true" : "false";
         string recursiveHeapFallbackStatus = options.RecursiveHeapFallback ? "enabled" : "disabled";
 
@@ -1039,7 +1039,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
             """);
 
         // Deduplicate method signatures
-        HashSet<string> generatedSignatures = new HashSet<string>();
+        HashSet<string> generatedSignatures = [];
 
         // Collect all unique argument signatures for String/TryString, Utf8/TryUtf8, Bytes/TryBytes,
         // LocalizedString/TryLocalizedString, and LocalizedUtf8/TryLocalizedUtf8 pairs
@@ -1245,8 +1245,8 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         string cultureVar = hasCultureInfo ? "culture0" : "CultureInfo.InvariantCulture";
 
         // Build parameter list
-        List<string> parameters = new List<string>();
-        List<string> paramNames = new List<string>();
+        List<string> parameters = [];
+        List<string> paramNames = [];
         for (int i = 0; i < args.Length; i++)
         {
             string paramName = $"{args[i].ShortName}{i}";
@@ -1550,8 +1550,8 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         string cultureVar = hasCultureInfo ? "culture0" : "CultureInfo.InvariantCulture";
 
         // Build parameter list
-        List<string> parameters = new List<string> { "out TempString result" };
-        List<string> paramNames = new List<string>();
+        List<string> parameters = ["out TempString result"];
+        List<string> paramNames = [];
         for (int i = 0; i < args.Length; i++)
         {
             string paramName = $"{args[i].ShortName}{i}";
@@ -1790,8 +1790,8 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         StringBuilder sb,
         ImmutableArray<ArgumentTypeInfo> args)
     {
-        List<string> parameters = new List<string>();
-        List<string> paramNames = new List<string>();
+        List<string> parameters = [];
+        List<string> paramNames = [];
         for (int i = 0; i < args.Length; i++)
         {
             string paramName = $"{args[i].ShortName}{i}";
@@ -2242,8 +2242,8 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         StringBuilder sb,
         ImmutableArray<ArgumentTypeInfo> args)
     {
-        List<string> parameters = new List<string> { "out TempBytes result" };
-        List<string> paramNames = new List<string>();
+        List<string> parameters = ["out TempBytes result"];
+        List<string> paramNames = [];
         for (int i = 0; i < args.Length; i++)
         {
             string paramName = $"{args[i].ShortName}{i}";
@@ -2464,8 +2464,8 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         StringBuilder sb,
         ImmutableArray<ArgumentTypeInfo> args)
     {
-        List<string> parameters = new List<string>();
-        List<string> paramNames = new List<string>();
+        List<string> parameters = [];
+        List<string> paramNames = [];
         for (int i = 0; i < args.Length; i++)
         {
             string paramName = $"{args[i].ShortName}{i}";
@@ -2528,8 +2528,8 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         StringBuilder sb,
         ImmutableArray<ArgumentTypeInfo> args)
     {
-        List<string> parameters = new List<string> { "out TempBytes result" };
-        List<string> paramNames = new List<string>();
+        List<string> parameters = ["out TempBytes result"];
+        List<string> paramNames = [];
         for (int i = 0; i < args.Length; i++)
         {
             string paramName = $"{args[i].ShortName}{i}";
@@ -2613,8 +2613,8 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         string cultureVar = "provider0";
 
         // Build parameter list
-        List<string> parameters = new List<string>();
-        List<string> paramNames = new List<string>();
+        List<string> parameters = [];
+        List<string> paramNames = [];
         for (int i = 0; i < args.Length; i++)
         {
             string paramName = i == 0 ? "provider0" : $"{args[i].ShortName}{i}";
@@ -2682,8 +2682,8 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         string cultureVar = "provider0";
 
         // Build parameter list - TryLocalizedString has out TempString result first
-        List<string> parameters = new List<string> { "out TempString result" };
-        List<string> paramNames = new List<string>();
+        List<string> parameters = ["out TempString result"];
+        List<string> paramNames = [];
         for (int i = 0; i < args.Length; i++)
         {
             string paramName = i == 0 ? "provider0" : $"{args[i].ShortName}{i}";
@@ -2764,8 +2764,8 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         string cultureVar = "provider0";
 
         // Build parameter list
-        List<string> parameters = new List<string>();
-        List<string> paramNames = new List<string>();
+        List<string> parameters = [];
+        List<string> paramNames = [];
         for (int i = 0; i < args.Length; i++)
         {
             string paramName = i == 0 ? "provider0" : $"{args[i].ShortName}{i}";
@@ -2833,8 +2833,8 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         string cultureVar = "provider0";
 
         // Build parameter list - TryLocalizedUtf8 has out TempBytes result first
-        List<string> parameters = new List<string> { "out TempBytes result" };
-        List<string> paramNames = new List<string>();
+        List<string> parameters = ["out TempBytes result"];
+        List<string> paramNames = [];
         for (int i = 0; i < args.Length; i++)
         {
             string paramName = i == 0 ? "provider0" : $"{args[i].ShortName}{i}";

@@ -87,8 +87,8 @@ Goal: save tokens in chat without losing technical substance.
 ### 4.3 Thread Safety
 
 - ❗ Cross-thread shared fields must be declared with the `volatile` keyword.
-- ❗ Access `volatile` fields only through `Volatile.Read`, `Volatile.Write`, or `Interlocked` APIs; plain read, write, compound assignment, and increment/decrement are Error-class.
-- Use `Volatile.Read` / `Volatile.Write` for whole-field visibility; use `Interlocked` when atomic read-modify-write or compare-exchange is required.
+- ❗ Plain volatile read and write are allowed; increment, decrement, and compound assignment on `volatile` fields are Error-class — use `Interlocked` for atomic read-modify-write.
+- Use `Interlocked` when atomic read-modify-write or compare-exchange is required; `Volatile.Read` / `Volatile.Write` remain valid when explicit APIs are preferred.
 - ❗ Identify race, TOCTOU, async interleaving, lock inversion, and partial-state risks in design.
 - After shared-state changes, verify no new concurrency defects.
 - Document chosen lock primitive and rationale when locking is required.

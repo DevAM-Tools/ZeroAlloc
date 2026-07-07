@@ -613,7 +613,7 @@ public sealed class BinaryWritableGenerator : IIncrementalGenerator
             {
                 ctx.ReportDiagnostic(Diagnostic.Create(
                     WriteDiagnostics.OrderAndIgnoreConflict, member.Location, member.Name));
-                return new List<ParsableMemberInfo>();
+                return [];
             }
         }
 
@@ -642,21 +642,21 @@ public sealed class BinaryWritableGenerator : IIncrementalGenerator
                     ctx.ReportDiagnostic(Diagnostic.Create(
                         WriteDiagnostics.MemberNotWritable, member.Location, member.Name, member.FullTypeName));
                 }
-                return new List<ParsableMemberInfo>();
+                return [];
             }
 
             if (member.Kind == ParsableMemberKind.ByteArray && member.FixedLength is null)
             {
                 ctx.ReportDiagnostic(Diagnostic.Create(
                     WriteDiagnostics.ByteArrayWithoutLength, member.Location, member.Name));
-                return new List<ParsableMemberInfo>();
+                return [];
             }
 
             if (member.PaddingBits < 0 || member.PaddingBits > 64)
             {
                 ctx.ReportDiagnostic(Diagnostic.Create(
                     WriteDiagnostics.InvalidPaddingBits, member.Location, member.PaddingBits));
-                return new List<ParsableMemberInfo>();
+                return [];
             }
 
             // ZA3012: Validate FixedLength > 0 (for [BinaryFixedLength] and [StringFixedLength])
@@ -664,7 +664,7 @@ public sealed class BinaryWritableGenerator : IIncrementalGenerator
             {
                 ctx.ReportDiagnostic(Diagnostic.Create(
                     WriteDiagnostics.InvalidFixedLength, member.Location, member.Name, member.FixedLength));
-                return new List<ParsableMemberInfo>();
+                return [];
             }
 
             if (member.StringEncoding is { Encoding: StringLengthEncodingKind.Fixed, FixedLength: <= 0 })
@@ -672,7 +672,7 @@ public sealed class BinaryWritableGenerator : IIncrementalGenerator
                 ctx.ReportDiagnostic(Diagnostic.Create(
                     WriteDiagnostics.InvalidFixedLength, member.Location,
                     member.Name, member.StringEncoding.Value.FixedLength));
-                return new List<ParsableMemberInfo>();
+                return [];
             }
 
             // ZA3013: Validate no conflicting encoding attributes
@@ -680,14 +680,14 @@ public sealed class BinaryWritableGenerator : IIncrementalGenerator
             {
                 ctx.ReportDiagnostic(Diagnostic.Create(
                     WriteDiagnostics.ConflictingEncodingAttributes, member.Location, member.Name));
-                return new List<ParsableMemberInfo>();
+                return [];
             }
 
             if (member.BytesEncodingAttributeCount > 1)
             {
                 ctx.ReportDiagnostic(Diagnostic.Create(
                     WriteDiagnostics.ConflictingEncodingAttributes, member.Location, member.Name));
-                return new List<ParsableMemberInfo>();
+                return [];
             }
         }
 
@@ -700,7 +700,7 @@ public sealed class BinaryWritableGenerator : IIncrementalGenerator
             IEnumerable<string> missing = members.Where(m => !m.ExplicitOrder.HasValue).Select(m => m.Name);
             ctx.ReportDiagnostic(Diagnostic.Create(
                 WriteDiagnostics.InconsistentOrdering, typeInfo.Location, string.Join(", ", missing)));
-            return new List<ParsableMemberInfo>();
+            return [];
         }
 
         if (allHaveOrder)
@@ -713,7 +713,7 @@ public sealed class BinaryWritableGenerator : IIncrementalGenerator
                 ctx.ReportDiagnostic(Diagnostic.Create(
                     WriteDiagnostics.DuplicateOrder, typeInfo.Location,
                     dup.Key, string.Join(", ", dup.Select(m => m.Name))));
-                return new List<ParsableMemberInfo>();
+                return [];
             }
         }
 
@@ -723,7 +723,7 @@ public sealed class BinaryWritableGenerator : IIncrementalGenerator
 
         if (!_ValidateByteAlignment(ctx, orderedMembers))
         {
-            return new List<ParsableMemberInfo>();
+            return [];
         }
 
         return orderedMembers;

@@ -696,7 +696,7 @@ public sealed class SpanBytesBuilderTests
         {
             Span<byte> buffer = stackalloc byte[128];
             SpanBytesBuilder builder = new(buffer);
-            builder.Append(new byte[] { 0x01, 0x02, 0x03 });
+            builder.Append([0x01, 0x02, 0x03]);
             builder.AppendVarIntZigZag(42);
             builder.AppendBinary16(0b1010);
             builder.AppendBinary32(1u);
@@ -730,7 +730,7 @@ public sealed class SpanBytesBuilderTests
         {
             Span<byte> buffer = stackalloc byte[32];
             SpanBytesBuilder builder = new(buffer);
-            arrayOk = builder.TryAppend(new byte[] { 0x0A, 0x0B });
+            arrayOk = builder.TryAppend([0x0A, 0x0B]);
             WritableByteStruct value = new() { First = 0x01, Second = 0x02, Third = 0x03 };
             genericOk = builder.TryAppend(value);
             length = builder.Length;

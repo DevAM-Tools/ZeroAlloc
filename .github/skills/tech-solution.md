@@ -36,8 +36,7 @@ Generator projects only:
 | `TreatWarningsAsErrors` | `true` |
 | `EnableNETAnalyzers` | `true` |
 | `EnforceCodeStyleInBuild` | `true` |
-| `AnalysisLevel` | `latest` |
-| `AnalysisMode` | `AllEnabledByDefault` |
+| `AnalysisLevel` | `10-recommended` |
 | `GenerateDocumentationFile` | `true` |
 | `NoWarn` | omit globally |
 | `WarningsAsErrors` | optional; specific warning codes only |
@@ -51,8 +50,6 @@ Generator projects only:
 | `VersionPrefix` | central in `Directory.Build.props` (e.g. `1.1.0`) |
 | `ContinuousIntegrationBuild` | `true` on Release builds; `true` when `CI` is set |
 | `DebugType` | `embedded` or `portable` (consistent) |
-
-- ❗ Pass `-p:ContinuousIntegrationBuild=true` on every `dotnet build -c Release` invocation.
 
 ### Versioning & Metadata (on-request)
 

@@ -89,7 +89,7 @@ public class Utf8StringBenchmarks
     [BenchmarkCategory("Complex"), Benchmark]
     public byte[] Complex_StringBuilder()
     {
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new();
         sb.Append("User ");
         sb.Append(_UserName);
         sb.Append(" (ID: ");

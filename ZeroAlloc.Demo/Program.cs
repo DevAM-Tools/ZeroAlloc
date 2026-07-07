@@ -439,7 +439,7 @@ class Program
         // Test 14: IBinarySerializable returning null (unknown size)
         // ====================================================================
         Console.WriteLine("Test 14: IBinarySerializable returning null (DynamicPacket)");
-        DynamicPacket dynPacket = new DynamicPacket { Payload = new byte[] { 0xCA, 0xFE, 0xBA, 0xBE } };
+        DynamicPacket dynPacket = new DynamicPacket { Payload = [0xCA, 0xFE, 0xBA, 0xBE] };
         using (TempBytes tb = ZA.Bytes(dynPacket))
         {
             ReadOnlySpan<byte> bytes = tb.AsSpan();
@@ -458,7 +458,7 @@ class Program
         // Test 15: IBinarySerializable with computable size
         // ====================================================================
         Console.WriteLine("Test 15: IBinarySerializable with computable size (ComputedSizePacket)");
-        ComputedSizePacket computed = new ComputedSizePacket { Data = new byte[] { 0x01, 0x02, 0x03 } };
+        ComputedSizePacket computed = new ComputedSizePacket { Data = [0x01, 0x02, 0x03] };
         using (TempBytes tb = ZA.Bytes(computed))
         {
             ReadOnlySpan<byte> bytes = tb.AsSpan();

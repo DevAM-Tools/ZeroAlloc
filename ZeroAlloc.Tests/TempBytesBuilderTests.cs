@@ -655,7 +655,7 @@ public sealed class TempBytesBuilderTests
             using TempBytesBuilder builder = TempBytesBuilder.Create();
             byteOk = builder.TryAppend(0x01);
             builder.Clear();
-            byteArrayOk = builder.TryAppend(new byte[] { 0x02, 0x03 });
+            byteArrayOk = builder.TryAppend([0x02, 0x03]);
             spanOk = builder.TryAppend((ReadOnlySpan<byte>)[0x04]);
             WritableByteStruct value = new() { First = 0xAA, Second = 0xBB, Third = 0xCC };
             genericOk = builder.TryAppend(value);
@@ -729,7 +729,7 @@ public sealed class TempBytesBuilderTests
                 hexFail = builder.TryAppendHex2(0xAB);
                 WritableByteStruct value = new() { First = 0x01, Second = 0x02, Third = 0x03 };
                 genericFail = builder.TryAppend(value);
-                genericLoopFail = builder.TryAppend(new AlwaysFailBinaryWrite());
+                genericLoopFail = builder.TryAppend<AlwaysFailBinaryWrite>(new());
                 utf8Fail = builder.TryAppendUtf8Formattable(255, "X8");
             }
             finally
@@ -781,11 +781,11 @@ public sealed class TempBytesBuilderTests
             try
             {
                 ZeroAllocHelper.SimulateGrowStallForCoverage = true;
-                try { builder.Append(new AlwaysFailBinaryWrite()); }
+                try { builder.Append<AlwaysFailBinaryWrite>(new()); }
                 catch (InvalidOperationException) { genericThrew = true; }
 
                 ZeroAllocHelper.SimulateGrowStallForCoverage = true;
-                try { builder.AppendUtf8Formattable(new AlwaysFailUtf8Format()); }
+                try { builder.AppendUtf8Formattable<AlwaysFailUtf8Format>(new()); }
                 catch (InvalidOperationException) { utf8Threw = true; }
             }
             finally
@@ -810,10 +810,10 @@ public sealed class TempBytesBuilderTests
             try
             {
                 ZeroAllocHelper.SimulateGrowStallForCoverage = true;
-                genericFail = builder.TryAppend(new AlwaysFailBinaryWrite());
+                genericFail = builder.TryAppend<AlwaysFailBinaryWrite>(new());
 
                 ZeroAllocHelper.SimulateGrowStallForCoverage = true;
-                utf8Fail = builder.TryAppendUtf8Formattable(new AlwaysFailUtf8Format());
+                utf8Fail = builder.TryAppendUtf8Formattable<AlwaysFailUtf8Format>(new());
             }
             finally
             {

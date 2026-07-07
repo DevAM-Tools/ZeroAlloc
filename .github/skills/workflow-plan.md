@@ -62,6 +62,7 @@ Do not proceed while ambiguities remain.
 - Put Step Overview table at top per template below.
 - Record `Loaded skills:` and step dependency summary in Context Anchor.
 - State per-step test obligations: covered vs new/updated tests.
+- Prefer many small steps over few large ones; No plan-level context required beyond the Shared Block.
 
 ### Step Overview Table
 
@@ -80,10 +81,10 @@ Field order: `What` → `Why` → `How` → `[Context]` → `[Where]` → `Verif
 Always require `What`, `Why`, `How`, `Verify`.
 Omit `Context` when no non-obvious constraint exists. Omit `Where` when no file is touched.
 Require `If it fails` for schema, state, or external-system risks.
-Make `How` a standalone fix recipe: APIs, validation, error paths, thread-safety/performance/security constraints, prerequisite state.
+❗Write `How` exhaustively: concrete APIs, signatures, validation, error paths, thread-safety/performance/security constraints, prerequisite state, and before/after snippets or mini examples where behavior is non-obvious.
 Put `Where` as path, approximate line numbers, and searchable symbol anchor.
 Put `Verify` as exact command (`-c Release` when applicable) and expected result.
-Use bullets in `How` where possible; avoid redundant prose.
+Use bullets in `How`; avoid redundant prose — detail over brevity in plan artifacts.
 
 ```markdown
 ## {ID} - {Title}
@@ -134,6 +135,7 @@ Status: ⬜ {Initial} · {Depends on / Severity}
 - Define test coverage obligations per step.
 - Document interface vs concrete decisions per step.
 - Add recovery path for high-risk steps.
+- Keep steps small and self-contained.
 
 ## Checklist Rules
 

@@ -11,7 +11,7 @@
 
   <!-- NuGet / release metadata (packable projects only) -->
   <PropertyGroup Condition="'$(IsPackable)' != 'false'">
-    <Version>0.5.0</Version>
+    <Version>0.5.1</Version>
     <Authors>DevAM</Authors>
     <Company>DevAM</Company>
     <Copyright>Copyright © 2026 DevAM. All rights reserved.</Copyright>
