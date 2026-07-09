@@ -10,9 +10,6 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
     <PackageReference Include="TUnit" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\ZeroAlloc.Generator\ZeroAlloc.Generator.csproj" />
     <ProjectReference Include="..\ZeroAlloc\ZeroAlloc.csproj" />
   </ItemGroup>

@@ -10,16 +10,18 @@
 namespace ZeroAlloc.Tests;
 
 /// <summary>
-/// Comprehensive tests for <see cref="TempBytes"/>, <see cref="ZA.Utf8"/>, and <see cref="ZA.Bytes"/> methods.
+/// Comprehensive tests for <see cref="TempBytes"/>, <c>ZA.Utf8</c>, and <c>ZA.Bytes</c> methods.
 /// </summary>
 public sealed class TempBytesTests
 {
+
     // ========================================================================
     // BASIC UTF-8 TESTS
     // Tests for fundamental UTF-8 encoding operations
     // ========================================================================
-    #region Basic UTF-8 Tests
 
+    #region Basic UTF-8 Tests
+    /// <summary>Verifies Utf8 SimpleString ReturnsCorrectBytes.</summary>
     [Test]
     public async Task Utf8_SimpleString_ReturnsCorrectBytes()
     {
@@ -30,7 +32,7 @@ public sealed class TempBytesTests
         }
         await Assert.That(content).IsEqualTo("Hello");
     }
-
+    /// <summary>Verifies Utf8 IntValue FormatsCorrectly.</summary>
     [Test]
     public async Task Utf8_IntValue_FormatsCorrectly()
     {
@@ -41,7 +43,7 @@ public sealed class TempBytesTests
         }
         await Assert.That(content).IsEqualTo("Value: 42");
     }
-
+    /// <summary>Verifies Utf8 MixedTypes FormatsCorrectly.</summary>
     [Test]
     public async Task Utf8_MixedTypes_FormatsCorrectly()
     {
@@ -52,7 +54,7 @@ public sealed class TempBytesTests
         }
         await Assert.That(content).IsEqualTo("User 12345 logged in");
     }
-
+    /// <summary>Verifies Utf8 Length ReturnsCorrectByteCount.</summary>
     [Test]
     public async Task Utf8_Length_ReturnsCorrectByteCount()
     {
@@ -63,7 +65,7 @@ public sealed class TempBytesTests
         }
         await Assert.That(length).IsEqualTo(7); // "Test123" = 7 ASCII bytes
     }
-
+    /// <summary>Verifies TempBytes ToString ReturnsDebugRepresentation.</summary>
     [Test]
     [Arguments(0, "TempBytes[0 bytes]")]
     [Arguments(5, "TempBytes[5 bytes]")]
@@ -79,7 +81,7 @@ public sealed class TempBytesTests
 
         await Assert.That(representation).IsEqualTo(expected);
     }
-
+    /// <summary>Verifies Utf8 EmptyString ReturnsEmpty.</summary>
     [Test]
     public async Task Utf8_EmptyString_ReturnsEmpty()
     {
@@ -90,7 +92,7 @@ public sealed class TempBytesTests
         }
         await Assert.That(length).IsEqualTo(0);
     }
-
+    /// <summary>Verifies TempBytes ToArray Empty ReturnsEmptyArray.</summary>
     [Test]
     public async Task TempBytes_ToArray_Empty_ReturnsEmptyArray()
     {
@@ -103,7 +105,7 @@ public sealed class TempBytesTests
         await Assert.That(array).IsEmpty();
         await Assert.That(array).IsSameReferenceAs(Array.Empty<byte>());
     }
-
+    /// <summary>Verifies TempBytes ToArray NonEmpty ReturnsIndependentCopy.</summary>
     [Test]
     public async Task TempBytes_ToArray_NonEmpty_ReturnsIndependentCopy()
     {
@@ -115,7 +117,7 @@ public sealed class TempBytesTests
 
         await Assert.That(array).IsEquivalentTo("abc"u8.ToArray());
     }
-
+    /// <summary>Verifies TempBytes IsEmpty TrueForZeroLength.</summary>
     [Test]
     public async Task TempBytes_IsEmpty_TrueForZeroLength()
     {
@@ -127,7 +129,7 @@ public sealed class TempBytesTests
 
         await Assert.That(isEmpty).IsTrue();
     }
-
+    /// <summary>Verifies TempBytes Dispose HeapAllocated CompletesWithoutError.</summary>
     [Test]
     public async Task TempBytes_Dispose_HeapAllocated_CompletesWithoutError()
     {
@@ -140,7 +142,7 @@ public sealed class TempBytesTests
 
         await Assert.That(innerWasHeapAllocated).IsTrue();
     }
-
+    /// <summary>Verifies Utf8 BooleanTrue FormatsCorrectly.</summary>
     [Test]
     public async Task Utf8_BooleanTrue_FormatsCorrectly()
     {
@@ -151,7 +153,7 @@ public sealed class TempBytesTests
         }
         await Assert.That(content).IsEqualTo("Result: True");
     }
-
+    /// <summary>Verifies Utf8 BooleanFalse FormatsCorrectly.</summary>
     [Test]
     public async Task Utf8_BooleanFalse_FormatsCorrectly()
     {
@@ -170,8 +172,9 @@ public sealed class TempBytesTests
     // Tests for graceful handling of recursive/nested ZeroAlloc calls
     // ========================================================================
 
-    #region Nested Call Tests
 
+    #region Nested Call Tests
+    /// <summary>Verifies Utf8 NestedCalls OuterUsesThreadStatic.</summary>
     [Test]
     public async Task Utf8_NestedCalls_OuterUsesThreadStatic()
     {
@@ -182,7 +185,7 @@ public sealed class TempBytesTests
         }
         await Assert.That(isHeapAllocated).IsFalse();
     }
-
+    /// <summary>Verifies Utf8 NestedCalls InnerUsesHeapFallback.</summary>
     [Test]
     public async Task Utf8_NestedCalls_InnerUsesHeapFallback()
     {
@@ -197,7 +200,7 @@ public sealed class TempBytesTests
         await Assert.That(outerIsHeapAllocated).IsFalse();
         await Assert.That(innerIsHeapAllocated).IsTrue();
     }
-
+    /// <summary>Verifies Utf8 NestedCalls BothReturnCorrectContent.</summary>
     [Test]
     public async Task Utf8_NestedCalls_BothReturnCorrectContent()
     {
@@ -212,7 +215,7 @@ public sealed class TempBytesTests
         await Assert.That(outerContent).IsEqualTo("Outer: 100");
         await Assert.That(innerContent).IsEqualTo("Inner: 200");
     }
-
+    /// <summary>Verifies Utf8 AfterDispose ThreadStaticReusable.</summary>
     [Test]
     public async Task Utf8_AfterDispose_ThreadStaticReusable()
     {
@@ -238,8 +241,9 @@ public sealed class TempBytesTests
     // Tests for TryUtf8 methods
     // ========================================================================
 
-    #region TryUtf8 Tests
 
+    #region TryUtf8 Tests
+    /// <summary>Verifies TryUtf8 ValidInput ReturnsTrue.</summary>
     [Test]
     public async Task TryUtf8_ValidInput_ReturnsTrue()
     {
@@ -252,7 +256,7 @@ public sealed class TempBytesTests
         await Assert.That(success).IsTrue();
         await Assert.That(str).IsEqualTo("Test: 42");
     }
-
+    /// <summary>Verifies TryUtf8 NestedCalls GracefullyFallsBack.</summary>
     [Test]
     public async Task TryUtf8_NestedCalls_GracefullyFallsBack()
     {
@@ -280,8 +284,9 @@ public sealed class TempBytesTests
     // Tests for correct UTF-8 encoding of various Unicode characters
     // ========================================================================
 
-    #region Unicode Encoding Tests
 
+    #region Unicode Encoding Tests
+    /// <summary>Verifies Utf8 Emoji EncodesCorrectly.</summary>
     [Test]
     public async Task Utf8_Emoji_EncodesCorrectly()
     {
@@ -296,7 +301,7 @@ public sealed class TempBytesTests
         await Assert.That(length).IsEqualTo(4);
         await Assert.That(content).IsEqualTo("🎉");
     }
-
+    /// <summary>Verifies Utf8 GermanUmlauts EncodesCorrectly.</summary>
     [Test]
     public async Task Utf8_GermanUmlauts_EncodesCorrectly()
     {
@@ -307,7 +312,7 @@ public sealed class TempBytesTests
         }
         await Assert.That(content).IsEqualTo("German: äöü");
     }
-
+    /// <summary>Verifies Utf8 ChineseCharacters EncodesCorrectly.</summary>
     [Test]
     public async Task Utf8_ChineseCharacters_EncodesCorrectly()
     {
@@ -322,7 +327,7 @@ public sealed class TempBytesTests
         await Assert.That(length).IsEqualTo(6);
         await Assert.That(content).IsEqualTo("你好");
     }
-
+    /// <summary>Verifies Utf8 SurrogatePair EncodesCorrectly.</summary>
     [Test]
     public async Task Utf8_SurrogatePair_EncodesCorrectly()
     {
@@ -337,7 +342,7 @@ public sealed class TempBytesTests
         await Assert.That(length).IsEqualTo(4); // 4-byte UTF-8 sequence
         await Assert.That(content).IsEqualTo("𝄞");
     }
-
+    /// <summary>Verifies Utf8 Euro EncodesCorrectly.</summary>
     [Test]
     public async Task Utf8_Euro_EncodesCorrectly()
     {
@@ -352,7 +357,7 @@ public sealed class TempBytesTests
         await Assert.That(length).IsEqualTo(3);
         await Assert.That(content).IsEqualTo("€");
     }
-
+    /// <summary>Verifies Utf8 MixedContent EncodesCorrectly.</summary>
     [Test]
     public async Task Utf8_MixedContent_EncodesCorrectly()
     {
@@ -371,8 +376,9 @@ public sealed class TempBytesTests
     // Tests for big-endian and little-endian serialization
     // ========================================================================
 
-    #region Endian Wrapper Tests
 
+    #region Endian Wrapper Tests
+    /// <summary>Verifies Bytes U16BE SerializesCorrectly.</summary>
     [Test]
     public async Task Bytes_U16BE_SerializesCorrectly()
     {
@@ -385,7 +391,7 @@ public sealed class TempBytesTests
         await Assert.That((int)bytes[0]).IsEqualTo(0x12);
         await Assert.That((int)bytes[1]).IsEqualTo(0x34);
     }
-
+    /// <summary>Verifies Bytes U16LE SerializesCorrectly.</summary>
     [Test]
     public async Task Bytes_U16LE_SerializesCorrectly()
     {
@@ -398,7 +404,7 @@ public sealed class TempBytesTests
         await Assert.That((int)bytes[0]).IsEqualTo(0x34);
         await Assert.That((int)bytes[1]).IsEqualTo(0x12);
     }
-
+    /// <summary>Verifies Bytes U32BE SerializesCorrectly.</summary>
     [Test]
     public async Task Bytes_U32BE_SerializesCorrectly()
     {
@@ -413,7 +419,7 @@ public sealed class TempBytesTests
         await Assert.That((int)bytes[2]).IsEqualTo(0x56);
         await Assert.That((int)bytes[3]).IsEqualTo(0x78);
     }
-
+    /// <summary>Verifies Bytes U32LE SerializesCorrectly.</summary>
     [Test]
     public async Task Bytes_U32LE_SerializesCorrectly()
     {
@@ -428,7 +434,7 @@ public sealed class TempBytesTests
         await Assert.That((int)bytes[2]).IsEqualTo(0x34);
         await Assert.That((int)bytes[3]).IsEqualTo(0x12);
     }
-
+    /// <summary>Verifies Bytes U64BE SerializesCorrectly.</summary>
     [Test]
     public async Task Bytes_U64BE_SerializesCorrectly()
     {
@@ -441,7 +447,7 @@ public sealed class TempBytesTests
         await Assert.That((int)bytes[0]).IsEqualTo(0x12);
         await Assert.That((int)bytes[7]).IsEqualTo(0xF0);
     }
-
+    /// <summary>Verifies Bytes U64LE SerializesCorrectly.</summary>
     [Test]
     public async Task Bytes_U64LE_SerializesCorrectly()
     {
@@ -454,7 +460,7 @@ public sealed class TempBytesTests
         await Assert.That((int)bytes[0]).IsEqualTo(0xF0);
         await Assert.That((int)bytes[7]).IsEqualTo(0x12);
     }
-
+    /// <summary>Verifies Bytes I16BE SerializesNegativeCorrectly.</summary>
     [Test]
     public async Task Bytes_I16BE_SerializesNegativeCorrectly()
     {
@@ -467,7 +473,7 @@ public sealed class TempBytesTests
         await Assert.That((int)bytes[0]).IsEqualTo(0xFF);
         await Assert.That((int)bytes[1]).IsEqualTo(0xFF);
     }
-
+    /// <summary>Verifies Bytes I32BE SerializesNegativeCorrectly.</summary>
     [Test]
     public async Task Bytes_I32BE_SerializesNegativeCorrectly()
     {
@@ -479,7 +485,7 @@ public sealed class TempBytesTests
         await Assert.That(bytes.Length).IsEqualTo(4);
         await Assert.That((int)bytes[0]).IsEqualTo(0xFF);
     }
-
+    /// <summary>Verifies Bytes F32BE SerializesCorrectly.</summary>
     [Test]
     public async Task Bytes_F32BE_SerializesCorrectly()
     {
@@ -490,7 +496,7 @@ public sealed class TempBytesTests
         }
         await Assert.That(length).IsEqualTo(4);
     }
-
+    /// <summary>Verifies Bytes F64BE SerializesCorrectly.</summary>
     [Test]
     public async Task Bytes_F64BE_SerializesCorrectly()
     {
@@ -509,8 +515,9 @@ public sealed class TempBytesTests
     // Tests for raw byte array serialization
     // ========================================================================
 
-    #region Raw Bytes Tests
 
+    #region Raw Bytes Tests
+    /// <summary>Verifies Bytes Raw CopiesCorrectly.</summary>
     [Test]
     public async Task Bytes_Raw_CopiesCorrectly()
     {
@@ -524,7 +531,7 @@ public sealed class TempBytesTests
         await Assert.That((int)bytes[0]).IsEqualTo(0x01);
         await Assert.That((int)bytes[3]).IsEqualTo(0x04);
     }
-
+    /// <summary>Verifies Bytes RawEmpty ReturnsEmpty.</summary>
     [Test]
     public async Task Bytes_RawEmpty_ReturnsEmpty()
     {
@@ -536,7 +543,7 @@ public sealed class TempBytesTests
         }
         await Assert.That(length).IsEqualTo(0);
     }
-
+    /// <summary>Verifies Bytes RawAndEndian CombineCorrectly.</summary>
     [Test]
     public async Task Bytes_RawAndEndian_CombineCorrectly()
     {
@@ -561,8 +568,9 @@ public sealed class TempBytesTests
     // Tests for variable-length integer encoding
     // ========================================================================
 
-    #region VarInt Tests
 
+    #region VarInt Tests
+    /// <summary>Verifies Bytes VarInt SmallValue SingleByte.</summary>
     [Test]
     public async Task Bytes_VarInt_SmallValue_SingleByte()
     {
@@ -576,7 +584,7 @@ public sealed class TempBytesTests
         await Assert.That(length).IsEqualTo(1);
         await Assert.That((int)firstByte).IsEqualTo(127);
     }
-
+    /// <summary>Verifies Bytes VarInt TwoByteValue.</summary>
     [Test]
     public async Task Bytes_VarInt_TwoByteValue()
     {
@@ -587,7 +595,7 @@ public sealed class TempBytesTests
         }
         await Assert.That(length).IsEqualTo(2);
     }
-
+    /// <summary>Verifies Bytes VarInt LargeValue.</summary>
     [Test]
     public async Task Bytes_VarInt_LargeValue()
     {
@@ -598,7 +606,7 @@ public sealed class TempBytesTests
         }
         await Assert.That(length <= 5).IsTrue();
     }
-
+    /// <summary>Verifies Bytes VarIntZigZag PositiveValue.</summary>
     [Test]
     public async Task Bytes_VarIntZigZag_PositiveValue()
     {
@@ -609,7 +617,7 @@ public sealed class TempBytesTests
         }
         await Assert.That((int)firstByte).IsEqualTo(2); // 1 encodes as 2 in ZigZag
     }
-
+    /// <summary>Verifies Bytes VarIntZigZag NegativeValue.</summary>
     [Test]
     public async Task Bytes_VarIntZigZag_NegativeValue()
     {
@@ -620,7 +628,7 @@ public sealed class TempBytesTests
         }
         await Assert.That((int)firstByte).IsEqualTo(1); // -1 encodes as 1 in ZigZag
     }
-
+    /// <summary>Verifies Bytes VarIntZigZag Zero.</summary>
     [Test]
     public async Task Bytes_VarIntZigZag_Zero()
     {
@@ -642,8 +650,9 @@ public sealed class TempBytesTests
     // Tests for repeated sequential usage
     // ========================================================================
 
-    #region Sequential Call Tests
 
+    #region Sequential Call Tests
+    /// <summary>Verifies Utf8 SequentialCalls WorkCorrectly.</summary>
     [Test]
     public async Task Utf8_SequentialCalls_WorkCorrectly()
     {
@@ -657,7 +666,7 @@ public sealed class TempBytesTests
             await Assert.That(content).IsEqualTo($"Iteration: {i}");
         }
     }
-
+    /// <summary>Verifies Bytes SequentialCalls AllUseThreadStatic.</summary>
     [Test]
     public async Task Bytes_SequentialCalls_AllUseThreadStatic()
     {
@@ -679,8 +688,9 @@ public sealed class TempBytesTests
     // Tests for ASCII and other encoding wrappers
     // ========================================================================
 
-    #region Encoding Wrapper Tests
 
+    #region Encoding Wrapper Tests
+    /// <summary>Verifies Bytes Ascii EncodesCorrectly.</summary>
     [Test]
     public async Task Bytes_Ascii_EncodesCorrectly()
     {
@@ -695,7 +705,7 @@ public sealed class TempBytesTests
         await Assert.That(bytes[0]).IsEqualTo((byte)'H');
         await Assert.That(bytes[4]).IsEqualTo((byte)'o');
     }
-
+    /// <summary>Verifies Bytes Utf8Encoded EncodesCorrectly.</summary>
     [Test]
     public async Task Bytes_Utf8Encoded_EncodesCorrectly()
     {
@@ -715,8 +725,9 @@ public sealed class TempBytesTests
     // Tests for combining multiple wrapper types
     // ========================================================================
 
-    #region Combined Formatting Tests
 
+    #region Combined Formatting Tests
+    /// <summary>Verifies Bytes MultipleWrappers SerializeInOrder.</summary>
     [Test]
     public async Task Bytes_MultipleWrappers_SerializeInOrder()
     {
@@ -743,7 +754,7 @@ public sealed class TempBytesTests
         await Assert.That((int)bytes[6]).IsEqualTo(0xAB);
         await Assert.That((int)bytes[7]).IsEqualTo(0xCD);
     }
-
+    /// <summary>Verifies Bytes StringWithBinaryPrefix WorksCorrectly.</summary>
     [Test]
     public async Task Bytes_StringWithBinaryPrefix_WorksCorrectly()
     {

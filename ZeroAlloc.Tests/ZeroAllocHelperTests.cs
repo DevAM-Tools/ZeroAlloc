@@ -8,10 +8,13 @@ namespace ZeroAlloc.Tests;
 [NotInParallel("Uses ThreadStatic buffers shared per thread.")]
 public sealed class ZeroAllocHelperTests
 {
+
     // ========================================================================
     // CHAR BUFFER ACQUISITION
     // ========================================================================
 
+
+    /// <summary>Verifies AcquireCharBuffer FirstCall ReturnsThreadStaticBuffer.</summary>
     [Test]
     public async Task AcquireCharBuffer_FirstCall_ReturnsThreadStaticBuffer()
     {
@@ -26,7 +29,7 @@ public sealed class ZeroAllocHelperTests
         await Assert.That(isThreadStatic).IsTrue();
         await Assert.That(length).IsGreaterThanOrEqualTo(64);
     }
-
+    /// <summary>Verifies AcquireCharBuffer NestedWithFallback ReturnsHeapBuffer.</summary>
     [Test]
     public async Task AcquireCharBuffer_NestedWithFallback_ReturnsHeapBuffer()
     {
@@ -44,7 +47,7 @@ public sealed class ZeroAllocHelperTests
         await Assert.That(outerThreadStatic).IsTrue();
         await Assert.That(innerThreadStatic).IsFalse();
     }
-
+    /// <summary>Verifies AcquireCharBuffer NestedWithoutFallback ThrowsInvalidOperationException.</summary>
     [Test]
     public async Task AcquireCharBuffer_NestedWithoutFallback_ThrowsInvalidOperationException()
     {
@@ -66,7 +69,7 @@ public sealed class ZeroAllocHelperTests
 
         await Assert.That(threw).IsTrue();
     }
-
+    /// <summary>Verifies IsCharBufferAvailable ReflectsAcquisitionState.</summary>
     [Test]
     public async Task IsCharBufferAvailable_ReflectsAcquisitionState()
     {
@@ -90,6 +93,8 @@ public sealed class ZeroAllocHelperTests
     // BYTE BUFFER ACQUISITION
     // ========================================================================
 
+
+    /// <summary>Verifies AcquireByteBuffer FirstCall ReturnsThreadStaticBuffer.</summary>
     [Test]
     public async Task AcquireByteBuffer_FirstCall_ReturnsThreadStaticBuffer()
     {
@@ -102,7 +107,7 @@ public sealed class ZeroAllocHelperTests
 
         await Assert.That(isThreadStatic).IsTrue();
     }
-
+    /// <summary>Verifies AcquireByteBuffer NestedWithoutFallback ThrowsInvalidOperationException.</summary>
     [Test]
     public async Task AcquireByteBuffer_NestedWithoutFallback_ThrowsInvalidOperationException()
     {
@@ -123,7 +128,7 @@ public sealed class ZeroAllocHelperTests
 
         await Assert.That(threw).IsTrue();
     }
-
+    /// <summary>Verifies IsByteBufferAvailable ReflectsAcquisitionState.</summary>
     [Test]
     public async Task IsByteBufferAvailable_ReflectsAcquisitionState()
     {
@@ -147,6 +152,8 @@ public sealed class ZeroAllocHelperTests
     // RESIZE AND RELEASE
     // ========================================================================
 
+
+    /// <summary>Verifies ResizeCharBuffer ValidSize UpdatesBufferSize.</summary>
     [Test]
     public async Task ResizeCharBuffer_ValidSize_UpdatesBufferSize()
     {
@@ -158,7 +165,7 @@ public sealed class ZeroAllocHelperTests
 
         await Assert.That(size).IsEqualTo(128);
     }
-
+    /// <summary>Verifies ResizeCharBuffer InvalidSize ThrowsArgumentOutOfRangeException.</summary>
     [Test]
     public async Task ResizeCharBuffer_InvalidSize_ThrowsArgumentOutOfRangeException()
     {
@@ -168,7 +175,7 @@ public sealed class ZeroAllocHelperTests
 
         await Assert.That(threw).IsTrue();
     }
-
+    /// <summary>Verifies ResizeCharBuffer WhileInUse ThrowsInvalidOperationException.</summary>
     [Test]
     public async Task ResizeCharBuffer_WhileInUse_ThrowsInvalidOperationException()
     {
@@ -182,7 +189,7 @@ public sealed class ZeroAllocHelperTests
 
         await Assert.That(threw).IsTrue();
     }
-
+    /// <summary>Verifies ResizeByteBuffer ValidSize UpdatesBufferSize.</summary>
     [Test]
     public async Task ResizeByteBuffer_ValidSize_UpdatesBufferSize()
     {
@@ -194,7 +201,7 @@ public sealed class ZeroAllocHelperTests
 
         await Assert.That(size).IsEqualTo(256);
     }
-
+    /// <summary>Verifies ResizeByteBuffer InvalidSize ThrowsArgumentOutOfRangeException.</summary>
     [Test]
     public async Task ResizeByteBuffer_InvalidSize_ThrowsArgumentOutOfRangeException()
     {
@@ -204,7 +211,7 @@ public sealed class ZeroAllocHelperTests
 
         await Assert.That(threw).IsTrue();
     }
-
+    /// <summary>Verifies ReleaseBuffers WhenIdle ClearsBuffers.</summary>
     [Test]
     public async Task ReleaseBuffers_WhenIdle_ClearsBuffers()
     {
@@ -221,7 +228,7 @@ public sealed class ZeroAllocHelperTests
         await Assert.That(charSize).IsEqualTo(0);
         await Assert.That(byteSize).IsEqualTo(0);
     }
-
+    /// <summary>Verifies ReleaseBuffers WhileCharBufferInUse ThrowsInvalidOperationException.</summary>
     [Test]
     public async Task ReleaseBuffers_WhileCharBufferInUse_ThrowsInvalidOperationException()
     {
@@ -240,6 +247,8 @@ public sealed class ZeroAllocHelperTests
     // GROWTH
     // ========================================================================
 
+
+    /// <summary>Verifies CalculateGrowth ReturnsAtLeastRequiredSize.</summary>
     [Test]
     [Arguments(100, 200, 300)]
     [Arguments(1_048_576, 2_000_000, 3_145_728)]
@@ -251,7 +260,7 @@ public sealed class ZeroAllocHelperTests
         await Assert.That(newSize).IsGreaterThanOrEqualTo(required);
         await Assert.That(newSize).IsGreaterThanOrEqualTo(expectedMin);
     }
-
+    /// <summary>Verifies GrowCharBuffer CopiesExistingContent.</summary>
     [Test]
     public async Task GrowCharBuffer_CopiesExistingContent()
     {
@@ -269,7 +278,7 @@ public sealed class ZeroAllocHelperTests
         await Assert.That(firstChar).IsEqualTo('Z');
         await Assert.That(newLength).IsGreaterThanOrEqualTo(128);
     }
-
+    /// <summary>Verifies TryGrowCharBuffer WhenBufferNotAllocated ReturnsNull.</summary>
     [Test]
     public async Task TryGrowCharBuffer_WhenBufferNotAllocated_ReturnsNull()
     {
@@ -281,7 +290,7 @@ public sealed class ZeroAllocHelperTests
 
         await Assert.That(result).IsNull();
     }
-
+    /// <summary>Verifies GrowByteBuffer CopiesExistingContent.</summary>
     [Test]
     public async Task GrowByteBuffer_CopiesExistingContent()
     {
@@ -296,7 +305,7 @@ public sealed class ZeroAllocHelperTests
 
         await Assert.That((int)firstByte).IsEqualTo(0xAB);
     }
-
+    /// <summary>Verifies TryGrowByteBuffer WhenBufferNotAllocated ReturnsNull.</summary>
     [Test]
     public async Task TryGrowByteBuffer_WhenBufferNotAllocated_ReturnsNull()
     {
@@ -308,7 +317,7 @@ public sealed class ZeroAllocHelperTests
 
         await Assert.That(result).IsNull();
     }
-
+    /// <summary>Verifies DefaultBufferSize IsTwoMiB.</summary>
     [Test]
     public async Task DefaultBufferSize_IsTwoMiB()
     {
@@ -322,6 +331,8 @@ public sealed class ZeroAllocHelperTests
     // EXIT-POINT COVERAGE — byte resize/release while in use / TryGrow success
     // ========================================================================
 
+
+    /// <summary>Verifies ResizeByteBuffer WhileInUse ThrowsInvalidOperationException.</summary>
     [Test]
     public async Task ResizeByteBuffer_WhileInUse_ThrowsInvalidOperationException()
     {
@@ -335,7 +346,7 @@ public sealed class ZeroAllocHelperTests
 
         await Assert.That(threw).IsTrue();
     }
-
+    /// <summary>Verifies ReleaseBuffers WhileByteBufferInUse ThrowsInvalidOperationException.</summary>
     [Test]
     public async Task ReleaseBuffers_WhileByteBufferInUse_ThrowsInvalidOperationException()
     {
@@ -349,7 +360,7 @@ public sealed class ZeroAllocHelperTests
 
         await Assert.That(threw).IsTrue();
     }
-
+    /// <summary>Verifies TryGrowCharBuffer WhenBufferAcquired ReturnsGrownBuffer.</summary>
     [Test]
     public async Task TryGrowCharBuffer_WhenBufferAcquired_ReturnsGrownBuffer()
     {
@@ -367,7 +378,7 @@ public sealed class ZeroAllocHelperTests
         await Assert.That(firstChar).IsEqualTo('X');
         await Assert.That(newLength).IsGreaterThanOrEqualTo(128);
     }
-
+    /// <summary>Verifies TryGrowByteBuffer WhenBufferAcquired ReturnsGrownBuffer.</summary>
     [Test]
     public async Task TryGrowByteBuffer_WhenBufferAcquired_ReturnsGrownBuffer()
     {
@@ -386,6 +397,7 @@ public sealed class ZeroAllocHelperTests
         await Assert.That(newLength).IsGreaterThanOrEqualTo(128);
     }
 
+    /// <summary>Verifies ConsumeSimulatedGrowStall WhenUnset ReturnsFalse.</summary>
     [Test]
     public async Task ConsumeSimulatedGrowStall_WhenUnset_ReturnsFalse()
     {
@@ -397,7 +409,7 @@ public sealed class ZeroAllocHelperTests
 
         await Assert.That(consumed).IsFalse();
     }
-
+    /// <summary>Verifies ConsumeSimulatedGrowStall WhenSet ReturnsTrueAndClearsFlag.</summary>
     [Test]
     public async Task ConsumeSimulatedGrowStall_WhenSet_ReturnsTrueAndClearsFlag()
     {
@@ -418,6 +430,7 @@ public sealed class ZeroAllocHelperTests
     // GROW-STALL SIMULATION (test coverage hook)
     // ========================================================================
 
+    /// <summary>Verifies ConsumeSimulatedGrowStall WhenFlagUnset ReturnsFalse.</summary>
     [Test]
     public async Task ConsumeSimulatedGrowStall_WhenFlagUnset_ReturnsFalse()
     {
@@ -427,7 +440,7 @@ public sealed class ZeroAllocHelperTests
 
         await Assert.That(result).IsFalse();
     }
-
+    /// <summary>Verifies ConsumeSimulatedGrowStall WhenFlagSet ReturnsTrueAndClearsFlag.</summary>
     [Test]
     [NotInParallel("SimulateGrowStallForCoverage")]
     public async Task ConsumeSimulatedGrowStall_WhenFlagSet_ReturnsTrueAndClearsFlag()

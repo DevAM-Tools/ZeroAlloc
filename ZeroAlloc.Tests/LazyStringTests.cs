@@ -8,6 +8,8 @@ namespace ZeroAlloc.Tests;
 /// </summary>
 public sealed class LazyStringTests
 {
+
+    /// <summary>Verifies DirectString ReturnsValue.</summary>
     [Test]
     public async Task DirectString_ReturnsValue()
     {
@@ -16,7 +18,7 @@ public sealed class LazyStringTests
         await Assert.That(s.IsEvaluated).IsTrue();
         await Assert.That(s.IsLazy).IsFalse();
     }
-
+    /// <summary>Verifies Empty ReturnsEmptyString.</summary>
     [Test]
     public async Task Empty_ReturnsEmptyString()
     {
@@ -25,7 +27,7 @@ public sealed class LazyStringTests
         await Assert.That(s.IsEmpty).IsTrue();
         await Assert.That(s.Length).IsEqualTo(0);
     }
-
+    /// <summary>Verifies DefaultIsNull.</summary>
     [Test]
     public async Task DefaultIsNull()
     {
@@ -34,7 +36,7 @@ public sealed class LazyStringTests
         await Assert.That(s.IsEmpty).IsTrue();
         await Assert.That(s.AsString).IsEqualTo(string.Empty);
     }
-
+    /// <summary>Verifies Lazy DefersEvaluation.</summary>
     [Test]
     public async Task Lazy_DefersEvaluation()
     {
@@ -54,7 +56,7 @@ public sealed class LazyStringTests
         await Assert.That(result).IsEqualTo("lazy result");
         await Assert.That(callCount).IsEqualTo(1);
     }
-
+    /// <summary>Verifies Lazy CachesResult.</summary>
     [Test]
     public async Task Lazy_CachesResult()
     {
@@ -73,7 +75,7 @@ public sealed class LazyStringTests
         await Assert.That(callCount).IsEqualTo(1);
         await Assert.That(s.IsEvaluated).IsTrue();
     }
-
+    /// <summary>Verifies FormatLazy WithState DefersEvaluation.</summary>
     [Test]
     public async Task FormatLazy_WithState_DefersEvaluation()
     {
@@ -87,7 +89,7 @@ public sealed class LazyStringTests
         string result = s.AsString;
         await Assert.That(result).IsEqualTo("Value: 42");
     }
-
+    /// <summary>Verifies FormatLazy WithTupleState.</summary>
     [Test]
     public async Task FormatLazy_WithTupleState()
     {
@@ -99,7 +101,7 @@ public sealed class LazyStringTests
 
         await Assert.That(s.AsString).IsEqualTo("Src: 443, Dst: 8080");
     }
-
+    /// <summary>Verifies Append CombinesStrings.</summary>
     [Test]
     public async Task Append_CombinesStrings()
     {
@@ -108,7 +110,7 @@ public sealed class LazyStringTests
         LazyString combined = a.Append(b);
         await Assert.That(combined.AsString).IsEqualTo("hello world");
     }
-
+    /// <summary>Verifies Append EmptyOptimization.</summary>
     [Test]
     public async Task Append_EmptyOptimization()
     {
@@ -121,7 +123,7 @@ public sealed class LazyStringTests
         LazyString result2 = empty.Append(a);
         await Assert.That(result2.AsString).IsEqualTo("hello");
     }
-
+    /// <summary>Verifies Append DirectEmptyString ReturnsOther.</summary>
     [Test]
     [Arguments("")]
     public async Task Append_DirectEmptyString_ReturnsOther(string emptyText)
@@ -131,7 +133,7 @@ public sealed class LazyStringTests
         LazyString result = a.Append(empty);
         await Assert.That(result.AsString).IsEqualTo("hello");
     }
-
+    /// <summary>Verifies Append DirectEmptyString OnOtherSide ReturnsThis.</summary>
     [Test]
     public async Task Append_DirectEmptyString_OnOtherSide_ReturnsThis()
     {
@@ -140,7 +142,7 @@ public sealed class LazyStringTests
         LazyString result = empty.Append(value);
         await Assert.That(result.AsString).IsEqualTo("hello");
     }
-
+    /// <summary>Verifies Append NullOptimization.</summary>
     [Test]
     public async Task Append_NullOptimization()
     {
@@ -153,7 +155,7 @@ public sealed class LazyStringTests
         LazyString result2 = absent.Append(a);
         await Assert.That(result2.AsString).IsEqualTo("hello");
     }
-
+    /// <summary>Verifies Prepend CombinesStrings.</summary>
     [Test]
     public async Task Prepend_CombinesStrings()
     {
@@ -162,14 +164,14 @@ public sealed class LazyStringTests
         LazyString combined = a.Prepend(b);
         await Assert.That(combined.AsString).IsEqualTo("hello world");
     }
-
+    /// <summary>Verifies ImplicitFromString.</summary>
     [Test]
     public async Task ImplicitFromString()
     {
         LazyString s = "implicit";
         await Assert.That(s.AsString).IsEqualTo("implicit");
     }
-
+    /// <summary>Verifies ImplicitToString.</summary>
     [Test]
     public async Task ImplicitToString()
     {
@@ -177,7 +179,7 @@ public sealed class LazyStringTests
         string result = s;
         await Assert.That(result).IsEqualTo("value");
     }
-
+    /// <summary>Verifies Equality SameValue.</summary>
     [Test]
     public async Task Equality_SameValue()
     {
@@ -186,7 +188,7 @@ public sealed class LazyStringTests
         await Assert.That(a.Equals(b)).IsTrue();
         await Assert.That(a == b).IsTrue();
     }
-
+    /// <summary>Verifies Equality DifferentValue.</summary>
     [Test]
     public async Task Equality_DifferentValue()
     {
@@ -195,7 +197,7 @@ public sealed class LazyStringTests
         await Assert.That(a.Equals(c)).IsFalse();
         await Assert.That(a != c).IsTrue();
     }
-
+    /// <summary>Verifies Equality BothDefault.</summary>
     [Test]
     public async Task Equality_BothDefault()
     {
@@ -203,7 +205,7 @@ public sealed class LazyStringTests
         LazyString b = default;
         await Assert.That(a == b).IsTrue();
     }
-
+    /// <summary>Verifies Equality DefaultVsValue.</summary>
     [Test]
     public async Task Equality_DefaultVsValue()
     {
@@ -211,7 +213,7 @@ public sealed class LazyStringTests
         LazyString b = default;
         await Assert.That(a != b).IsTrue();
     }
-
+    /// <summary>Verifies CompareTo Ordering.</summary>
     [Test]
     public async Task CompareTo_Ordering()
     {
@@ -221,7 +223,7 @@ public sealed class LazyStringTests
         await Assert.That(beta.CompareTo(alpha) > 0).IsTrue();
         await Assert.That(alpha.CompareTo(alpha)).IsEqualTo(0);
     }
-
+    /// <summary>Verifies CompareTo DefaultIsSmallest.</summary>
     [Test]
     public async Task CompareTo_DefaultIsSmallest()
     {
@@ -230,7 +232,7 @@ public sealed class LazyStringTests
         await Assert.That(a.CompareTo(absent) > 0).IsTrue();
         await Assert.That(absent.CompareTo(a) < 0).IsTrue();
     }
-
+    /// <summary>Verifies CompareTo BothNull ReturnsZero.</summary>
     [Test]
     public async Task CompareTo_BothNull_ReturnsZero()
     {
@@ -238,7 +240,7 @@ public sealed class LazyStringTests
         LazyString right = default;
         await Assert.That(left.CompareTo(right)).IsEqualTo(0);
     }
-
+    /// <summary>Verifies IsEmpty LazyDeferredValue UsesEvaluatedLength.</summary>
     [Test]
     [Arguments(true)]
     [Arguments(false)]
@@ -251,14 +253,14 @@ public sealed class LazyStringTests
         await Assert.That(lazy.IsLazy).IsTrue();
         await Assert.That(lazy.IsEmpty).IsTrue();
     }
-
+    /// <summary>Verifies GetHashCode NullValue ReturnsZero.</summary>
     [Test]
     public async Task GetHashCode_NullValue_ReturnsZero()
     {
         LazyString absent = default;
         await Assert.That(absent.GetHashCode()).IsEqualTo(0);
     }
-
+    /// <summary>Verifies FromRawValue UnknownType EvaluatesToEmpty.</summary>
     [Test]
     public async Task FromRawValue_UnknownType_EvaluatesToEmpty()
     {
@@ -267,21 +269,21 @@ public sealed class LazyStringTests
         await Assert.That(s.TryGetString(out string result)).IsTrue();
         await Assert.That(result).IsEqualTo(string.Empty);
     }
-
+    /// <summary>Verifies Length ReturnsCorrectValue.</summary>
     [Test]
     public async Task Length_ReturnsCorrectValue()
     {
         LazyString s = new("12345");
         await Assert.That(s.Length).IsEqualTo(5);
     }
-
+    /// <summary>Verifies ToString ReturnsAsString.</summary>
     [Test]
     public async Task ToString_ReturnsAsString()
     {
         LazyString s = new("test string");
         await Assert.That(s.ToString()).IsEqualTo("test string");
     }
-
+    /// <summary>Verifies GetHashCode ConsistentWithEquals.</summary>
     [Test]
     public async Task GetHashCode_ConsistentWithEquals()
     {
@@ -289,7 +291,7 @@ public sealed class LazyStringTests
         LazyString b = new("test");
         await Assert.That(b.GetHashCode()).IsEqualTo(a.GetHashCode());
     }
-
+    /// <summary>Verifies TryWriteTo Success.</summary>
     [Test]
     public async Task TryWriteTo_Success()
     {
@@ -305,7 +307,7 @@ public sealed class LazyStringTests
         await Assert.That(written).IsEqualTo(5);
         await Assert.That(writtenContent).IsEqualTo("hello");
     }
-
+    /// <summary>Verifies TryWriteTo BufferTooSmall.</summary>
     [Test]
     public async Task TryWriteTo_BufferTooSmall()
     {
@@ -314,7 +316,7 @@ public sealed class LazyStringTests
         int written = s.TryWriteTo(buffer);
         await Assert.That(written).IsEqualTo(-1);
     }
-
+    /// <summary>Verifies AsSpan ReturnsCorrectSpan.</summary>
     [Test]
     public async Task AsSpan_ReturnsCorrectSpan()
     {
@@ -322,7 +324,7 @@ public sealed class LazyStringTests
         ReadOnlySpan<char> span = s.AsSpan;
         await Assert.That(span.ToString()).IsEqualTo("hello");
     }
-
+    /// <summary>Verifies RawValue RawValue roundtrips.</summary>
     [Test]
     public async Task RawValue_RoundTrips()
     {
@@ -331,7 +333,7 @@ public sealed class LazyStringTests
         LazyString restored = LazyString.FromRawValue(raw);
         await Assert.That(restored).IsEqualTo(original);
     }
-
+    /// <summary>Verifies TryGetString DirectString ReturnsTrue.</summary>
     [Test]
     public async Task TryGetString_DirectString_ReturnsTrue()
     {
@@ -340,7 +342,7 @@ public sealed class LazyStringTests
         await Assert.That(success).IsTrue();
         await Assert.That(result).IsEqualTo("hello");
     }
-
+    /// <summary>Verifies TryGetString Default ReturnsTrueWithEmpty.</summary>
     [Test]
     public async Task TryGetString_Default_ReturnsTrueWithEmpty()
     {
@@ -349,7 +351,7 @@ public sealed class LazyStringTests
         await Assert.That(success).IsTrue();
         await Assert.That(result).IsEqualTo(string.Empty);
     }
-
+    /// <summary>Verifies TryGetString LazySuccess ReturnsTrueWithValue.</summary>
     [Test]
     public async Task TryGetString_LazySuccess_ReturnsTrueWithValue()
     {
@@ -358,7 +360,7 @@ public sealed class LazyStringTests
         await Assert.That(success).IsTrue();
         await Assert.That(result).IsEqualTo("lazy result");
     }
-
+    /// <summary>Verifies TryGetString FormatLazy succeeds.</summary>
     [Test]
     public async Task TryGetString_FormatLazy_Succeeds()
     {
@@ -367,7 +369,7 @@ public sealed class LazyStringTests
         await Assert.That(success).IsTrue();
         await Assert.That(result).IsEqualTo("N=7");
     }
-
+    /// <summary>Verifies TryGetString FormatLazyThrows ReturnsFalseWithEmpty.</summary>
     [Test]
     public async Task TryGetString_FormatLazyThrows_ReturnsFalseWithEmpty()
     {
@@ -376,7 +378,7 @@ public sealed class LazyStringTests
         await Assert.That(success).IsFalse();
         await Assert.That(result).IsEqualTo(string.Empty);
     }
-
+    /// <summary>Verifies TryGetString LazyThrows ReturnsFalseWithEmpty.</summary>
     [Test]
     public async Task TryGetString_LazyThrows_ReturnsFalseWithEmpty()
     {
@@ -385,7 +387,7 @@ public sealed class LazyStringTests
         await Assert.That(success).IsFalse();
         await Assert.That(result).IsEqualTo(string.Empty);
     }
-
+    /// <summary>Verifies TryGetString LazyThrows CachesEmptyToPreventRetry.</summary>
     [Test]
     public async Task TryGetString_LazyThrows_CachesEmptyToPreventRetry()
     {
@@ -406,7 +408,7 @@ public sealed class LazyStringTests
         await Assert.That(result).IsEqualTo(string.Empty);
         await Assert.That(callCount).IsEqualTo(1);
     }
-
+    /// <summary>Verifies Append MultipleParts.</summary>
     [Test]
     public async Task Append_MultipleParts()
     {
@@ -416,7 +418,7 @@ public sealed class LazyStringTests
         LazyString combined = a.Append(b).Append(c);
         await Assert.That(combined.AsString).IsEqualTo("abc");
     }
-
+    /// <summary>Verifies FormatLazy DeferredFormat IsLazy.</summary>
     [Test]
     public async Task FormatLazy_DeferredFormat_IsLazy()
     {
@@ -426,7 +428,7 @@ public sealed class LazyStringTests
         _ = s.AsString;
         await Assert.That(s.IsEvaluated).IsTrue();
     }
-
+    /// <summary>Verifies Equals ObjectOverload.</summary>
     [Test]
     public async Task Equals_ObjectOverload()
     {
@@ -440,6 +442,7 @@ public sealed class LazyStringTests
     // Generator-powered Lazy() and LazyInterpolated() tests
     // ========================================================================
 
+    /// <summary>Verifies GeneratedLazy SingleArg DefersAndFormats.</summary>
     [Test]
     public async Task GeneratedLazy_SingleArg_DefersAndFormats()
     {
@@ -447,7 +450,7 @@ public sealed class LazyStringTests
         await Assert.That(s.IsLazy).IsTrue();
         await Assert.That(s.AsString).IsEqualTo("hello");
     }
-
+    /// <summary>Verifies GeneratedLazy MultipleArgs DefersAndFormats.</summary>
     [Test]
     public async Task GeneratedLazy_MultipleArgs_DefersAndFormats()
     {
@@ -455,14 +458,14 @@ public sealed class LazyStringTests
         await Assert.That(s.IsLazy).IsTrue();
         await Assert.That(s.AsString).IsEqualTo("Port: 443");
     }
-
+    /// <summary>Verifies GeneratedLazy ThreeArgs FormatsAll.</summary>
     [Test]
     public async Task GeneratedLazy_ThreeArgs_FormatsAll()
     {
         LazyString s = ZA.Lazy("Source: ", (ushort)80, " -> Dest: ");
         await Assert.That(s.AsString).IsEqualTo("Source: 80 -> Dest: ");
     }
-
+    /// <summary>Verifies GeneratedLazy CachesOnSecondAccess.</summary>
     [Test]
     public async Task GeneratedLazy_CachesOnSecondAccess()
     {
@@ -471,7 +474,7 @@ public sealed class LazyStringTests
         string second = s.AsString;
         await Assert.That(second).IsSameReferenceAs(first);
     }
-
+    /// <summary>Verifies GeneratedLazyInterpolated SingleArg DefersAndFormats.</summary>
     [Test]
     public async Task GeneratedLazyInterpolated_SingleArg_DefersAndFormats()
     {
@@ -479,7 +482,7 @@ public sealed class LazyStringTests
         await Assert.That(s.IsLazy).IsTrue();
         await Assert.That(s.AsString).IsEqualTo("42");
     }
-
+    /// <summary>Verifies GeneratedLazyInterpolated MultipleArgs DefersAndFormats.</summary>
     [Test]
     public async Task GeneratedLazyInterpolated_MultipleArgs_DefersAndFormats()
     {
@@ -487,7 +490,7 @@ public sealed class LazyStringTests
         await Assert.That(s.IsLazy).IsTrue();
         await Assert.That(s.AsString).IsEqualTo("Port: 443");
     }
-
+    /// <summary>Verifies GeneratedLazyInterpolated CachesOnSecondAccess.</summary>
     [Test]
     public async Task GeneratedLazyInterpolated_CachesOnSecondAccess()
     {

@@ -9,48 +9,60 @@ namespace ZeroAlloc.Demo;
 //         The class MUST be internal (not public) to limit usage to this assembly.
 //         The source generator will add optimized static methods to this class.
 // ============================================================================
-internal partial class ZA : ZeroAllocBase { }
+internal sealed partial class ZA : ZeroAllocBase { }
 
 // ============================================================================
 // Demo Types for Generated Code Showcase
 // ============================================================================
 
 /// <summary>
-/// Example: ISpanFormattable only (standard .NET interface).
-/// The generator will call TryFormat directly.
+/// Example: <see cref="ISpanFormattable"/> only (standard .NET interface).
+/// The generator calls <see cref="ISpanFormattable.TryFormat"/> directly without a size pre-check.
 /// </summary>
 public readonly struct Temperature : ISpanFormattable
 {
+    /// <summary>Gets the temperature value in degrees Celsius.</summary>
     public double Celsius { get; init; }
 
+    /// <inheritdoc />
     public bool TryFormat(Span<char> destination, out int charsWritten,
         ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         return Celsius.TryFormat(destination, out charsWritten, format, provider);
     }
 
+    /// <inheritdoc />
     public string ToString(string? format, IFormatProvider? formatProvider)
         => Celsius.ToString(format, formatProvider);
 }
 
 /// <summary>
-/// Example: ISpanFormattable + IStringSize with known size.
-/// The generator can pre-check the buffer size before calling TryFormat.
+/// Example: <see cref="ISpanFormattable"/> + <see cref="IStringSize"/> with a known formatted size.
+/// The generator can pre-check the buffer via <see cref="IStringSize.TryGetStringSize"/>.
 /// </summary>
 public readonly struct IpAddress : ISpanFormattable, IStringSize
 {
+    /// <summary>Gets the first octet of the IPv4 address.</summary>
     public byte A { get; init; }
+
+    /// <summary>Gets the second octet of the IPv4 address.</summary>
     public byte B { get; init; }
+
+    /// <summary>Gets the third octet of the IPv4 address.</summary>
     public byte C { get; init; }
+
+    /// <summary>Gets the fourth octet of the IPv4 address.</summary>
     public byte D { get; init; }
 
-    // Max: "255.255.255.255" = 15 chars
+    /// <inheritdoc />
     public bool TryGetStringSize(ReadOnlySpan<char> format, IFormatProvider? provider, out int size)
     {
+        // Upper bound for "255.255.255.255" = 15 chars
         size = 15;
         return true;
     }
 
+    /// <inheritdoc />
     public bool TryFormat(Span<char> destination, out int charsWritten,
         ReadOnlySpan<char> format, IFormatProvider? provider)
     {
@@ -74,25 +86,28 @@ public readonly struct IpAddress : ISpanFormattable, IStringSize
         return true;
     }
 
+    /// <inheritdoc />
     public string ToString(string? format, IFormatProvider? formatProvider)
         => $"{A}.{B}.{C}.{D}";
 }
 
 /// <summary>
-/// Example: ISpanFormattable + IStringSize returning null (unknown size).
-/// The generator must use TryFormat without pre-check.
+/// Example: <see cref="ISpanFormattable"/> + <see cref="IStringSize"/> with unknown size.
+/// <see cref="IStringSize.TryGetStringSize"/> returns <c>false</c>, so the generator formats without pre-check.
 /// </summary>
 public readonly struct DynamicMessage : ISpanFormattable, IStringSize
 {
+    /// <summary>Gets the message text, or <c>null</c> for an empty formatted result.</summary>
     public string? Text { get; init; }
 
-    // Size is unknown at compile time
+    /// <inheritdoc />
     public bool TryGetStringSize(ReadOnlySpan<char> format, IFormatProvider? provider, out int size)
     {
         size = 0;
         return false;
     }
 
+    /// <inheritdoc />
     public bool TryFormat(Span<char> destination, out int charsWritten,
         ReadOnlySpan<char> format, IFormatProvider? provider)
     {
@@ -111,52 +126,63 @@ public readonly struct DynamicMessage : ISpanFormattable, IStringSize
         return true;
     }
 
+    /// <inheritdoc />
     public string ToString(string? format, IFormatProvider? formatProvider)
-        => Text ?? string.Empty;
+        => Text
+        ?? string.Empty;
 }
 
 /// <summary>
-/// Example: IUtf8SpanFormattable + IUtf8Size with known size.
-/// The generator can pre-check the UTF-8 buffer size.
+/// Example: <see cref="IUtf8SpanFormattable"/> + <see cref="IUtf8Size"/> with a known UTF-8 size.
+/// The generator can pre-check the buffer via <see cref="IUtf8Size.TryGetUtf8Size"/>.
 /// </summary>
 public readonly struct StatusCode : IUtf8SpanFormattable, IUtf8Size
 {
+    /// <summary>Gets the numeric HTTP status code (for example, 200 or 404).</summary>
     public int Code { get; init; }
 
-    // HTTP status codes: 100-599, always 3 digits
+    /// <inheritdoc />
     public bool TryGetUtf8Size(ReadOnlySpan<char> format, IFormatProvider? provider, out int size)
     {
+        // HTTP status codes 100-599 are always 3 decimal digits in UTF-8
         size = 3;
         return true;
     }
 
+    /// <inheritdoc />
     public bool TryFormat(Span<byte> utf8Destination, out int bytesWritten,
         ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         return Code.TryFormat(utf8Destination, out bytesWritten, format, provider);
     }
 
+    /// <inheritdoc />
     public string ToString(string? format, IFormatProvider? formatProvider)
         => Code.ToString(format, formatProvider);
 }
 
 /// <summary>
-/// Example: IBinarySerializable with known size.
-/// Simple fixed-size binary structure.
+/// Example: <see cref="IBinarySerializable"/> with a fixed serialized size.
 /// </summary>
 public readonly struct PacketHeader : IBinarySerializable
 {
+    /// <summary>Gets the packet type field (big-endian <see cref="ushort"/> on the wire).</summary>
     public ushort Type { get; init; }
+
+    /// <summary>Gets the payload length field (big-endian <see cref="uint"/> on the wire).</summary>
     public uint Length { get; init; }
 
+    /// <summary>Fixed on-wire size in bytes: 2-byte type + 4-byte length.</summary>
     public const int Size = 6;
 
+    /// <inheritdoc />
     public bool TryGetWrittenSize(out int size)
     {
         size = Size;
         return true;
     }
 
+    /// <inheritdoc />
     public bool TryWrite(Span<byte> destination, out int bytesWritten)
     {
         if (destination.Length < Size) { bytesWritten = 0; return false; }
@@ -168,20 +194,22 @@ public readonly struct PacketHeader : IBinarySerializable
 }
 
 /// <summary>
-/// Example: IBinarySerializable with dynamic size (returns null).
-/// Size depends on payload content.
+/// Example: <see cref="IBinarySerializable"/> with unknown serialized size.
+/// <see cref="IBinarySerializable.TryGetWrittenSize"/> returns <c>false</c> because the payload length is dynamic.
 /// </summary>
 public readonly struct DynamicPacket : IBinarySerializable
 {
+    /// <summary>Gets the variable-length payload written after a 4-byte big-endian length prefix.</summary>
     public byte[] Payload { get; init; }
 
-    // Size is dynamic, return false
+    /// <inheritdoc />
     public bool TryGetWrittenSize(out int size)
     {
         size = 0;
         return false;
     }
 
+    /// <inheritdoc />
     public bool TryWrite(Span<byte> destination, out int bytesWritten)
     {
         int needed = 4 + Payload.Length;
@@ -194,20 +222,21 @@ public readonly struct DynamicPacket : IBinarySerializable
 }
 
 /// <summary>
-/// Example: IBinarySerializable with computable size.
-/// Size can be determined but requires calculation.
+/// Example: <see cref="IBinarySerializable"/> with a computable serialized size.
 /// </summary>
 public readonly struct ComputedSizePacket : IBinarySerializable
 {
+    /// <summary>Gets the data bytes written after a 4-byte big-endian length prefix.</summary>
     public byte[] Data { get; init; }
 
-    // Size can be computed: 4 bytes header + data length
+    /// <inheritdoc />
     public bool TryGetWrittenSize(out int size)
     {
         size = 4 + Data.Length;
         return true;
     }
 
+    /// <inheritdoc />
     public bool TryWrite(Span<byte> destination, out int bytesWritten)
     {
         int needed = 4 + Data.Length;
@@ -220,10 +249,11 @@ public readonly struct ComputedSizePacket : IBinarySerializable
 }
 
 /// <summary>
-/// Demonstrates the ZeroAlloc library's zero-allocation string formatting.
+/// Console demo for ZeroAlloc string, UTF-8, and binary formatting APIs.
 /// </summary>
-class Program
+internal sealed class Program
 {
+    /// <summary>Runs all demo scenarios and prints results to the console.</summary>
     public static void Main()
     {
         Console.WriteLine("=== ZeroAlloc Demo - Radically Simplified ===");
@@ -378,26 +408,26 @@ class Program
         // Test 10: ISpanFormattable + IStringSize with known size
         // ====================================================================
         Console.WriteLine("Test 10: ISpanFormattable + IStringSize (IpAddress)");
-        // Generator can pre-check buffer: GetCharCount() returns 15
+        // Generator can pre-check buffer via TryGetStringSize (returns 15)
         IpAddress ip = new IpAddress { A = 192, B = 168, C = 1, D = 100 };
         using (TempString ts = ZA.String("Server: ", ip))
         {
             Console.WriteLine($"  Result: {ts.AsSpan().ToString()}");
-            Console.WriteLine($"  IpAddress.GetCharCount() = 15 (known size)");
+            Console.WriteLine($"  IpAddress.TryGetStringSize() = 15 (known size)");
         }
 
         Console.WriteLine();
 
         // ====================================================================
-        // Test 11: ISpanFormattable + IStringSize returning null
+        // Test 11: ISpanFormattable + IStringSize with unknown size
         // ====================================================================
-        Console.WriteLine("Test 11: IStringSize returning null (DynamicMessage)");
-        // Generator cannot pre-check: GetCharCount() returns null
+        Console.WriteLine("Test 11: IStringSize unknown size (DynamicMessage)");
+        // Generator cannot pre-check: TryGetStringSize returns false
         DynamicMessage msg = new DynamicMessage { Text = "Hello, World!" };
         using (TempString ts = ZA.String("Message: ", msg))
         {
             Console.WriteLine($"  Result: {ts.AsSpan().ToString()}");
-            Console.WriteLine($"  DynamicMessage.GetCharCount() = null (unknown size)");
+            Console.WriteLine($"  DynamicMessage.TryGetStringSize() = false (unknown size)");
         }
 
         Console.WriteLine();
@@ -406,12 +436,12 @@ class Program
         // Test 12: IUtf8SpanFormattable + IUtf8Size with known size
         // ====================================================================
         Console.WriteLine("Test 12: IUtf8SpanFormattable + IUtf8Size (StatusCode)");
-        // Generator can pre-check UTF-8 buffer: GetUtf8ByteCount() returns 3
+        // Generator can pre-check UTF-8 buffer via TryGetUtf8Size (returns 3)
         StatusCode status = new StatusCode { Code = 200 };
         using (TempBytes tb = ZA.Utf8("HTTP ", status, " OK"))
         {
             Console.WriteLine($"  Result: {System.Text.Encoding.UTF8.GetString(tb.AsSpan())}");
-            Console.WriteLine($"  StatusCode.GetUtf8ByteCount() = 3 (known size)");
+            Console.WriteLine($"  StatusCode.TryGetUtf8Size() = 3 (known size)");
         }
 
         Console.WriteLine();
@@ -436,9 +466,9 @@ class Program
         Console.WriteLine();
 
         // ====================================================================
-        // Test 14: IBinarySerializable returning null (unknown size)
+        // Test 14: IBinarySerializable with unknown size
         // ====================================================================
-        Console.WriteLine("Test 14: IBinarySerializable returning null (DynamicPacket)");
+        Console.WriteLine("Test 14: IBinarySerializable unknown size (DynamicPacket)");
         DynamicPacket dynPacket = new DynamicPacket { Payload = [0xCA, 0xFE, 0xBA, 0xBE] };
         using (TempBytes tb = ZA.Bytes(dynPacket))
         {
@@ -476,6 +506,6 @@ class Program
         Console.WriteLine("=== Demo completed successfully! ===");
         Console.WriteLine();
         Console.WriteLine("Inspect the generated code in:");
-        Console.WriteLine("  ZeroAlloc.Demo/obj/Generated/ZeroAlloc.Generator/ZA.g.cs");
+        Console.WriteLine("  ZeroAlloc.Demo/obj/Generated/ZeroAlloc.Generator/ZeroAlloc.Generator.ZeroAllocGenerator/ZA.ZeroAlloc.g.cs");
     }
 }

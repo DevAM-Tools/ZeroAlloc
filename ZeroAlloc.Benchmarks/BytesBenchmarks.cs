@@ -6,13 +6,13 @@ namespace ZeroAlloc.Benchmarks;
 /// Zero-allocation API for the benchmarks assembly.
 /// The generator automatically creates optimized overloads.
 /// </summary>
-internal partial class Z : ZeroAllocBase { }
+internal sealed partial class Z : ZeroAllocBase { }
 
 /// <summary>
 /// Comprehensive benchmarks comparing ZeroAlloc.Bytes for binary serialization against:
 /// - Manual BinaryPrimitives serialization
 /// - Struct-based serialization
-/// 
+///
 /// Binary serialization is critical for:
 /// - Network packet construction (UDP, TCP)
 /// - Protocol implementations (Ethernet, IPv4, IPv6)
@@ -28,16 +28,17 @@ public class BytesBenchmarks
     // === Test Data ===
     private static readonly byte[] _SrcMac = [0x00, 0x1A, 0x2B, 0x3C, 0x4D, 0x5E];
     private static readonly byte[] _DstMac = [0x00, 0x5E, 0x00, 0x01, 0x02, 0x03];
-    private static readonly UInt128 _SrcIPv6 = UInt128.Parse("1");  // ::1
-    private static readonly UInt128 _DstIPv6 = UInt128.Parse("281473913978881");  // ::ffff:192.0.2.1
+    private static readonly UInt128 _SrcIPv6 = UInt128.Parse("1", CultureInfo.InvariantCulture);  // ::1
+    private static readonly UInt128 _DstIPv6 = UInt128.Parse("281473913978881", CultureInfo.InvariantCulture);  // ::ffff:192.0.2.1
     private static readonly byte[] _Payload = "Hello, UDP World!"u8.ToArray();
 
     // ═══════════════════════════════════════════════════════════════════════════
     #region Category 1: Simple UDP Header (8 bytes)
     // ═══════════════════════════════════════════════════════════════════════════
 
+    /// <summary>Serializes a simple UDP packet using manual BinaryPrimitives writes (baseline).</summary>
     [BenchmarkCategory("SimpleUDP"), Benchmark(Baseline = true)]
-    public byte[] SimpleUDP_Manual()
+    public static byte[] SimpleUDP_Manual()
     {
         // UDP header: SrcPort(2) + DstPort(2) + Length(2) + Checksum(2) = 8 bytes
         byte[] result = new byte[8 + _Payload.Length];
@@ -56,8 +57,9 @@ public class BytesBenchmarks
         return result;
     }
 
+    /// <summary>Serializes a simple UDP packet using inline Z.Bytes arguments.</summary>
     [BenchmarkCategory("SimpleUDP"), Benchmark]
-    public byte[] SimpleUDP_ZeroAlloc()
+    public static byte[] SimpleUDP_ZeroAlloc()
     {
         return Z.Bytes(
             new U16BE(8080),      // Source port
@@ -67,8 +69,9 @@ public class BytesBenchmarks
             _Payload).ToArray();
     }
 
+    /// <summary>Serializes a simple UDP packet using a UdpHeader struct with Z.Bytes.</summary>
     [BenchmarkCategory("SimpleUDP"), Benchmark]
-    public byte[] SimpleUDP_ZeroAlloc_Struct()
+    public static byte[] SimpleUDP_ZeroAlloc_Struct()
     {
         UdpHeader udp = new UdpHeader
         {
@@ -86,8 +89,9 @@ public class BytesBenchmarks
     #region Category 2: Full Network Stack (Ethernet + IPv6 + UDP)
     // ═══════════════════════════════════════════════════════════════════════════
 
+    /// <summary>Serializes a full Ethernet/IPv6/UDP packet using manual BinaryPrimitives writes (baseline).</summary>
     [BenchmarkCategory("FullPacket"), Benchmark(Baseline = true)]
-    public byte[] FullPacket_Manual()
+    public static byte[] FullPacket_Manual()
     {
         // Ethernet(14) + IPv6(40) + UDP(8) + _Payload
         int totalSize = 14 + 40 + 8 + _Payload.Length;
@@ -127,8 +131,9 @@ public class BytesBenchmarks
         return result;
     }
 
+    /// <summary>Serializes a full packet using inline Z.Bytes field arguments.</summary>
     [BenchmarkCategory("FullPacket"), Benchmark]
-    public byte[] FullPacket_ZeroAlloc_Inline()
+    public static byte[] FullPacket_ZeroAlloc_Inline()
     {
         return Z.Bytes(
             // Ethernet
@@ -147,8 +152,9 @@ public class BytesBenchmarks
             _Payload).ToArray();
     }
 
+    /// <summary>Serializes a full packet using nested IBinarySerializable structs with Z.Bytes.</summary>
     [BenchmarkCategory("FullPacket"), Benchmark]
-    public byte[] FullPacket_ZeroAlloc_Structs()
+    public static byte[] FullPacket_ZeroAlloc_Structs()
     {
         UdpIPv6Packet packet = new UdpIPv6Packet
         {
@@ -184,6 +190,7 @@ public class BytesBenchmarks
     #region Category 3: TryBytes (Stack-allocated destination)
     // ═══════════════════════════════════════════════════════════════════════════
 
+    /// <summary>Writes a UDP header into a stack buffer using manual BinaryPrimitives (baseline).</summary>
     [BenchmarkCategory("TryBytes"), Benchmark(Baseline = true)]
     public int TryBytes_Manual()
     {
@@ -204,6 +211,7 @@ public class BytesBenchmarks
         return offset;
     }
 
+    /// <summary>Writes a UDP header into a stack buffer using Z.TryBytes.</summary>
     [BenchmarkCategory("TryBytes"), Benchmark]
     public int TryBytes_ZeroAlloc()
     {
@@ -223,8 +231,9 @@ public class BytesBenchmarks
     #region Category 4: Batch Serialization (100 packets)
     // ═══════════════════════════════════════════════════════════════════════════
 
+    /// <summary>Serializes 100 UDP packets using manual BinaryPrimitives writes (baseline).</summary>
     [BenchmarkCategory("Batch"), Benchmark(Baseline = true)]
-    public int Batch_Manual()
+    public static int Batch_Manual()
     {
         int totalSize = 0;
         for (int i = 0; i < 100; i++)
@@ -247,8 +256,9 @@ public class BytesBenchmarks
         return totalSize;
     }
 
+    /// <summary>Serializes 100 UDP packets using Z.Bytes.</summary>
     [BenchmarkCategory("Batch"), Benchmark]
-    public int Batch_ZeroAlloc()
+    public static int Batch_ZeroAlloc()
     {
         int totalSize = 0;
         for (int i = 0; i < 100; i++)
@@ -279,6 +289,7 @@ public class BytesParseBenchmarks
     private byte[] _UdpPacket = null!;
     private byte[] _FullPacket = null!;
 
+    /// <summary>Creates sample UDP and full-stack packets used by parse benchmarks.</summary>
     [GlobalSetup]
     public void Setup()
     {
@@ -321,6 +332,7 @@ public class BytesParseBenchmarks
     #region Category 1: UDP Header Parsing
     // ═══════════════════════════════════════════════════════════════════════════
 
+    /// <summary>Parses a UDP header using manual BinaryPrimitives reads (baseline).</summary>
     [BenchmarkCategory("ParseUDP"), Benchmark(Baseline = true)]
     public (ushort, ushort, ushort, ushort) ParseUDP_Manual()
     {
@@ -331,6 +343,7 @@ public class BytesParseBenchmarks
         return (srcPort, dstPort, length, checksum);
     }
 
+    /// <summary>Parses a UDP header using UdpHeader.Parse.</summary>
     [BenchmarkCategory("ParseUDP"), Benchmark]
     public UdpHeader ParseUDP_Struct()
     {
@@ -343,6 +356,7 @@ public class BytesParseBenchmarks
     #region Category 2: Full Packet Parsing
     // ═══════════════════════════════════════════════════════════════════════════
 
+    /// <summary>Parses selected fields from a full packet using manual offset reads (baseline).</summary>
     [BenchmarkCategory("ParseFull"), Benchmark(Baseline = true)]
     public (ushort EtherType, byte NextHeader, ushort SrcPort) ParseFull_Manual()
     {
@@ -352,6 +366,7 @@ public class BytesParseBenchmarks
         return (etherType, nextHeader, srcPort);
     }
 
+    /// <summary>Parses a full packet using UdpIPv6Packet.Parse.</summary>
     [BenchmarkCategory("ParseFull"), Benchmark]
     public UdpIPv6Packet ParseFull_Structs()
     {
@@ -364,6 +379,7 @@ public class BytesParseBenchmarks
     #region Category 3: Batch Parsing (100 iterations)
     // ═══════════════════════════════════════════════════════════════════════════
 
+    /// <summary>Parses the UDP source port 100 times using manual reads (baseline).</summary>
     [BenchmarkCategory("BatchParse"), Benchmark(Baseline = true)]
     public int BatchParse_Manual()
     {
@@ -376,6 +392,7 @@ public class BytesParseBenchmarks
         return sum;
     }
 
+    /// <summary>Parses the UDP source port 100 times using UdpHeader.Parse.</summary>
     [BenchmarkCategory("BatchParse"), Benchmark]
     public int BatchParse_Struct()
     {
@@ -390,4 +407,3 @@ public class BytesParseBenchmarks
 
     #endregion
 }
-

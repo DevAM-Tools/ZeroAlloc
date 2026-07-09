@@ -8,10 +8,13 @@ namespace ZeroAlloc.Tests;
 /// </summary>
 public sealed class SpanStringBuilderTests
 {
+
     // ========================================================================
     // CREATION AND PROPERTIES
     // ========================================================================
 
+
+    /// <summary>Verifies Constructor SetsCapacityAndEmptyState.</summary>
     [Test]
     public async Task Constructor_SetsCapacityAndEmptyState()
     {
@@ -31,6 +34,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(remaining).IsEqualTo(256);
     }
 
+    /// <summary>Verifies AsSpan AndWrittenSpan ReturnWrittenContent.</summary>
     [Test]
     public async Task AsSpan_AndWrittenSpan_ReturnWrittenContent()
     {
@@ -48,6 +52,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(writtenSpanContent).IsEqualTo("Hello");
     }
 
+    /// <summary>Verifies ToString ReturnsWrittenContent.</summary>
     [Test]
     public async Task ToString_ReturnsWrittenContent()
     {
@@ -66,6 +71,8 @@ public sealed class SpanStringBuilderTests
     // APPEND CHAIN — PRIMITIVE AND TEMPORAL TYPES
     // ========================================================================
 
+
+    /// <summary>Verifies AppendChain AllPrimitiveTypes BuildsExpectedOutput.</summary>
     [Test]
     public async Task AppendChain_AllPrimitiveTypes_BuildsExpectedOutput()
     {
@@ -118,6 +125,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(content).Contains("14:30");
     }
 
+    /// <summary>Verifies AppendChain TemporalTypes FormatsCorrectly.</summary>
     [Test]
     public async Task AppendChain_TemporalTypes_FormatsCorrectly()
     {
@@ -146,6 +154,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(content).Contains("12345678-1234-1234-1234-123456789abc");
     }
 
+    /// <summary>Verifies Append WithFormat FormatsCorrectly.</summary>
     [Test]
     public async Task Append_WithFormat_FormatsCorrectly()
     {
@@ -153,18 +162,18 @@ public sealed class SpanStringBuilderTests
         {
             Span<char> buffer = stackalloc char[128];
             SpanStringBuilder builder = new(buffer);
-            builder.Append(42, "X4");
+            builder.Append(42, "X4", CultureInfo.InvariantCulture);
             builder.Append('|');
-            builder.Append(3.14159, "F2");
+            builder.Append(3.14159, "F2", CultureInfo.InvariantCulture);
             builder.Append('|');
-            builder.Append(1.5f, "N1");
+            builder.Append(1.5f, "N1", CultureInfo.InvariantCulture);
             builder.Append('|');
-            builder.Append(9.99m, "C");
+            builder.Append(9.99m, "C", CultureInfo.InvariantCulture);
             builder.Append('|');
             DateTime dt = new(2025, 6, 17);
-            builder.Append(dt, "yyyy-MM-dd");
+            builder.Append(dt, "yyyy-MM-dd", CultureInfo.InvariantCulture);
             builder.Append('|');
-            builder.Append(TimeSpan.FromMinutes(90), "c");
+            builder.Append(TimeSpan.FromMinutes(90), "c", CultureInfo.InvariantCulture);
             builder.Append('|');
             Guid guid = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
             builder.Append(guid, "N");
@@ -178,6 +187,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(content).Contains("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee".Replace("-", ""));
     }
 
+    /// <summary>Verifies Append GenericFormattable FormatsCorrectly.</summary>
     [Test]
     public async Task Append_GenericFormattable_FormatsCorrectly()
     {
@@ -185,7 +195,7 @@ public sealed class SpanStringBuilderTests
         {
             Span<char> buffer = stackalloc char[32];
             SpanStringBuilder builder = new(buffer);
-            builder.Append(255, "X2");
+            builder.Append(255, "X2", CultureInfo.InvariantCulture);
             content = builder.AsSpan().ToString();
         }
 
@@ -196,6 +206,8 @@ public sealed class SpanStringBuilderTests
     // APPENDLINE AND HEX/BINARY
     // ========================================================================
 
+
+    /// <summary>Verifies AppendLine AppendsNewline.</summary>
     [Test]
     public async Task AppendLine_AppendsNewline()
     {
@@ -215,6 +227,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(length).IsGreaterThan(5);
     }
 
+    /// <summary>Verifies AppendHex AndBinary FormatsCorrectly.</summary>
     [Test]
     public async Task AppendHex_AndBinary_FormatsCorrectly()
     {
@@ -248,6 +261,8 @@ public sealed class SpanStringBuilderTests
     // CLEAR, SEEKBACK, REMAINING
     // ========================================================================
 
+
+    /// <summary>Verifies Clear ResetsLengthAndRemaining.</summary>
     [Test]
     public async Task Clear_ResetsLengthAndRemaining()
     {
@@ -266,6 +281,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(remaining).IsEqualTo(100);
     }
 
+    /// <summary>Verifies SeekBack DecreasesLength.</summary>
     [Test]
     public async Task SeekBack_DecreasesLength()
     {
@@ -284,6 +300,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(content).IsEqualTo("Hello");
     }
 
+    /// <summary>Verifies SeekBack Zero DoesNothing.</summary>
     [Test]
     public async Task SeekBack_Zero_DoesNothing()
     {
@@ -299,6 +316,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(length).IsEqualTo(5);
     }
 
+    /// <summary>Verifies SeekBack TooMuch ThrowsArgumentOutOfRangeException.</summary>
     [Test]
     public async Task SeekBack_TooMuch_ThrowsArgumentOutOfRangeException()
     {
@@ -314,6 +332,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies TrySeekBack Valid ReturnsTrue.</summary>
     [Test]
     public async Task TrySeekBack_Valid_ReturnsTrue()
     {
@@ -331,6 +350,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(content).IsEqualTo("Hel");
     }
 
+    /// <summary>Verifies TrySeekBack Invalid ReturnsFalse.</summary>
     [Test]
     public async Task TrySeekBack_Invalid_ReturnsFalse()
     {
@@ -348,6 +368,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(length).IsEqualTo(2);
     }
 
+    /// <summary>Verifies Remaining ReturnsCorrectValue.</summary>
     [Test]
     public async Task Remaining_ReturnsCorrectValue()
     {
@@ -366,6 +387,8 @@ public sealed class SpanStringBuilderTests
     // OVERFLOW — APPEND THROWS
     // ========================================================================
 
+
+    /// <summary>Verifies Append StringOverflow ThrowsInvalidOperationException.</summary>
     [Test]
     public async Task Append_StringOverflow_ThrowsInvalidOperationException()
     {
@@ -383,6 +406,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(length).IsEqualTo(0);
     }
 
+    /// <summary>Verifies Append OneCharPastCapacity ThrowsInvalidOperationException.</summary>
     [Test]
     public async Task Append_OneCharPastCapacity_ThrowsInvalidOperationException()
     {
@@ -398,6 +422,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies Append ExactFit succeeds.</summary>
     [Test]
     public async Task Append_ExactFit_Succeeds()
     {
@@ -418,6 +443,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(content).IsEqualTo("Hello");
     }
 
+    /// <summary>Verifies Append EmptyBuffer ThrowsOnAnyAppend.</summary>
     [Test]
     public async Task Append_EmptyBuffer_ThrowsOnAnyAppend()
     {
@@ -432,6 +458,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies AppendLine BufferTooSmall DoesNotAdvance.</summary>
     [Test]
     public async Task AppendLine_BufferTooSmall_DoesNotAdvance()
     {
@@ -449,6 +476,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(length).IsEqualTo(0);
     }
 
+    /// <summary>Verifies AppendHex2 BufferTooSmall ThrowsInvalidOperationException.</summary>
     [Test]
     public async Task AppendHex2_BufferTooSmall_ThrowsInvalidOperationException()
     {
@@ -463,6 +491,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies Append NullString DoesNothing.</summary>
     [Test]
     public async Task Append_NullString_DoesNothing()
     {
@@ -481,6 +510,8 @@ public sealed class SpanStringBuilderTests
     // TRYAPPEND — SUCCESS AND FAILURE
     // ========================================================================
 
+
+    /// <summary>Verifies TryAppend Chain ReturnsTrueAndBuildsContent.</summary>
     [Test]
     public async Task TryAppend_Chain_ReturnsTrueAndBuildsContent()
     {
@@ -501,6 +532,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(content).IsEqualTo("Value: 42, Active: False");
     }
 
+    /// <summary>Verifies TryAppend String FullBuffer ReturnsFalse.</summary>
     [Test]
     public async Task TryAppend_String_FullBuffer_ReturnsFalse()
     {
@@ -518,6 +550,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(length).IsEqualTo(4);
     }
 
+    /// <summary>Verifies TryAppend Char AtCapacity ReturnsExpected.</summary>
     [Test]
     [Arguments(1, true)]
     [Arguments(2, false)]
@@ -535,6 +568,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(result).IsEqualTo(expected);
     }
 
+    /// <summary>Verifies TryAppend Char InsufficientSpace ReturnsFalse.</summary>
     [Test]
     public async Task TryAppend_Char_InsufficientSpace_ReturnsFalse()
     {
@@ -549,6 +583,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(result).IsFalse();
     }
 
+    /// <summary>Verifies TryAppend Null ReturnsTrue.</summary>
     [Test]
     public async Task TryAppend_Null_ReturnsTrue()
     {
@@ -565,6 +600,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(length).IsEqualTo(0);
     }
 
+    /// <summary>Verifies TryAppendHex2 InsufficientSpace ReturnsFalse.</summary>
     [Test]
     public async Task TryAppendHex2_InsufficientSpace_ReturnsFalse()
     {
@@ -578,6 +614,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(result).IsFalse();
     }
 
+    /// <summary>Verifies TryAppendBinary64 InsufficientSpace ReturnsFalse.</summary>
     [Test]
     public async Task TryAppendBinary64_InsufficientSpace_ReturnsFalse()
     {
@@ -595,6 +632,8 @@ public sealed class SpanStringBuilderTests
     // COMPLEX SCENARIOS
     // ========================================================================
 
+
+    /// <summary>Verifies ChainedAppends BuildsCorrectString.</summary>
     [Test]
     public async Task ChainedAppends_BuildsCorrectString()
     {
@@ -612,6 +651,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(content).IsEqualTo("User: 42, Active: True");
     }
 
+    /// <summary>Verifies ClearAndReuse ClearAndReuse works.</summary>
     [Test]
     public async Task ClearAndReuse_Works()
     {
@@ -635,6 +675,8 @@ public sealed class SpanStringBuilderTests
     // EXIT-POINT COVERAGE
     // ========================================================================
 
+
+    /// <summary>Verifies ExitCoverage TryAppend Primitive succeeds.</summary>
     [Test]
     [Arguments("int")]
     [Arguments("long")]
@@ -666,6 +708,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(result).IsTrue();
     }
 
+    /// <summary>Verifies ExitCoverage TryAppend Primitive InsufficientSpace ReturnsFalse.</summary>
     [Test]
     [Arguments("int")]
     [Arguments("long")]
@@ -697,6 +740,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(result).IsFalse();
     }
 
+    /// <summary>Verifies ExitCoverage Append Primitive Overflow throws.</summary>
     [Test]
     [Arguments("int")]
     [Arguments("long")]
@@ -730,6 +774,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies ExitCoverage AppendSpan AndAppendLineSpan OverflowThrow.</summary>
     [Test]
     public async Task ExitCoverage_AppendSpan_AndAppendLineSpan_OverflowThrow()
     {
@@ -749,6 +794,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(lineThrew).IsTrue();
     }
 
+    /// <summary>Verifies ExitCoverage TryAppendSpan FailureAndSuccess.</summary>
     [Test]
     public async Task ExitCoverage_TryAppendSpan_FailureAndSuccess()
     {
@@ -766,6 +812,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(success).IsTrue();
     }
 
+    /// <summary>Verifies ExitCoverage TryAppendHexBinary InsufficientSpace ReturnsFalse.</summary>
     [Test]
     [Arguments(nameof(SpanStringBuilder.TryAppendHex4), 4)]
     [Arguments(nameof(SpanStringBuilder.TryAppendHex8), 8)]
@@ -780,6 +827,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(result).IsFalse();
     }
 
+    /// <summary>Verifies ExitCoverage AppendHexBinary Overflow throws.</summary>
     [Test]
     [Arguments(nameof(SpanStringBuilder.AppendHex4), 4)]
     [Arguments(nameof(SpanStringBuilder.AppendHex8), 8)]
@@ -797,6 +845,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies ExitCoverage AppendFormatted Overflow throws.</summary>
     [Test]
     [Arguments("int")]
     [Arguments("double")]
@@ -816,6 +865,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies ExitCoverage TryAppendGeneric AndAppendGeneric Overflow.</summary>
     [Test]
     public async Task ExitCoverage_TryAppendGeneric_AndAppendGeneric_Overflow()
     {
@@ -823,10 +873,10 @@ public sealed class SpanStringBuilderTests
         bool appendThrew = false;
         {
             SpanStringBuilder tryBuilder = new(stackalloc char[1]);
-            tryFailed = tryBuilder.TryAppend(255, "X4");
+            tryFailed = tryBuilder.TryAppend(255, "X4", CultureInfo.InvariantCulture);
 
             SpanStringBuilder appendBuilder = new(stackalloc char[1]);
-            try { appendBuilder.Append(255, "X4"); }
+            try { appendBuilder.Append(255, "X4", CultureInfo.InvariantCulture); }
             catch (InvalidOperationException) { appendThrew = true; }
         }
 
@@ -834,6 +884,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(appendThrew).IsTrue();
     }
 
+    /// <summary>Verifies ExitCoverage AppendSpanLongFormattedAndLine Succeed.</summary>
     [Test]
     public async Task ExitCoverage_AppendSpanLongFormattedAndLine_Succeed()
     {
@@ -843,16 +894,17 @@ public sealed class SpanStringBuilderTests
             SpanStringBuilder builder = new(buffer);
             builder.Append("ab".AsSpan());
             builder.Append(-42L);
-            builder.Append(100L, "D");
-            builder.Append(new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.FromHours(1)), "O");
+            builder.Append(100L, "D", CultureInfo.InvariantCulture);
+            builder.Append(new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.FromHours(1)), "O", CultureInfo.InvariantCulture);
             builder.AppendLine("z".AsSpan());
-            builder.Append(255, "X2");
+            builder.Append(255, "X2", CultureInfo.InvariantCulture);
             length = builder.Length;
         }
 
         await Assert.That(length).IsGreaterThan(0);
     }
 
+    /// <summary>Verifies ExitCoverage TryAppendBoolFalse InsufficientSpace ReturnsFalse.</summary>
     [Test]
     public async Task ExitCoverage_TryAppendBoolFalse_InsufficientSpace_ReturnsFalse()
     {
@@ -866,6 +918,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(result).IsFalse();
     }
 
+    /// <summary>Verifies ExitCoverage TryAppendFormattedGeneric succeeds.</summary>
     [Test]
     public async Task ExitCoverage_TryAppendFormattedGeneric_Succeeds()
     {
@@ -878,6 +931,7 @@ public sealed class SpanStringBuilderTests
         await Assert.That(result).IsTrue();
     }
 
+    /// <summary>Verifies ExitCoverage AppendFormattedGeneric succeeds.</summary>
     [Test]
     public async Task ExitCoverage_AppendFormattedGeneric_Succeeds()
     {
@@ -885,13 +939,14 @@ public sealed class SpanStringBuilderTests
         {
             Span<char> buffer = stackalloc char[32];
             SpanStringBuilder builder = new(buffer);
-            builder.Append(255, "X2");
+            builder.Append(255, "X2", CultureInfo.InvariantCulture);
             length = builder.Length;
         }
 
         await Assert.That(length).IsGreaterThan(0);
     }
 
+    /// <summary>Verifies ExitCoverage AppendGenericFormattable ThrowAndSuccess.</summary>
     [Test]
     public async Task ExitCoverage_AppendGenericFormattable_ThrowAndSuccess()
     {
@@ -992,14 +1047,14 @@ public sealed class SpanStringBuilderTests
         SpanStringBuilder builder = new(buffer);
         switch (kind)
         {
-            case "int": builder.Append(42, "X4"); break;
-            case "long": builder.Append(100L, "D"); break;
-            case "double": builder.Append(2.718, "F4"); break;
-            case "float": builder.Append(3.14f, "F2"); break;
-            case "decimal": builder.Append(1.5m, "C"); break;
-            case "DateTime": builder.Append(new DateTime(2025, 6, 17), "yyyy-MM-dd"); break;
-            case "DateTimeOffset": builder.Append(new DateTimeOffset(2025, 6, 17, 0, 0, 0, TimeSpan.Zero), "O"); break;
-            case "TimeSpan": builder.Append(TimeSpan.FromMinutes(90), "c"); break;
+            case "int": builder.Append(42, "X4", CultureInfo.InvariantCulture); break;
+            case "long": builder.Append(100L, "D", CultureInfo.InvariantCulture); break;
+            case "double": builder.Append(2.718, "F4", CultureInfo.InvariantCulture); break;
+            case "float": builder.Append(3.14f, "F2", CultureInfo.InvariantCulture); break;
+            case "decimal": builder.Append(1.5m, "C", CultureInfo.InvariantCulture); break;
+            case "DateTime": builder.Append(new DateTime(2025, 6, 17), "yyyy-MM-dd", CultureInfo.InvariantCulture); break;
+            case "DateTimeOffset": builder.Append(new DateTimeOffset(2025, 6, 17, 0, 0, 0, TimeSpan.Zero), "O", CultureInfo.InvariantCulture); break;
+            case "TimeSpan": builder.Append(TimeSpan.FromMinutes(90), "c", CultureInfo.InvariantCulture); break;
             case "Guid": builder.Append(Guid.Parse("12345678-1234-1234-1234-123456789012"), "N"); break;
             default: throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown formatted kind.");
         }

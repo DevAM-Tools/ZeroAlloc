@@ -10,9 +10,6 @@
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" />
     <PackageReference Include="ZString" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\ZeroAlloc\ZeroAlloc.csproj" />
   </ItemGroup>
 

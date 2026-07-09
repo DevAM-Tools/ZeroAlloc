@@ -14,12 +14,14 @@ namespace ZeroAlloc.Tests;
 /// </summary>
 public sealed class NegativeAndEdgeCaseTests
 {
+
     // ========================================================================
     // NULL STRING HANDLING
     // Tests for graceful null string handling
     // ========================================================================
-    #region Null String Handling
 
+    #region Null String Handling
+    /// <summary>Verifies String NullString HandlesGracefully.</summary>
     [Test]
     public async Task String_NullString_HandlesGracefully()
     {
@@ -31,7 +33,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(length).IsEqualTo(0);
     }
-
+    /// <summary>Verifies String MultipleNulls HandlesGracefully.</summary>
     [Test]
     public async Task String_MultipleNulls_HandlesGracefully()
     {
@@ -44,7 +46,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(length).IsEqualTo(0);
     }
-
+    /// <summary>Verifies String NullBetweenValues HandlesGracefully.</summary>
     [Test]
     public async Task String_NullBetweenValues_HandlesGracefully()
     {
@@ -56,7 +58,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(content).IsEqualTo("AB");
     }
-
+    /// <summary>Verifies Utf8 NullString HandlesGracefully.</summary>
     [Test]
     public async Task Utf8_NullString_HandlesGracefully()
     {
@@ -76,8 +78,9 @@ public sealed class NegativeAndEdgeCaseTests
     // Tests for empty strings and empty collections
     // ========================================================================
 
-    #region Empty Value Handling
 
+    #region Empty Value Handling
+    /// <summary>Verifies String EmptyString ReturnsEmpty.</summary>
     [Test]
     public async Task String_EmptyString_ReturnsEmpty()
     {
@@ -88,7 +91,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(length).IsEqualTo(0);
     }
-
+    /// <summary>Verifies String MultipleEmptyStrings ReturnsEmpty.</summary>
     [Test]
     public async Task String_MultipleEmptyStrings_ReturnsEmpty()
     {
@@ -99,7 +102,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(length).IsEqualTo(0);
     }
-
+    /// <summary>Verifies String EmptyBetweenValues FormatsCorrectly.</summary>
     [Test]
     public async Task String_EmptyBetweenValues_FormatsCorrectly()
     {
@@ -110,7 +113,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(content).IsEqualTo("AB");
     }
-
+    /// <summary>Verifies Utf8 EmptyString ReturnsEmpty.</summary>
     [Test]
     public async Task Utf8_EmptyString_ReturnsEmpty()
     {
@@ -121,7 +124,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(length).IsEqualTo(0);
     }
-
+    /// <summary>Verifies Bytes EmptyRaw ReturnsEmpty.</summary>
     [Test]
     public async Task Bytes_EmptyRaw_ReturnsEmpty()
     {
@@ -141,8 +144,9 @@ public sealed class NegativeAndEdgeCaseTests
     // Tests for correct disposal and buffer release
     // ========================================================================
 
-    #region Dispose Behavior Tests
 
+    #region Dispose Behavior Tests
+    /// <summary>Verifies TempString DisposeReleasesBuffer.</summary>
     [Test]
     public async Task TempString_DisposeReleasesBuffer()
     {
@@ -162,7 +166,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(isHeapAllocated2).IsFalse();
     }
-
+    /// <summary>Verifies TempBytes DisposeReleasesBuffer.</summary>
     [Test]
     public async Task TempBytes_DisposeReleasesBuffer()
     {
@@ -181,7 +185,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(isHeapAllocated2).IsFalse();
     }
-
+    /// <summary>Verifies TempString DoubleDispose NoException.</summary>
     [Test]
     public async Task TempString_DoubleDispose_NoException()
     {
@@ -195,7 +199,7 @@ public sealed class NegativeAndEdgeCaseTests
         catch (Exception) { threw = true; }
         await Assert.That(threw).IsFalse();
     }
-
+    /// <summary>Verifies TempBytes DoubleDispose NoException.</summary>
     [Test]
     public async Task TempBytes_DoubleDispose_NoException()
     {
@@ -209,14 +213,14 @@ public sealed class NegativeAndEdgeCaseTests
         catch (Exception) { threw = true; }
         await Assert.That(threw).IsFalse();
     }
-
+    /// <summary>Verifies LazyString FormatLazy AsString ThrowsOnFactoryFailure.</summary>
     [Test]
     public async Task LazyString_FormatLazy_AsString_ThrowsOnFactoryFailure()
     {
         LazyString s = LazyString.FormatLazy(0, static _ => throw new InvalidOperationException("boom"));
         await Assert.That(() => _ = s.AsString).Throws<InvalidOperationException>();
     }
-
+    /// <summary>Verifies TempString ToString AndIsEmpty OnEmptyContent.</summary>
     [Test]
     [Arguments(true)]
     [Arguments(false)]
@@ -233,7 +237,7 @@ public sealed class NegativeAndEdgeCaseTests
         await Assert.That(isEmpty).IsTrue();
         await Assert.That(content).IsEqualTo(string.Empty);
     }
-
+    /// <summary>Verifies TempBytes ToArray OnHeapFallback ReturnsCopy.</summary>
     [Test]
     public async Task TempBytes_ToArray_OnHeapFallback_ReturnsCopy()
     {
@@ -254,8 +258,9 @@ public sealed class NegativeAndEdgeCaseTests
     // Tests for minimum and maximum values of all numeric types
     // ========================================================================
 
-    #region Numeric Boundary Tests
 
+    #region Numeric Boundary Tests
+    /// <summary>Verifies String MaxInt FormatsCorrectly.</summary>
     [Test]
     public async Task String_MaxInt_FormatsCorrectly()
     {
@@ -266,7 +271,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(content).IsEqualTo("Max: 2147483647");
     }
-
+    /// <summary>Verifies String MinInt FormatsCorrectly.</summary>
     [Test]
     public async Task String_MinInt_FormatsCorrectly()
     {
@@ -277,7 +282,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(content).IsEqualTo("Min: -2147483648");
     }
-
+    /// <summary>Verifies String MaxLong FormatsCorrectly.</summary>
     [Test]
     public async Task String_MaxLong_FormatsCorrectly()
     {
@@ -288,7 +293,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(content).IsEqualTo("Max: 9223372036854775807");
     }
-
+    /// <summary>Verifies String MinLong FormatsCorrectly.</summary>
     [Test]
     public async Task String_MinLong_FormatsCorrectly()
     {
@@ -299,7 +304,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(content).IsEqualTo("Min: -9223372036854775808");
     }
-
+    /// <summary>Verifies String MaxByte FormatsCorrectly.</summary>
     [Test]
     public async Task String_MaxByte_FormatsCorrectly()
     {
@@ -310,7 +315,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(content).IsEqualTo("Max: 255");
     }
-
+    /// <summary>Verifies String MinSByte FormatsCorrectly.</summary>
     [Test]
     public async Task String_MinSByte_FormatsCorrectly()
     {
@@ -321,7 +326,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(content).IsEqualTo("Min: -128");
     }
-
+    /// <summary>Verifies String MaxDecimal FormatsWithoutOverflow.</summary>
     [Test]
     public async Task String_MaxDecimal_FormatsWithoutOverflow()
     {
@@ -332,7 +337,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(hasContent).IsTrue();
     }
-
+    /// <summary>Verifies String MinDecimal FormatsWithoutOverflow.</summary>
     [Test]
     public async Task String_MinDecimal_FormatsWithoutOverflow()
     {
@@ -351,8 +356,9 @@ public sealed class NegativeAndEdgeCaseTests
     // Tests for infinity, NaN, and other special floating point values
     // ========================================================================
 
-    #region Floating Point Special Values
 
+    #region Floating Point Special Values
+    /// <summary>Verifies String PositiveInfinity FormatsCorrectly.</summary>
     [Test]
     public async Task String_PositiveInfinity_FormatsCorrectly()
     {
@@ -363,7 +369,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(result).Contains("Infinity");
     }
-
+    /// <summary>Verifies String NegativeInfinity FormatsCorrectly.</summary>
     [Test]
     public async Task String_NegativeInfinity_FormatsCorrectly()
     {
@@ -374,7 +380,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(result).Contains("Infinity");
     }
-
+    /// <summary>Verifies String NaN FormatsCorrectly.</summary>
     [Test]
     public async Task String_NaN_FormatsCorrectly()
     {
@@ -385,7 +391,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(result).Contains("NaN");
     }
-
+    /// <summary>Verifies String FloatPositiveInfinity FormatsCorrectly.</summary>
     [Test]
     public async Task String_FloatPositiveInfinity_FormatsCorrectly()
     {
@@ -396,7 +402,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(result).Contains("Infinity");
     }
-
+    /// <summary>Verifies String FloatNaN FormatsCorrectly.</summary>
     [Test]
     public async Task String_FloatNaN_FormatsCorrectly()
     {
@@ -407,7 +413,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(result).Contains("NaN");
     }
-
+    /// <summary>Verifies String Epsilon FormatsCorrectly.</summary>
     [Test]
     public async Task String_Epsilon_FormatsCorrectly()
     {
@@ -418,7 +424,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(hasContent).IsTrue(); // "Epsilon: " + some value
     }
-
+    /// <summary>Verifies String NegativeZero FormatsAsZero.</summary>
     [Test]
     public async Task String_NegativeZero_FormatsAsZero()
     {
@@ -438,8 +444,9 @@ public sealed class NegativeAndEdgeCaseTests
     // Tests for complex Unicode scenarios
     // ========================================================================
 
-    #region Unicode Edge Cases
 
+    #region Unicode Edge Cases
+    /// <summary>Verifies String Emoji FormatsCorrectly.</summary>
     [Test]
     public async Task String_Emoji_FormatsCorrectly()
     {
@@ -450,7 +457,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(content).IsEqualTo("Emoji: 🎉🎊🎈");
     }
-
+    /// <summary>Verifies String SurrogatePair FormatsCorrectly.</summary>
     [Test]
     public async Task String_SurrogatePair_FormatsCorrectly()
     {
@@ -462,7 +469,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(content).IsEqualTo("Music: 𝄞");
     }
-
+    /// <summary>Verifies Utf8 Emoji EncodesCorrectly.</summary>
     [Test]
     public async Task Utf8_Emoji_EncodesCorrectly()
     {
@@ -474,7 +481,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(length).IsEqualTo(4);
     }
-
+    /// <summary>Verifies Utf8 SurrogatePair EncodesCorrectly.</summary>
     [Test]
     public async Task Utf8_SurrogatePair_EncodesCorrectly()
     {
@@ -486,7 +493,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(length).IsEqualTo(4);
     }
-
+    /// <summary>Verifies String ZeroWidthChars FormatsCorrectly.</summary>
     [Test]
     public async Task String_ZeroWidthChars_FormatsCorrectly()
     {
@@ -498,7 +505,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(content).IsEqualTo("A\u200CB");
     }
-
+    /// <summary>Verifies String RightToLeft FormatsCorrectly.</summary>
     [Test]
     public async Task String_RightToLeft_FormatsCorrectly()
     {
@@ -509,7 +516,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(content).IsEqualTo("RTL: مرحبا");
     }
-
+    /// <summary>Verifies String CombiningCharacters FormatsCorrectly.</summary>
     [Test]
     public async Task String_CombiningCharacters_FormatsCorrectly()
     {
@@ -530,8 +537,9 @@ public sealed class NegativeAndEdgeCaseTests
     // Tests for correct behavior under sequential thread usage
     // ========================================================================
 
-    #region Sequential Threading Tests
 
+    #region Sequential Threading Tests
+    /// <summary>Verifies String SequentialCalls WorkCorrectly.</summary>
     [Test]
     public async Task String_SequentialCalls_WorkCorrectly()
     {
@@ -545,7 +553,7 @@ public sealed class NegativeAndEdgeCaseTests
             await Assert.That(content).IsEqualTo($"Iteration: {i}");
         }
     }
-
+    /// <summary>Verifies Utf8 SequentialCalls WorkCorrectly.</summary>
     [Test]
     public async Task Utf8_SequentialCalls_WorkCorrectly()
     {
@@ -567,8 +575,9 @@ public sealed class NegativeAndEdgeCaseTests
     // Tests for graceful fallback behavior
     // ========================================================================
 
-    #region Graceful Fallback Tests
 
+    #region Graceful Fallback Tests
+    /// <summary>Verifies String NestedCalls GracefullyFallsBack.</summary>
     [Test]
     public async Task String_NestedCalls_GracefullyFallsBack()
     {
@@ -592,7 +601,7 @@ public sealed class NegativeAndEdgeCaseTests
         await Assert.That(outerContent).IsEqualTo("Outer");
         await Assert.That(innerContent).IsEqualTo("Inner");
     }
-
+    /// <summary>Verifies String DeepNesting AllWork.</summary>
     [Test]
     public async Task String_DeepNesting_AllWork()
     {
@@ -623,7 +632,7 @@ public sealed class NegativeAndEdgeCaseTests
         await Assert.That(aContent).IsEqualTo("A");
         await Assert.That(eContent).IsEqualTo("E");
     }
-
+    /// <summary>Verifies TryString NestedCalls GracefullyFallsBack.</summary>
     [Test]
     public async Task TryString_NestedCalls_GracefullyFallsBack()
     {
@@ -653,8 +662,9 @@ public sealed class NegativeAndEdgeCaseTests
     // Tests for binary serialization edge cases
     // ========================================================================
 
-    #region Bytes Method Tests
 
+    #region Bytes Method Tests
+    /// <summary>Verifies Bytes RawAndEndian CombineCorrectly.</summary>
     [Test]
     public async Task Bytes_RawAndEndian_CombineCorrectly()
     {
@@ -677,7 +687,7 @@ public sealed class NegativeAndEdgeCaseTests
         await Assert.That(b2).IsEqualTo((byte)0x12);
         await Assert.That(b3).IsEqualTo((byte)0x34);
     }
-
+    /// <summary>Verifies Bytes VarInt ZeroValue.</summary>
     [Test]
     public async Task Bytes_VarInt_ZeroValue()
     {
@@ -691,7 +701,7 @@ public sealed class NegativeAndEdgeCaseTests
         await Assert.That(length).IsEqualTo(1);
         await Assert.That(firstByte).IsEqualTo((byte)0);
     }
-
+    /// <summary>Verifies Bytes VarInt MaxValue.</summary>
     [Test]
     public async Task Bytes_VarInt_MaxValue()
     {
@@ -710,8 +720,9 @@ public sealed class NegativeAndEdgeCaseTests
     // Tests for DateTime, Guid, and other special values
     // ========================================================================
 
-    #region Special Value Tests
 
+    #region Special Value Tests
+    /// <summary>Verifies String DateTimeMin FormatsCorrectly.</summary>
     [Test]
     public async Task String_DateTimeMin_FormatsCorrectly()
     {
@@ -722,7 +733,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(hasContent).IsTrue();
     }
-
+    /// <summary>Verifies String DateTimeMax FormatsCorrectly.</summary>
     [Test]
     public async Task String_DateTimeMax_FormatsCorrectly()
     {
@@ -733,7 +744,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(hasContent).IsTrue();
     }
-
+    /// <summary>Verifies String GuidEmpty FormatsCorrectly.</summary>
     [Test]
     public async Task String_GuidEmpty_FormatsCorrectly()
     {
@@ -744,7 +755,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(content).IsEqualTo("GUID: 00000000-0000-0000-0000-000000000000");
     }
-
+    /// <summary>Verifies String TimeSpanZero FormatsCorrectly.</summary>
     [Test]
     public async Task String_TimeSpanZero_FormatsCorrectly()
     {
@@ -755,7 +766,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(content).Contains("0");
     }
-
+    /// <summary>Verifies String TimeSpanNegative FormatsCorrectly.</summary>
     [Test]
     public async Task String_TimeSpanNegative_FormatsCorrectly()
     {
@@ -774,8 +785,9 @@ public sealed class NegativeAndEdgeCaseTests
     // Tests for insufficient data and malformed input
     // ========================================================================
 
-    #region BinaryParser Error Handling
 
+    #region BinaryParser Error Handling
+    /// <summary>Verifies BinaryParser EmptyBuffer ThrowsOnRead.</summary>
     [Test]
     public async Task BinaryParser_EmptyBuffer_ThrowsOnRead()
     {
@@ -786,7 +798,7 @@ public sealed class NegativeAndEdgeCaseTests
         catch (InvalidOperationException) { threw = true; }
         await Assert.That(threw).IsTrue();
     }
-
+    /// <summary>Verifies BinaryParser InsufficientForUInt16 throws.</summary>
     [Test]
     public async Task BinaryParser_InsufficientForUInt16_Throws()
     {
@@ -797,7 +809,7 @@ public sealed class NegativeAndEdgeCaseTests
         catch (InvalidOperationException) { threw = true; }
         await Assert.That(threw).IsTrue();
     }
-
+    /// <summary>Verifies BinaryParser InsufficientForUInt32 throws.</summary>
     [Test]
     public async Task BinaryParser_InsufficientForUInt32_Throws()
     {
@@ -808,7 +820,7 @@ public sealed class NegativeAndEdgeCaseTests
         catch (InvalidOperationException) { threw = true; }
         await Assert.That(threw).IsTrue();
     }
-
+    /// <summary>Verifies BinaryParser InsufficientForUInt64 throws.</summary>
     [Test]
     public async Task BinaryParser_InsufficientForUInt64_Throws()
     {
@@ -819,7 +831,7 @@ public sealed class NegativeAndEdgeCaseTests
         catch (InvalidOperationException) { threw = true; }
         await Assert.That(threw).IsTrue();
     }
-
+    /// <summary>Verifies BinaryParser VarIntTooLong throws.</summary>
     [Test]
     public async Task BinaryParser_VarIntTooLong_Throws()
     {
@@ -831,7 +843,7 @@ public sealed class NegativeAndEdgeCaseTests
         catch (InvalidOperationException) { threw = true; }
         await Assert.That(threw).IsTrue();
     }
-
+    /// <summary>Verifies BinaryParser VarIntTruncated throws.</summary>
     [Test]
     public async Task BinaryParser_VarIntTruncated_Throws()
     {
@@ -843,7 +855,7 @@ public sealed class NegativeAndEdgeCaseTests
         catch (InvalidOperationException) { threw = true; }
         await Assert.That(threw).IsTrue();
     }
-
+    /// <summary>Verifies BinaryParser SkipBeyondBuffer throws.</summary>
     [Test]
     public async Task BinaryParser_SkipBeyondBuffer_Throws()
     {
@@ -854,7 +866,7 @@ public sealed class NegativeAndEdgeCaseTests
         catch (InvalidOperationException) { threw = true; }
         await Assert.That(threw).IsTrue();
     }
-
+    /// <summary>Verifies BinaryParser ReadBytesBeyondBuffer throws.</summary>
     [Test]
     public async Task BinaryParser_ReadBytesBeyondBuffer_Throws()
     {
@@ -873,8 +885,9 @@ public sealed class NegativeAndEdgeCaseTests
     // Tests for bit-level edge cases
     // ========================================================================
 
-    #region BitReader Error Handling
 
+    #region BitReader Error Handling
+    /// <summary>Verifies BitReader ReadBitsZero throws.</summary>
     [Test]
     public async Task BitReader_ReadBitsZero_Throws()
     {
@@ -885,7 +898,7 @@ public sealed class NegativeAndEdgeCaseTests
         catch (ArgumentOutOfRangeException) { threw = true; }
         await Assert.That(threw).IsTrue();
     }
-
+    /// <summary>Verifies BitReader ReadBits65 throws.</summary>
     [Test]
     public async Task BitReader_ReadBits65_Throws()
     {
@@ -896,7 +909,7 @@ public sealed class NegativeAndEdgeCaseTests
         catch (ArgumentOutOfRangeException) { threw = true; }
         await Assert.That(threw).IsTrue();
     }
-
+    /// <summary>Verifies BitReader ReadBytesNotAligned throws.</summary>
     [Test]
     public async Task BitReader_ReadBytesNotAligned_Throws()
     {
@@ -916,8 +929,9 @@ public sealed class NegativeAndEdgeCaseTests
     // Tests for buffer overflow handling
     // ========================================================================
 
-    #region SpanBuilder Overflow Tests
 
+    #region SpanBuilder Overflow Tests
+    /// <summary>Verifies SpanStringBuilder OverflowSingleChar throws.</summary>
     [Test]
     public async Task SpanStringBuilder_OverflowSingleChar_Throws()
     {
@@ -930,7 +944,7 @@ public sealed class NegativeAndEdgeCaseTests
         catch (InvalidOperationException) { threw = true; }
         await Assert.That(threw).IsTrue();
     }
-
+    /// <summary>Verifies SpanStringBuilder OverflowString throws.</summary>
     [Test]
     public async Task SpanStringBuilder_OverflowString_Throws()
     {
@@ -942,7 +956,7 @@ public sealed class NegativeAndEdgeCaseTests
         catch (InvalidOperationException) { threw = true; }
         await Assert.That(threw).IsTrue();
     }
-
+    /// <summary>Verifies SpanBytesBuilder OverflowInt32 throws.</summary>
     [Test]
     public async Task SpanBytesBuilder_OverflowInt32_Throws()
     {
@@ -953,7 +967,7 @@ public sealed class NegativeAndEdgeCaseTests
         catch (Exception) { threw = true; }
         await Assert.That(threw).IsTrue();
     }
-
+    /// <summary>Verifies SpanBytesBuilder OverflowInt64 throws.</summary>
     [Test]
     public async Task SpanBytesBuilder_OverflowInt64_Throws()
     {
@@ -964,7 +978,7 @@ public sealed class NegativeAndEdgeCaseTests
         catch (Exception) { threw = true; }
         await Assert.That(threw).IsTrue();
     }
-
+    /// <summary>Verifies SpanStringBuilder SeekBackNegative throws.</summary>
     [Test]
     public async Task SpanStringBuilder_SeekBackNegative_Throws()
     {
@@ -976,7 +990,7 @@ public sealed class NegativeAndEdgeCaseTests
         catch (ArgumentOutOfRangeException) { threw = true; }
         await Assert.That(threw).IsTrue();
     }
-
+    /// <summary>Verifies SpanBytesBuilder SeekBackNegative throws.</summary>
     [Test]
     public async Task SpanBytesBuilder_SeekBackNegative_Throws()
     {
@@ -996,8 +1010,9 @@ public sealed class NegativeAndEdgeCaseTests
     // Tests for TempStringBuilder and TempBytesBuilder edge cases
     // ========================================================================
 
-    #region TempBuilder Edge Cases
 
+    #region TempBuilder Edge Cases
+    /// <summary>Verifies TempStringBuilder SeekBackExact ClearsBuffer.</summary>
     [Test]
     public async Task TempStringBuilder_SeekBackExact_ClearsBuffer()
     {
@@ -1014,7 +1029,7 @@ public sealed class NegativeAndEdgeCaseTests
         await Assert.That(length).IsEqualTo(0);
         await Assert.That(isEmpty).IsTrue();
     }
-
+    /// <summary>Verifies TempBytesBuilder SeekBackExact ClearsBuffer.</summary>
     [Test]
     public async Task TempBytesBuilder_SeekBackExact_ClearsBuffer()
     {
@@ -1031,7 +1046,7 @@ public sealed class NegativeAndEdgeCaseTests
         await Assert.That(length).IsEqualTo(0);
         await Assert.That(isEmpty).IsTrue();
     }
-
+    /// <summary>Verifies TempStringBuilder ClearThenAppend works.</summary>
     [Test]
     public async Task TempStringBuilder_ClearThenAppend_Works()
     {
@@ -1046,7 +1061,7 @@ public sealed class NegativeAndEdgeCaseTests
 
         await Assert.That(content).IsEqualTo("Second");
     }
-
+    /// <summary>Verifies TempBytesBuilder ClearThenAppend works.</summary>
     [Test]
     public async Task TempBytesBuilder_ClearThenAppend_Works()
     {
@@ -1069,8 +1084,9 @@ public sealed class NegativeAndEdgeCaseTests
     // Tests for special Unicode characters
     // ========================================================================
 
-    #region Unicode Edge Cases
 
+    #region Unicode Edge Cases
+    /// <summary>Verifies TempString EmojisAndSpecialChars HandlesCorrectly.</summary>
     [Test]
     public async Task TempString_EmojisAndSpecialChars_HandlesCorrectly()
     {
@@ -1082,7 +1098,7 @@ public sealed class NegativeAndEdgeCaseTests
         await Assert.That(content).Contains("🌍");
         await Assert.That(content).Contains("🚀");
     }
-
+    /// <summary>Verifies TempBytes EmojisAndSpecialChars EncodesCorrectly.</summary>
     [Test]
     public async Task TempBytes_EmojisAndSpecialChars_EncodesCorrectly()
     {
@@ -1094,7 +1110,7 @@ public sealed class NegativeAndEdgeCaseTests
         await Assert.That(decoded).Contains("🌍");
         await Assert.That(decoded).Contains("🚀");
     }
-
+    /// <summary>Verifies TempString NullCharInString HandlesCorrectly.</summary>
     [Test]
     public async Task TempString_NullCharInString_HandlesCorrectly()
     {
@@ -1107,7 +1123,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(content).IsEqualTo("Before\0After");
     }
-
+    /// <summary>Verifies TempBytes SurrogatePairs EncodesCorrectly.</summary>
     [Test]
     public async Task TempBytes_SurrogatePairs_EncodesCorrectly()
     {
@@ -1120,7 +1136,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(decoded).IsEqualTo(musicNote);
     }
-
+    /// <summary>Verifies TempString ControlCharacters HandlesCorrectly.</summary>
     [Test]
     public async Task TempString_ControlCharacters_HandlesCorrectly()
     {
@@ -1141,8 +1157,9 @@ public sealed class NegativeAndEdgeCaseTests
     // Tests for parsing boundary values
     // ========================================================================
 
-    #region BinaryParser Boundary Values
 
+    #region BinaryParser Boundary Values
+    /// <summary>Verifies BinaryParser ReadMaxUInt16BE ReturnsCorrectValue.</summary>
     [Test]
     public async Task BinaryParser_ReadMaxUInt16BE_ReturnsCorrectValue()
     {
@@ -1154,7 +1171,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(value).IsEqualTo(ushort.MaxValue);
     }
-
+    /// <summary>Verifies BinaryParser ReadMaxUInt32BE ReturnsCorrectValue.</summary>
     [Test]
     public async Task BinaryParser_ReadMaxUInt32BE_ReturnsCorrectValue()
     {
@@ -1166,7 +1183,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(value).IsEqualTo(uint.MaxValue);
     }
-
+    /// <summary>Verifies BinaryParser ReadMaxUInt64BE ReturnsCorrectValue.</summary>
     [Test]
     public async Task BinaryParser_ReadMaxUInt64BE_ReturnsCorrectValue()
     {
@@ -1178,7 +1195,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(value).IsEqualTo(ulong.MaxValue);
     }
-
+    /// <summary>Verifies BinaryParser ReadMinInt16BE ReturnsCorrectValue.</summary>
     [Test]
     public async Task BinaryParser_ReadMinInt16BE_ReturnsCorrectValue()
     {
@@ -1191,7 +1208,7 @@ public sealed class NegativeAndEdgeCaseTests
 
         await Assert.That(value).IsEqualTo(short.MinValue);
     }
-
+    /// <summary>Verifies BinaryParser ReadMinInt32BE ReturnsCorrectValue.</summary>
     [Test]
     public async Task BinaryParser_ReadMinInt32BE_ReturnsCorrectValue()
     {
@@ -1204,7 +1221,7 @@ public sealed class NegativeAndEdgeCaseTests
 
         await Assert.That(value).IsEqualTo(int.MinValue);
     }
-
+    /// <summary>Verifies BinaryParser ReadMinInt64BE ReturnsCorrectValue.</summary>
     [Test]
     public async Task BinaryParser_ReadMinInt64BE_ReturnsCorrectValue()
     {
@@ -1225,8 +1242,9 @@ public sealed class NegativeAndEdgeCaseTests
     // Tests for VarInt boundary values
     // ========================================================================
 
-    #region VarInt Edge Cases
 
+    #region VarInt Edge Cases
+    /// <summary>Verifies BinaryParser VarInt Zero ReturnsCorrectly.</summary>
     [Test]
     public async Task BinaryParser_VarInt_Zero_ReturnsCorrectly()
     {
@@ -1238,7 +1256,7 @@ public sealed class NegativeAndEdgeCaseTests
         }
         await Assert.That(value).IsEqualTo(0UL);
     }
-
+    /// <summary>Verifies BinaryParser VarInt 127 SingleByte.</summary>
     [Test]
     public async Task BinaryParser_VarInt_127_SingleByte()
     {
@@ -1254,7 +1272,7 @@ public sealed class NegativeAndEdgeCaseTests
         await Assert.That(value).IsEqualTo(127UL);
         await Assert.That(position).IsEqualTo(1);
     }
-
+    /// <summary>Verifies BinaryParser VarInt 128 TwoBytes.</summary>
     [Test]
     public async Task BinaryParser_VarInt_128_TwoBytes()
     {
@@ -1270,7 +1288,7 @@ public sealed class NegativeAndEdgeCaseTests
         await Assert.That(value).IsEqualTo(128UL);
         await Assert.That(position).IsEqualTo(2);
     }
-
+    /// <summary>Verifies BinaryParser VarIntZigZag MinusOne IsOne.</summary>
     [Test]
     public async Task BinaryParser_VarIntZigZag_MinusOne_IsOne()
     {
@@ -1283,7 +1301,7 @@ public sealed class NegativeAndEdgeCaseTests
 
         await Assert.That(value).IsEqualTo(-1L);
     }
-
+    /// <summary>Verifies BinaryParser VarIntZigZag One IsTwo.</summary>
     [Test]
     public async Task BinaryParser_VarIntZigZag_One_IsTwo()
     {
@@ -1304,8 +1322,9 @@ public sealed class NegativeAndEdgeCaseTests
     // Tests for NaN, Infinity, etc.
     // ========================================================================
 
-    #region Float/Double Special Values
 
+    #region Float/Double Special Values
+    /// <summary>Verifies BinaryParser ReadF32BE PositiveInfinity.</summary>
     [Test]
     public async Task BinaryParser_ReadF32BE_PositiveInfinity()
     {
@@ -1319,7 +1338,7 @@ public sealed class NegativeAndEdgeCaseTests
 
         await Assert.That(isPositiveInfinity).IsTrue();
     }
-
+    /// <summary>Verifies BinaryParser ReadF32BE NegativeInfinity.</summary>
     [Test]
     public async Task BinaryParser_ReadF32BE_NegativeInfinity()
     {
@@ -1333,7 +1352,7 @@ public sealed class NegativeAndEdgeCaseTests
 
         await Assert.That(isNegativeInfinity).IsTrue();
     }
-
+    /// <summary>Verifies BinaryParser ReadF32BE NaN.</summary>
     [Test]
     public async Task BinaryParser_ReadF32BE_NaN()
     {
@@ -1347,7 +1366,7 @@ public sealed class NegativeAndEdgeCaseTests
 
         await Assert.That(isNaN).IsTrue();
     }
-
+    /// <summary>Verifies BinaryParser ReadF64BE PositiveInfinity.</summary>
     [Test]
     public async Task BinaryParser_ReadF64BE_PositiveInfinity()
     {
@@ -1361,7 +1380,7 @@ public sealed class NegativeAndEdgeCaseTests
 
         await Assert.That(isPositiveInfinity).IsTrue();
     }
-
+    /// <summary>Verifies BinaryParser ReadF64BE NegativeInfinity.</summary>
     [Test]
     public async Task BinaryParser_ReadF64BE_NegativeInfinity()
     {
@@ -1375,7 +1394,7 @@ public sealed class NegativeAndEdgeCaseTests
 
         await Assert.That(isNegativeInfinity).IsTrue();
     }
-
+    /// <summary>Verifies BinaryParser ReadF64BE NaN.</summary>
     [Test]
     public async Task BinaryParser_ReadF64BE_NaN()
     {
@@ -1400,9 +1419,9 @@ public sealed class NegativeAndEdgeCaseTests
     // and the length-prefix guards added in GenerateParsingCode /
     // GenerateTryWrite / GenerateStringParsing / GenerateStringWriting.
     // ========================================================================
-    #region Variable-Size Struct Bounds Checks (Parse)
 
-    // VarIntThenFixedStruct: VarInt(1 byte for small values) + U32BE(4) + U16BE(2) = 7 bytes min
+    #region Variable-Size Struct Bounds Checks (Parse)
+    /// <summary>Verifies VarIntThenFixedStruct TruncatedInput ReturnsFalse.</summary>
     [Test]
     [Arguments(new byte[] { })]                                           // empty
     [Arguments(new byte[] { 0x2A })]                                      // only VarInt byte
@@ -1417,8 +1436,7 @@ public sealed class NegativeAndEdgeCaseTests
         // Assert
         await Assert.That(success).IsFalse();
     }
-
-    // StringThenFixedStruct: VarInt(length) + string bytes + U32BE(4)
+    /// <summary>Verifies StringThenFixedStruct TruncatedInput ReturnsFalse.</summary>
     [Test]
     [Arguments(new byte[] { })]                                            // empty
     [Arguments(new byte[] { 0x02 })]                                       // length byte only
@@ -1433,8 +1451,7 @@ public sealed class NegativeAndEdgeCaseTests
         // Assert
         await Assert.That(success).IsFalse();
     }
-
-    // FixedBEStringStruct: 2-byte BE length prefix + string bytes + U16BE(2)
+    /// <summary>Verifies FixedBEStringStruct TruncatedInput ReturnsFalse.</summary>
     [Test]
     [Arguments(new byte[] { })]                                             // empty
     [Arguments(new byte[] { 0x00 })]                                        // 1 of 2 prefix bytes
@@ -1454,8 +1471,7 @@ public sealed class NegativeAndEdgeCaseTests
     #endregion
 
     #region Variable-Size Struct Bounds Checks (Write)
-
-    // WritableVarIntThenFixed: min 1 (VarInt for small value) + 4 + 2 = 7 bytes
+    /// <summary>Verifies WritableVarIntThenFixed UndersizedDestination ReturnsFalse.</summary>
     [Test]
     [Arguments(0)]   // empty destination
     [Arguments(1)]   // space for VarInt only
@@ -1478,7 +1494,7 @@ public sealed class NegativeAndEdgeCaseTests
         // Assert
         await Assert.That(success).IsFalse();
     }
-
+    /// <summary>Verifies WritableVarIntThenFixed ExactSizedDestination succeeds.</summary>
     [Test]
     public async Task WritableVarIntThenFixed_ExactSizedDestination_Succeeds()
     {
@@ -1498,8 +1514,7 @@ public sealed class NegativeAndEdgeCaseTests
         await Assert.That(success).IsTrue();
         await Assert.That(written).IsEqualTo(7);
     }
-
-    // WritableStringThenFixed: "hi" → VarInt(2)=1 byte + 2 string bytes + U32BE=4 bytes = 7 bytes
+    /// <summary>Verifies WritableStringThenFixed UndersizedDestination ReturnsFalse.</summary>
     [Test]
     [Arguments(0)]   // empty
     [Arguments(1)]   // only VarInt fits
@@ -1517,7 +1532,7 @@ public sealed class NegativeAndEdgeCaseTests
         // Assert
         await Assert.That(success).IsFalse();
     }
-
+    /// <summary>Verifies WritableStringThenFixed ExactSizedDestination succeeds.</summary>
     [Test]
     public async Task WritableStringThenFixed_ExactSizedDestination_Succeeds()
     {
@@ -1532,8 +1547,7 @@ public sealed class NegativeAndEdgeCaseTests
         await Assert.That(success).IsTrue();
         await Assert.That(written).IsEqualTo(7);
     }
-
-    // WritableFixedLengthString: [StringFixedLength(8)] — needs exactly 8 bytes
+    /// <summary>Verifies WritableFixedLengthString UndersizedDestination ReturnsFalse.</summary>
     [Test]
     [Arguments(0)]   // empty
     [Arguments(4)]   // half the required 8 bytes
@@ -1550,7 +1564,7 @@ public sealed class NegativeAndEdgeCaseTests
         // Assert
         await Assert.That(success).IsFalse();
     }
-
+    /// <summary>Verifies WritableFixedLengthString ExactSizedDestination succeeds.</summary>
     [Test]
     public async Task WritableFixedLengthString_ExactSizedDestination_Succeeds()
     {
@@ -1565,7 +1579,7 @@ public sealed class NegativeAndEdgeCaseTests
         await Assert.That(success).IsTrue();
         await Assert.That(written).IsEqualTo(8);
     }
-
+    /// <summary>Verifies WritableFixedLengthString StringTooLong ReturnsFalse.</summary>
     [Test]
     public async Task WritableFixedLengthString_StringTooLong_ReturnsFalse()
     {
@@ -1579,8 +1593,7 @@ public sealed class NegativeAndEdgeCaseTests
         // Assert
         await Assert.That(success).IsFalse();
     }
-
-    // WritableNullTermString: "hi" needs 3 bytes (2 UTF-8 + null terminator)
+    /// <summary>Verifies WritableNullTermString UndersizedDestination ReturnsFalse.</summary>
     [Test]
     [Arguments(0)]   // empty
     [Arguments(1)]   // room for 'h' only, no null
@@ -1597,7 +1610,7 @@ public sealed class NegativeAndEdgeCaseTests
         // Assert
         await Assert.That(success).IsFalse();
     }
-
+    /// <summary>Verifies WritableNullTermString ExactSizedDestination succeeds.</summary>
     [Test]
     public async Task WritableNullTermString_ExactSizedDestination_Succeeds()
     {
@@ -1613,8 +1626,7 @@ public sealed class NegativeAndEdgeCaseTests
         await Assert.That(written).IsEqualTo(3);
         await Assert.That(destination).IsEquivalentTo((byte[])[0x68, 0x69, 0x00]);
     }
-
-    // WritableFromFieldString: U16BE(2 bytes) + "hi"(2 bytes) = 4 bytes total
+    /// <summary>Verifies WritableFromFieldString UndersizedDestination ReturnsFalse.</summary>
     [Test]
     [Arguments(0)]   // empty — grouped check for U16BE fails
     [Arguments(1)]   // grouped check for U16BE fails
@@ -1632,7 +1644,7 @@ public sealed class NegativeAndEdgeCaseTests
         // Assert
         await Assert.That(success).IsFalse();
     }
-
+    /// <summary>Verifies WritableFromFieldString ExactSizedDestination succeeds.</summary>
     [Test]
     public async Task WritableFromFieldString_ExactSizedDestination_Succeeds()
     {
@@ -1648,8 +1660,7 @@ public sealed class NegativeAndEdgeCaseTests
         await Assert.That(written).IsEqualTo(4);
         await Assert.That(destination).IsEquivalentTo((byte[])[0x00, 0x02, 0x68, 0x69]);
     }
-
-    // WritableFromFieldBytes: U16BE(2 bytes) + data(2 bytes) = 4 bytes total
+    /// <summary>Verifies WritableFromFieldBytes UndersizedDestination ReturnsFalse.</summary>
     [Test]
     [Arguments(0)]   // empty — grouped check for U16BE fails
     [Arguments(1)]   // grouped check for U16BE fails
@@ -1667,7 +1678,7 @@ public sealed class NegativeAndEdgeCaseTests
         // Assert
         await Assert.That(success).IsFalse();
     }
-
+    /// <summary>Verifies WritableFromFieldBytes ExactSizedDestination succeeds.</summary>
     [Test]
     public async Task WritableFromFieldBytes_ExactSizedDestination_Succeeds()
     {

@@ -277,7 +277,7 @@ public sealed class BinaryFieldAttribute : Attribute
     /// }
     /// </code>
     /// </example>
-    public int PaddingBits { get; set; } = 0;
+    public int PaddingBits { get; set; }
 }
 
 /// <summary>

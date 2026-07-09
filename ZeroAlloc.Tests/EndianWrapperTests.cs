@@ -8,9 +8,11 @@ namespace ZeroAlloc.Tests;
 /// </summary>
 public sealed class EndianWrapperTests
 {
+
     // ========================================================================
     // FIXED-SIZE WRAPPERS — ROUND-TRIP
     // ========================================================================
+
 
     /// <summary>Verifies format then parse round-trips preserve the wrapped value.</summary>
     [Test]
@@ -44,7 +46,7 @@ public sealed class EndianWrapperTests
     [Test]
     public async Task U128BE_FormatParse_RoundTrip_PreservesValue()
     {
-        UInt128 value = UInt128.Parse("0102030405060708090A0B0C0D0E0F10", NumberStyles.HexNumber);
+        UInt128 value = UInt128.Parse("0102030405060708090A0B0C0D0E0F10", NumberStyles.HexNumber, CultureInfo.InvariantCulture);
         Span<byte> buffer = stackalloc byte[U128BE.Size];
 
         bool formatted = new U128BE(value).TryFormat(buffer, out int written, default, null);
@@ -60,7 +62,7 @@ public sealed class EndianWrapperTests
     [Test]
     public async Task I128BE_FormatParse_RoundTrip_PreservesValue()
     {
-        Int128 value = -Int128.Parse("0102030405060708090A0B0C0D0E0F10", NumberStyles.HexNumber);
+        Int128 value = -Int128.Parse("0102030405060708090A0B0C0D0E0F10", NumberStyles.HexNumber, CultureInfo.InvariantCulture);
         Span<byte> buffer = stackalloc byte[I128BE.Size];
 
         bool formatted = new I128BE(value).TryFormat(buffer, out int written, default, null);
@@ -76,7 +78,7 @@ public sealed class EndianWrapperTests
     [Test]
     public async Task U128LE_FormatParse_RoundTrip_PreservesValue()
     {
-        UInt128 value = UInt128.Parse("000000000000000000000000000000FF", NumberStyles.HexNumber);
+        UInt128 value = UInt128.Parse("000000000000000000000000000000FF", NumberStyles.HexNumber, CultureInfo.InvariantCulture);
         Span<byte> buffer = stackalloc byte[U128LE.Size];
 
         bool formatted = new U128LE(value).TryFormat(buffer, out int written, default, null);
@@ -92,7 +94,7 @@ public sealed class EndianWrapperTests
     [Test]
     public async Task I128LE_FormatParse_RoundTrip_PreservesValue()
     {
-        Int128 value = -Int128.Parse("0102030405060708090A0B0C0D0E0F10", NumberStyles.HexNumber);
+        Int128 value = -Int128.Parse("0102030405060708090A0B0C0D0E0F10", NumberStyles.HexNumber, CultureInfo.InvariantCulture);
         Span<byte> buffer = stackalloc byte[I128LE.Size];
 
         bool formatted = new I128LE(value).TryFormat(buffer, out int written, default, null);
@@ -107,6 +109,7 @@ public sealed class EndianWrapperTests
     // ========================================================================
     // FIXED-SIZE WRAPPERS — SERIALIZED SIZE
     // ========================================================================
+
 
     /// <summary>Verifies TryGetSerializedSize reports the compile-time Size constant.</summary>
     [Test]
@@ -141,6 +144,7 @@ public sealed class EndianWrapperTests
     // ========================================================================
     // FIXED-SIZE WRAPPERS — TRYFORMAT FAILURE
     // ========================================================================
+
 
     /// <summary>Verifies TryFormat returns false when the destination is one byte too small.</summary>
     [Test]
@@ -181,6 +185,7 @@ public sealed class EndianWrapperTests
     // FIXED-SIZE WRAPPERS — TRYPARSE FAILURE
     // ========================================================================
 
+
     /// <summary>Verifies TryParse returns false when source data is shorter than Size.</summary>
     [Test]
     [Arguments(nameof(U16BE), 2)]
@@ -213,6 +218,7 @@ public sealed class EndianWrapperTests
     // ========================================================================
     // FIXED-SIZE WRAPPERS — TOSTRING
     // ========================================================================
+
 
     /// <summary>Verifies unsigned wrappers format default ToString as uppercase hex.</summary>
     [Test]
@@ -274,7 +280,7 @@ public sealed class EndianWrapperTests
     public async Task Unsigned128Wrapper_ToStringWithFormat_UsesValueFormatter(string typeName, object value, string format, string expected)
     {
         UInt128 parsedValue = value is string hexText
-            ? UInt128.Parse(hexText, NumberStyles.HexNumber)
+            ? UInt128.Parse(hexText, NumberStyles.HexNumber, CultureInfo.InvariantCulture)
             : (UInt128)value;
         string text = _ToStringFixedWrapperWithFormat(typeName, parsedValue, format, CultureInfo.InvariantCulture);
         string expectedText = parsedValue.ToString(format, CultureInfo.InvariantCulture);
@@ -299,6 +305,7 @@ public sealed class EndianWrapperTests
     // ========================================================================
     // FIXED-SIZE WRAPPERS — IMPLICIT CONVERSION
     // ========================================================================
+
 
     /// <summary>Verifies ushort and short both implicitly convert to U16BE with identical bit patterns.</summary>
     [Test]
@@ -372,7 +379,7 @@ public sealed class EndianWrapperTests
     [Arguments(nameof(U128LE), "000000000000000000000000000000FF", "000000000000000000000000000000FF")]
     public async Task Unsigned128Wrapper_ToString_ReturnsUpperHex(string typeName, string hexValue, string expected)
     {
-        UInt128 value = UInt128.Parse(hexValue, NumberStyles.HexNumber);
+        UInt128 value = UInt128.Parse(hexValue, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
         string text = _ToStringFixedWrapper(typeName, value);
 
         await Assert.That(text).IsEqualTo(expected);
@@ -398,10 +405,10 @@ public sealed class EndianWrapperTests
         F64BE be64 = 9.875;
         F64LE le64 = -1.5;
 
-        await Assert.That(be32.ToString()).IsEqualTo(1.25f.ToString());
-        await Assert.That(le32.ToString()).IsEqualTo((-2.5f).ToString());
-        await Assert.That(be64.ToString()).IsEqualTo(9.875.ToString());
-        await Assert.That(le64.ToString()).IsEqualTo((-1.5).ToString());
+        await Assert.That(be32.ToString()).IsEqualTo(1.25f.ToString(CultureInfo.InvariantCulture));
+        await Assert.That(le32.ToString()).IsEqualTo((-2.5f).ToString(CultureInfo.InvariantCulture));
+        await Assert.That(be64.ToString()).IsEqualTo(9.875.ToString(CultureInfo.InvariantCulture));
+        await Assert.That(le64.ToString()).IsEqualTo((-1.5).ToString(CultureInfo.InvariantCulture));
     }
 
     /// <summary>Verifies I32LE and I64LE delegate default ToString to decimal formatting.</summary>
@@ -409,7 +416,7 @@ public sealed class EndianWrapperTests
     public async Task I32LE_And_I64LE_ToString_ReturnDecimal()
     {
         await Assert.That(new I32LE(1000).ToString()).IsEqualTo("1000");
-        await Assert.That(new I64LE(long.MinValue).ToString()).IsEqualTo(long.MinValue.ToString());
+        await Assert.That(new I64LE(long.MinValue).ToString()).IsEqualTo(long.MinValue.ToString(CultureInfo.InvariantCulture));
     }
 
     /// <summary>Verifies 128-bit signed TryParse fails when source is shorter than Size.</summary>
@@ -426,6 +433,7 @@ public sealed class EndianWrapperTests
     // ========================================================================
     // RAW WRAPPER
     // ========================================================================
+
 
     /// <summary>Verifies Raw copies bytes verbatim through TryFormat.</summary>
     [Test]
@@ -495,6 +503,7 @@ public sealed class EndianWrapperTests
     // ========================================================================
     // VARINT
     // ========================================================================
+
 
     /// <summary>Verifies VarInt format/parse round-trip for representative encoded lengths.</summary>
     [Test]
@@ -623,6 +632,7 @@ public sealed class EndianWrapperTests
     // ========================================================================
     // VARINT ZIGZAG
     // ========================================================================
+
 
     /// <summary>Verifies VarIntZigZag round-trips signed values with compact encoding.</summary>
     [Test]
@@ -761,10 +771,6 @@ public sealed class EndianWrapperTests
         await Assert.That(consumed).IsEqualTo(0);
         await Assert.That(value.Value).IsEqualTo(0L);
     }
-
-    // ========================================================================
-    // HELPERS
-    // ========================================================================
 
     private static int _FormatFixedWrapper(string typeName, object rawValue, Span<byte> destination)
     {
@@ -1165,14 +1171,14 @@ public sealed class EndianWrapperTests
     private static UInt128 _ParseUInt128(object value) => value switch
     {
         UInt128 uint128 => uint128,
-        string text => UInt128.Parse(text, NumberStyles.Integer),
-        _ => UInt128.Parse(value.ToString()!, NumberStyles.Integer),
+        string text => UInt128.Parse(text, NumberStyles.Integer, CultureInfo.InvariantCulture),
+        _ => UInt128.Parse(value.ToString()!, NumberStyles.Integer, CultureInfo.InvariantCulture),
     };
 
     private static Int128 _ParseInt128(object value) => value switch
     {
         Int128 int128 => int128,
-        string text => Int128.Parse(text, NumberStyles.Integer),
-        _ => Int128.Parse(value.ToString()!, NumberStyles.Integer),
+        string text => Int128.Parse(text, NumberStyles.Integer, CultureInfo.InvariantCulture),
+        _ => Int128.Parse(value.ToString()!, NumberStyles.Integer, CultureInfo.InvariantCulture),
     };
 }

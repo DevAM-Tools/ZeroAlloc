@@ -75,7 +75,7 @@
 		{
 			"label": "exit-point-coverage",
 			"type": "shell",
-			"command": "dotnet tool run coveragegap run solution ${workspaceFolder}/ZeroAlloc.slnx --repo-root ${workspaceFolder} --configuration Release --format text",
+			"command": "dotnet tool run exitpointgaps run solution ${workspaceFolder}/ZeroAlloc.slnx --repo-root ${workspaceFolder} --configuration Release --format text",
 			"problemMatcher": [],
 			"group": "test"
 		},

@@ -1,11 +1,19 @@
 <Project>
   <PropertyGroup>
-    <ApplyCSharpStyleValidator Condition="'$(ApplyCSharpStyleValidator)' == '' and ('$(TargetFrameworkIdentifier)' == '.NETCoreApp' or '$(TargetFrameworkIdentifier)' == '.NETStandard')">true</ApplyCSharpStyleValidator>
+    <ApplyCSharpStyleChecker Condition="'$(ApplyCSharpStyleChecker)' == '' and ('$(TargetFrameworkIdentifier)' == '.NETCoreApp' or '$(TargetFrameworkIdentifier)' == '.NETStandard')">true</ApplyCSharpStyleChecker>
   </PropertyGroup>
-  <ItemGroup Condition="'$(ApplyCSharpStyleValidator)' == 'true'">
-    <PackageReference Include="CSharpStyleValidator">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
+  <ItemGroup Condition="'$(ApplyCSharpStyleChecker)' == 'true'">
+    <PackageReference Include="CSharpStyleChecker" />
+  </ItemGroup>
+
+  <!-- EmitCompilerGeneratedFiles defaults to project-root Generated/, which SDK globbing
+       would compile alongside in-memory analyzer output (CS0102/CS0111 duplicates). -->
+  <PropertyGroup Condition="'$(EmitCompilerGeneratedFiles)' == 'true' and '$(CompilerGeneratedFilesOutputPath)' == ''">
+    <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)Generated</CompilerGeneratedFilesOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="$(MSBuildProjectDirectory)\Generated\**" />
+    <None Remove="$(MSBuildProjectDirectory)\Generated\**" />
   </ItemGroup>
 </Project>

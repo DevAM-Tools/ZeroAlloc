@@ -48,7 +48,8 @@ public readonly struct Formatted<T> : ISpanFormattable where T : ISpanFormattabl
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) =>
         // Use our stored format/provider, ignore passed ones
-        _Value.TryFormat(destination, out charsWritten, _Format, _Provider ?? provider);
+        _Value.TryFormat(destination, out charsWritten, _Format, _Provider
+            ?? provider);
 
     /// <summary>
     /// Returns the formatted string.
@@ -62,20 +63,14 @@ public readonly struct Formatted<T> : ISpanFormattable where T : ISpanFormattabl
             return new string(buffer.Slice(0, written));
         }
 
-        return _Value.ToString(_Format, _Provider) ?? "";
+        return _Value.ToString(_Format, _Provider)
+            ?? "";
     }
 
     /// <summary>
     /// Returns the formatted string.
     /// </summary>
     public string ToString(string? format, IFormatProvider? formatProvider) => ToString();
-
-    /// <summary>
-    /// Creates a formatted wrapper.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Formatted<T> Create(T value, string? format = null, IFormatProvider? provider = null)
-        => new(value, format, provider);
 }
 
 #endregion
@@ -110,9 +105,10 @@ public readonly struct Utf8Formatted<T> : IUtf8SpanFormattable where T : IUtf8Sp
     /// Tries to format the value as UTF-8 into the destination span.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider) =>
+    public bool TryFormat(Span<byte> utf8Destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider) =>
         // Use our stored format/provider, ignore passed ones
-        _Value.TryFormat(destination, out bytesWritten, _Format, _Provider ?? provider);
+        _Value.TryFormat(utf8Destination, out bytesWritten, _Format, _Provider
+            ?? provider);
 
     /// <summary>
     /// Returns the formatted string (converts UTF-8 to string).
@@ -126,20 +122,14 @@ public readonly struct Utf8Formatted<T> : IUtf8SpanFormattable where T : IUtf8Sp
             return Encoding.UTF8.GetString(buffer.Slice(0, written));
         }
 
-        return _Value.ToString() ?? "";
+        return _Value.ToString()
+            ?? "";
     }
 
     /// <summary>
     /// Returns the formatted string.
     /// </summary>
     public string ToString(string? format, IFormatProvider? formatProvider) => ToString();
-
-    /// <summary>
-    /// Creates a UTF-8 formatted wrapper.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Utf8Formatted<T> Create(T value, string? format = null, IFormatProvider? provider = null)
-        => new(value, format, provider);
 }
 
 #endregion

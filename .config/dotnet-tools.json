@@ -2,10 +2,10 @@
   "version": 1,
   "isRoot": true,
   "tools": {
-    "coveragegap.tool": {
-      "version": "2.1.2",
+    "exitpointgaps": {
+      "version": "1.0.0",
       "commands": [
-        "coveragegap"
+        "exitpointgaps"
       ]
     }
   }

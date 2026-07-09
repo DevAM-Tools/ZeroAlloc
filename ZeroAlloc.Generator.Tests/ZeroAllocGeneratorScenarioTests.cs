@@ -275,6 +275,48 @@ internal sealed class ZeroAllocGeneratorScenarioTests
     }
 
     [Test]
+    public async Task Generate_FormattedGeneric_ParamDocsUseEscapedCodeTags()
+    {
+        const string source = """
+            using System.Globalization;
+            using ZeroAlloc;
+
+            internal partial class Api : ZeroAllocBase { }
+
+            internal static class Usage
+            {
+                internal static void Call()
+                {
+                    Formatted<double> formatted = new(1.5, "F2", CultureInfo.InvariantCulture);
+                    Api.String(formatted);
+                    Utf8Formatted<int> utf8 = new(42, "D5", CultureInfo.InvariantCulture);
+                    Api.Utf8(utf8);
+                }
+            }
+            """;
+
+        CSharpCompilation compilation = GeneratorTestHelper.CreateCompilation(source);
+        (Compilation output, ImmutableArray<Diagnostic> diagnostics) = GeneratorTestHelper.RunGenerator(
+            compilation,
+            new ZeroAllocGenerator());
+        string? generated = GeneratorTestHelper.GetGeneratedSource(output, "Api");
+
+        await Assert.That(generated).IsNotNull();
+        await Assert.That(generated!).Contains("Formatted&lt;double&gt;");
+        await Assert.That(generated).Contains("Utf8Formatted&lt;int&gt;");
+        await Assert.That(generated).DoesNotContain("cref=\"ZeroAlloc.Formatted<double>");
+
+        string[] xmlDocErrors = output.GetDiagnostics()
+            .Where(static d => d.Severity == DiagnosticSeverity.Error
+                && d.Id is "CS1570" or "CS1584" or "CS1658")
+            .Select(static d => d.ToString())
+            .ToArray();
+
+        await Assert.That(xmlDocErrors).IsEmpty();
+        await Assert.That(diagnostics.Length).IsEqualTo(0);
+    }
+
+    [Test]
     public async Task ArgumentListComparer_DistinguishesSignatures()
     {
         ArgumentListComparer comparer = new();

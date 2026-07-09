@@ -113,13 +113,15 @@ Goal: save tokens in chat without losing technical substance.
 
 ### 4.5 Testing
 
+- ❗ **TUnit only** for unit tests; Stack: TUnit + NSubstitute + MTP + ExitPointGaps; details `tech-tunit.md`.
 - ❗ Require 100% exit-point coverage on every public or internal API before release; release gate: `exitGapCount == 0`. Branch coverage is not a release gate.
-- ❗ Require **CoverageGap.Tool** NuGet local tool at version **`2.*`** on every repo with test projects; gate via `dotnet tool run coveragegap --repo-root .` until `summary.exitGapCount == 0`. Setup and commands: `tech-tunit.md`.
+- ❗ Require **ExitPointGaps** NuGet local tool at version **`1.*`** on every repo with test projects; gate via `dotnet tool run exitpointgaps --repo-root .` until `summary.exitGapCount == 0`. Setup and commands: `tech-tunit.md`.
 - TUnit structure and test authoring: `tech-tunit.md`.
 
 ### 4.6 Documentation
 
-- Comment intent, invariants, rationale; not mechanics.
+- ❗ Use inline comments for purpose, motivation, and design decisions.
+- ❗ State why; never restate obvious syntax.
 - Keep comments and docs synchronized with code.
 - Add XML doc on all members.
 - Document key algorithm and data-structure decisions.
@@ -132,7 +134,7 @@ Goal: save tokens in chat without losing technical substance.
 - Do not put dates in code or commits; copyright year is allowed.
 - Add per-file copyright from `COPYRIGHT` when creating source files.
 - Use only MIT, Apache-2.0, or BSD-like dependencies.
-- ❗ Require **CSharpStyleValidator** NuGet at version **`2.*`** on every SDK-style C# consumer (`netstandard2.0` or `net5.0`+), including source generators; `ExitPoints` is bundled — no separate analyzer reference. Install and CPM wiring: `tech-solution.md`.
+- ❗ Require **CSharpStyleChecker** NuGet at version **`1.*`** on every SDK-style C# consumer (`netstandard2.0` or `net5.0`+), including source generators; `ExitPoints` is bundled — no separate analyzer reference. Install and CPM wiring: `tech-solution.md`.
 - Follow New Dependency Protocol in `tech-solution.md` when packages are in scope.
 - Use Mermaid (`TD`, tall layout) instead of ASCII art.
 

@@ -310,4 +310,16 @@ public readonly struct LazyString : IEquatable<LazyString>, IComparable<LazyStri
 
     /// <summary>Inequality operator.</summary>
     public static bool operator !=(LazyString left, LazyString right) => !left.Equals(right);
+
+    /// <summary>Less-than operator.</summary>
+    public static bool operator <(LazyString left, LazyString right) => left.CompareTo(right) < 0;
+
+    /// <summary>Less-than-or-equal operator.</summary>
+    public static bool operator <=(LazyString left, LazyString right) => left.CompareTo(right) <= 0;
+
+    /// <summary>Greater-than operator.</summary>
+    public static bool operator >(LazyString left, LazyString right) => left.CompareTo(right) > 0;
+
+    /// <summary>Greater-than-or-equal operator.</summary>
+    public static bool operator >=(LazyString left, LazyString right) => left.CompareTo(right) >= 0;
 }

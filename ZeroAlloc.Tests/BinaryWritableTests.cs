@@ -11,6 +11,18 @@
 // - Roundtrip (parse→write→compare)
 // ============================================================================
 
+// ============================================================================
+// BinaryWritable Generator Tests
+// ============================================================================
+// Tests for the [BinaryWritable] source generator, including:
+// - Basic struct writing
+// - Endian wrapper support
+// - BitField support
+// - Nested types
+// - Roundtrip (parseâ†’writeâ†’compare)
+// ============================================================================
+
+
 namespace ZeroAlloc.Tests;
 
 // ============================================================================
@@ -319,6 +331,12 @@ public readonly partial struct WritableBitFlags
 
 #endregion
 
+    // ========================================================================
+    // ROUNDTRIP TESTS (Parse â†’ Write â†’ Compare)
+    // ========================================================================
+
+
+
 #region Roundtrip Structs (BinaryParsable + BinaryWritable)
 
 /// <summary>
@@ -401,9 +419,11 @@ public readonly partial struct RoundtripBitField
 /// </summary>
 public sealed class BinaryWritableTests
 {
+
     // ========================================================================
     // BASIC WRITING TESTS
     // ========================================================================
+
     #region Basic Writing
 
     /// <summary>
@@ -559,6 +579,7 @@ public sealed class BinaryWritableTests
     // SIZE CALCULATION TESTS
     // ========================================================================
 
+
     #region TryGetWrittenSize
 
     /// <summary>
@@ -616,6 +637,7 @@ public sealed class BinaryWritableTests
     // ========================================================================
     // BIT FIELD WRITING TESTS
     // ========================================================================
+
 
     #region BitField Writing
 
@@ -724,6 +746,7 @@ public sealed class BinaryWritableTests
     // ROUNDTRIP TESTS (Parse → Write → Compare)
     // ========================================================================
 
+
     #region Roundtrip
 
     /// <summary>
@@ -813,6 +836,7 @@ public sealed class BinaryWritableTests
     // IBinarySerializable INTERFACE TESTS
     // ========================================================================
 
+
     #region IBinarySerializable
 
     /// <summary>
@@ -874,8 +898,9 @@ public sealed class BinaryWritableTests
     // ========================================================================
     // MIXED VARIABLE/FIXED WRITING TESTS
     // ========================================================================
-    #region Mixed Variable/Fixed Writing
 
+    #region Mixed Variable/Fixed Writing
+    /// <summary>Verifies WritableVarIntThenFixed WritesCorrectly.</summary>
     [Test]
     public async Task WritableVarIntThenFixed_WritesCorrectly()
     {
@@ -896,7 +921,7 @@ public sealed class BinaryWritableTests
         await Assert.That(written).IsEqualTo(7);
         await Assert.That(destination).IsEquivalentTo((byte[])[0x2A, 0x01, 0x02, 0x03, 0x04, 0xAB, 0xCD]);
     }
-
+    /// <summary>Verifies WritableStringThenFixed WritesCorrectly.</summary>
     [Test]
     public async Task WritableStringThenFixed_WritesCorrectly()
     {
@@ -916,7 +941,7 @@ public sealed class BinaryWritableTests
         await Assert.That(written).IsEqualTo(7);
         await Assert.That(destination).IsEquivalentTo((byte[])[0x02, 0x68, 0x69, 0xDE, 0xAD, 0xBE, 0xEF]);
     }
-
+    /// <summary>Verifies WritableFixedBEString WritesCorrectly.</summary>
     [Test]
     public async Task WritableFixedBEString_WritesCorrectly()
     {

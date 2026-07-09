@@ -12,13 +12,14 @@ Load when `*.cs` files are in scope. Extends Section 4 in `copilot-instructions.
 
 ## Files & Usings
 - File-scoped namespaces.
-- Global usings in `GlobalUsings.cs` only; no per-file namespace usings. File-local type aliases (`using Alias = ...`) are allowed in source files.
+- Global usings in `GlobalUsings.cs` only; group by category with comment headers (`tech-solution.md`). File-local type aliases (`using Alias = ...`) are allowed in source files.
 - Sort: `System.*` → `Microsoft.*` → third-party → internal.
 
 ## Style
 - ❗Always pass `CultureInfo.InvariantCulture` as parameter when strings are built or parsed unless another locale is required.
 - Always brace control-flow blocks.
-- At most one callable exit point per source line (`?:`, `switch`, `??`, and `??=` each count multiple arms on one line).
+- At most one callable exit point per source line; `?:`, switch expressions, `??`, and `??=` are allowed when each arm is on its own line.
+- ❗Structure each file with `#region` blocks by content (fields, lifecycle, public API, private helpers).
 - Expression-bodied members for simple single expressions.
 - `get; init;` on interface read-only properties.
 - Never `.Result` or `.Wait()` — `async`/`await` only.
@@ -27,7 +28,15 @@ Load when `*.cs` files are in scope. Extends Section 4 in `copilot-instructions.
 - `using` declarations for method-scoped disposables.
 - `sealed` on non-inheritable classes.
 - `readonly` fields/properties where possible.
-- `#region` only to structure large files.
+
+## Diagnostics
+
+- ❗Never suppress warnings (`#pragma warning disable`, `SuppressMessage`, `NoWarn`) without user approval.
+- When approved: state reason in comment; name rule id; use narrowest scope; restore after scope.
+
+## Comments
+- Comment purpose, motivation, and design choice before non-trivial logic.
+- Document physical units in comments, not variable names.
 
 ## Integer arithmetic
 - ❗Assess every integer op for overflow/underflow; use `checked`, widen, or validate when wrap-around would be wrong.
@@ -41,4 +50,3 @@ Load when `*.cs` files are in scope. Extends Section 4 in `copilot-instructions.
 - UTF-8 console encoding in CLI startup.
 - Name threads; `CultureInfo.InvariantCulture` for thread culture.
 - No console/trace for library error handling.
-- Document physical units in comments, not variable names.

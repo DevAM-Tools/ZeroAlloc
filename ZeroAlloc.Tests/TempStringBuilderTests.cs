@@ -5,12 +5,13 @@ namespace ZeroAlloc.Tests;
 /// <summary>Test double that always fails <see cref="ISpanFormattable.TryFormat"/>.</summary>
 internal readonly struct AlwaysFailSpanFormat : ISpanFormattable
 {
+    /// <summary>Verifies TryFormat.</summary>
     public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         charsWritten = 0;
         return false;
     }
-
+    /// <summary>Verifies ToString.</summary>
     public string ToString(string? format, IFormatProvider? formatProvider) => "fail";
 }
 
@@ -20,10 +21,13 @@ internal readonly struct AlwaysFailSpanFormat : ISpanFormattable
 /// </summary>
 public sealed class TempStringBuilderTests
 {
+
     // ========================================================================
     // CREATION AND PROPERTIES
     // ========================================================================
 
+
+    /// <summary>Verifies Create ReturnsEmptyBuilder.</summary>
     [Test]
     public async Task Create_ReturnsEmptyBuilder()
     {
@@ -42,6 +46,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(capacityPositive).IsTrue();
     }
 
+    /// <summary>Verifies Capacity AndRemaining AreConsistent.</summary>
     [Test]
     public async Task Capacity_AndRemaining_AreConsistent()
     {
@@ -57,6 +62,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(remaining).IsEqualTo(capacity);
     }
 
+    /// <summary>Verifies IsHeapAllocated FalseForTopLevelBuilder.</summary>
     [Test]
     public async Task IsHeapAllocated_FalseForTopLevelBuilder()
     {
@@ -69,6 +75,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(isHeap).IsFalse();
     }
 
+    /// <summary>Verifies ImplicitConversionToReadOnlySpan ImplicitConversionToReadOnlySpan works.</summary>
     [Test]
     public async Task ImplicitConversionToReadOnlySpan_Works()
     {
@@ -87,6 +94,8 @@ public sealed class TempStringBuilderTests
     // APPEND CHAIN
     // ========================================================================
 
+
+    /// <summary>Verifies AppendChain PrimitiveTypes BuildsContent.</summary>
     [Test]
     public async Task AppendChain_PrimitiveTypes_BuildsContent()
     {
@@ -114,18 +123,19 @@ public sealed class TempStringBuilderTests
         await Assert.That(content).Contains("06");
     }
 
+    /// <summary>Verifies Append WithFormat FormatsValues.</summary>
     [Test]
     public async Task Append_WithFormat_FormatsValues()
     {
         string content;
         {
             using TempStringBuilder builder = TempStringBuilder.Create();
-            builder.Append(255, "X2");
+            builder.Append(255, "X2", CultureInfo.InvariantCulture);
             builder.Append('|');
-            builder.Append(3.14159, "F2");
+            builder.Append(3.14159, "F2", CultureInfo.InvariantCulture);
             builder.Append('|');
             DateTime dt = new(2025, 6, 17);
-            builder.Append(dt, "yyyy");
+            builder.Append(dt, "yyyy", CultureInfo.InvariantCulture);
             content = builder.AsSpan().ToString();
         }
 
@@ -135,6 +145,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(content).Contains("2025");
     }
 
+    /// <summary>Verifies AppendLine AppendsNewline.</summary>
     [Test]
     public async Task AppendLine_AppendsNewline()
     {
@@ -151,6 +162,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(content).Contains(Environment.NewLine);
     }
 
+    /// <summary>Verifies AppendHex AndBinary FormatsCorrectly.</summary>
     [Test]
     public async Task AppendHex_AndBinary_FormatsCorrectly()
     {
@@ -172,6 +184,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(content).Contains("11110000");
     }
 
+    /// <summary>Verifies Append Null DoesNothing.</summary>
     [Test]
     public async Task Append_Null_DoesNothing()
     {
@@ -185,6 +198,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(isEmpty).IsTrue();
     }
 
+    /// <summary>Verifies Append EmptyString DoesNothing.</summary>
     [Test]
     public async Task Append_EmptyString_DoesNothing()
     {
@@ -202,6 +216,8 @@ public sealed class TempStringBuilderTests
     // CLEAR AND SEEKBACK
     // ========================================================================
 
+
+    /// <summary>Verifies Clear ResetsLength.</summary>
     [Test]
     public async Task Clear_ResetsLength()
     {
@@ -216,6 +232,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(isEmpty).IsTrue();
     }
 
+    /// <summary>Verifies SeekBack DecreasesLength.</summary>
     [Test]
     public async Task SeekBack_DecreasesLength()
     {
@@ -230,6 +247,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(content).IsEqualTo("Hello");
     }
 
+    /// <summary>Verifies SeekBack FullLength Clears.</summary>
     [Test]
     public async Task SeekBack_FullLength_Clears()
     {
@@ -244,6 +262,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(isEmpty).IsTrue();
     }
 
+    /// <summary>Verifies SeekBack Zero DoesNothing.</summary>
     [Test]
     public async Task SeekBack_Zero_DoesNothing()
     {
@@ -258,6 +277,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(length).IsEqualTo(5);
     }
 
+    /// <summary>Verifies SeekBack TooMuch ThrowsArgumentOutOfRangeException.</summary>
     [Test]
     public async Task SeekBack_TooMuch_ThrowsArgumentOutOfRangeException()
     {
@@ -272,6 +292,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies TrySeekBack Valid ReturnsTrue.</summary>
     [Test]
     public async Task TrySeekBack_Valid_ReturnsTrue()
     {
@@ -288,6 +309,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(content).IsEqualTo("Hel");
     }
 
+    /// <summary>Verifies TrySeekBack Invalid ReturnsFalse.</summary>
     [Test]
     public async Task TrySeekBack_Invalid_ReturnsFalse()
     {
@@ -308,6 +330,8 @@ public sealed class TempStringBuilderTests
     // TRYAPPEND
     // ========================================================================
 
+
+    /// <summary>Verifies TryAppend Chain ReturnsTrue.</summary>
     [Test]
     public async Task TryAppend_Chain_ReturnsTrue()
     {
@@ -324,6 +348,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(content).IsEqualTo("Value: 42, Active: True");
     }
 
+    /// <summary>Verifies TryAppend Null ReturnsTrue.</summary>
     [Test]
     public async Task TryAppend_Null_ReturnsTrue()
     {
@@ -339,6 +364,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(isEmpty).IsTrue();
     }
 
+    /// <summary>Verifies TryAppend DateTime AndGuid ReturnTrue.</summary>
     [Test]
     public async Task TryAppend_DateTime_AndGuid_ReturnTrue()
     {
@@ -358,6 +384,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(content).Contains("12345678-1234-1234-1234-123456789012");
     }
 
+    /// <summary>Verifies TryAppendHex2 ReturnsTrue.</summary>
     [Test]
     public async Task TryAppendHex2_ReturnsTrue()
     {
@@ -377,6 +404,8 @@ public sealed class TempStringBuilderTests
     // GROW / NESTED BUILDER
     // ========================================================================
 
+
+    /// <summary>Verifies NestedBuilder GrowsBeyondDefaultBuffer PreservesOuterContent.</summary>
     [Test]
     public async Task NestedBuilder_GrowsBeyondDefaultBuffer_PreservesOuterContent()
     {
@@ -409,6 +438,8 @@ public sealed class TempStringBuilderTests
     // OUTPUT AND DISPOSAL
     // ========================================================================
 
+
+    /// <summary>Verifies ToString ReturnsWrittenContent.</summary>
     [Test]
     public async Task ToString_ReturnsWrittenContent()
     {
@@ -422,6 +453,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(result).IsEqualTo("Test");
     }
 
+    /// <summary>Verifies ToString Empty ReturnsEmptyString.</summary>
     [Test]
     public async Task ToString_Empty_ReturnsEmptyString()
     {
@@ -434,6 +466,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(result).IsEqualTo(string.Empty);
     }
 
+    /// <summary>Verifies Dispose ReleasesBuffer.</summary>
     [Test]
     public async Task Dispose_ReleasesBuffer()
     {
@@ -448,6 +481,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(length).IsEqualTo(4);
     }
 
+    /// <summary>Verifies ChainedAppends BuildsCorrectString.</summary>
     [Test]
     public async Task ChainedAppends_BuildsCorrectString()
     {
@@ -464,6 +498,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(result).StartsWith("User: 12345, Balance:");
     }
 
+    /// <summary>Verifies ClearAndReuse ClearAndReuse works.</summary>
     [Test]
     public async Task ClearAndReuse_Works()
     {
@@ -486,6 +521,8 @@ public sealed class TempStringBuilderTests
     // EXIT-POINT COVERAGE
     // ========================================================================
 
+
+    /// <summary>Verifies ExitCoverage Append PrimitiveOverload succeeds.</summary>
     [Test]
     [Arguments("uint")]
     [Arguments("ulong")]
@@ -519,6 +556,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(length).IsGreaterThan(0);
     }
 
+    /// <summary>Verifies ExitCoverage Append FormattedOverload succeeds.</summary>
     [Test]
     [Arguments("long")]
     [Arguments("float")]
@@ -545,6 +583,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(length).IsGreaterThan(0);
     }
 
+    /// <summary>Verifies ExitCoverage TryAppend Primitive succeeds.</summary>
     [Test]
     [Arguments("int")]
     [Arguments("long")]
@@ -587,6 +626,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(result).IsTrue();
     }
 
+    /// <summary>Verifies ExitCoverage TryAppendHexBinary Success.</summary>
     [Test]
     [Arguments(nameof(TempStringBuilder.TryAppendHex4), 4)]
     [Arguments(nameof(TempStringBuilder.TryAppendHex8), 8)]
@@ -602,6 +642,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(success).IsTrue();
     }
 
+    /// <summary>Verifies ExitCoverage TryAppend Char succeeds.</summary>
     [Test]
     public async Task ExitCoverage_TryAppend_Char_Succeeds()
     {
@@ -614,6 +655,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(charOk).IsTrue();
     }
 
+    /// <summary>Verifies ExitCoverage AppendBoolDateTimeAndGeneric Succeed.</summary>
     [Test]
     public async Task ExitCoverage_AppendBoolDateTimeAndGeneric_Succeed()
     {
@@ -624,7 +666,7 @@ public sealed class TempStringBuilderTests
             {
                 builder.Append(false);
                 builder.Append(new DateTime(2025, 6, 17));
-                builder.Append(255, "X2");
+                builder.Append(255, "X2", CultureInfo.InvariantCulture);
                 length = builder.Length;
             }
             finally
@@ -636,6 +678,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(length).IsGreaterThan(0);
     }
 
+    /// <summary>Verifies ExitCoverage TryAppendFormattedGeneric succeeds.</summary>
     [Test]
     public async Task ExitCoverage_TryAppendFormattedGeneric_Succeeds()
     {
@@ -655,6 +698,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(result).IsTrue();
     }
 
+    /// <summary>Verifies ExitCoverage Grow TriggersEnsureCapacitySuccess.</summary>
     [Test]
     public async Task ExitCoverage_Grow_TriggersEnsureCapacitySuccess()
     {
@@ -678,6 +722,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(length).IsEqualTo(capacity + 1);
     }
 
+    /// <summary>Verifies ExitCoverage TryAppend FailsWhenGrowUnavailable.</summary>
     [Test]
     [NotInParallel("Corrupts thread-static char buffer")]
     public async Task ExitCoverage_TryAppend_FailsWhenGrowUnavailable()
@@ -724,6 +769,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(hexFail).IsFalse();
     }
 
+    /// <summary>Verifies ExitCoverage TryEnsureCapacity SucceedsViaTryAppend.</summary>
     [Test]
     [NotInParallel("Corrupts thread-static char buffer")]
     public async Task ExitCoverage_TryEnsureCapacity_SucceedsViaTryAppend()
@@ -745,6 +791,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(grew).IsTrue();
     }
 
+    /// <summary>Verifies ExitCoverage AppendFormattable ThrowsWhenGrowStalls.</summary>
     [Test]
     [NotInParallel("SimulateGrowStallForCoverage")]
     public async Task ExitCoverage_AppendFormattable_ThrowsWhenGrowStalls()
@@ -768,6 +815,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies ExitCoverage TryAppendFormattable ReturnsFalseWhenGrowStalls.</summary>
     [Test]
     [NotInParallel("SimulateGrowStallForCoverage")]
     public async Task ExitCoverage_TryAppendFormattable_ReturnsFalseWhenGrowStalls()
@@ -790,6 +838,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(failed).IsTrue();
     }
 
+    /// <summary>Verifies ExitCoverage AppendFormattable ThrowsWhenBufferUnavailable.</summary>
     [Test]
     [NotInParallel("Corrupts thread-static char buffer")]
     public async Task ExitCoverage_AppendFormattable_ThrowsWhenBufferUnavailable()
@@ -801,7 +850,7 @@ public sealed class TempStringBuilderTests
             {
                 builder.Append(new string('X', builder.Capacity));
                 _NullThreadStaticCharBuffer();
-                try { builder.Append(255, "X4"); }
+                try { builder.Append(255, "X4", CultureInfo.InvariantCulture); }
                 catch (InvalidOperationException) { threw = true; }
             }
             finally
@@ -814,6 +863,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies ExitCoverage AppendGenericFormattable succeeds.</summary>
     [Test]
     public async Task ExitCoverage_AppendGenericFormattable_Succeeds()
     {
@@ -834,6 +884,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(length).IsGreaterThan(0);
     }
 
+    /// <summary>Verifies ExitCoverage TryAppendSpanAndBool Succeed.</summary>
     [Test]
     public async Task ExitCoverage_TryAppendSpanAndBool_Succeed()
     {
@@ -856,6 +907,7 @@ public sealed class TempStringBuilderTests
         await Assert.That(boolOk).IsTrue();
     }
 
+    /// <summary>Verifies ExitCoverage TryAppendHexBinary FailsWhenGrowUnavailable.</summary>
     [Test]
     [NotInParallel("Corrupts thread-static char buffer")]
     public async Task ExitCoverage_TryAppendHexBinary_FailsWhenGrowUnavailable()
@@ -928,11 +980,11 @@ public sealed class TempStringBuilderTests
     {
         switch (kind)
         {
-            case "long": builder.Append(-99L, "D"); break;
-            case "float": builder.Append(3.14f, "F2"); break;
-            case "decimal": builder.Append(1.5m, "C"); break;
-            case "DateTimeOffset": builder.Append(new DateTimeOffset(2025, 6, 17, 0, 0, 0, TimeSpan.Zero), "O"); break;
-            case "TimeSpan": builder.Append(TimeSpan.FromMinutes(90), "c"); break;
+            case "long": builder.Append(-99L, "D", CultureInfo.InvariantCulture); break;
+            case "float": builder.Append(3.14f, "F2", CultureInfo.InvariantCulture); break;
+            case "decimal": builder.Append(1.5m, "C", CultureInfo.InvariantCulture); break;
+            case "DateTimeOffset": builder.Append(new DateTimeOffset(2025, 6, 17, 0, 0, 0, TimeSpan.Zero), "O", CultureInfo.InvariantCulture); break;
+            case "TimeSpan": builder.Append(TimeSpan.FromMinutes(90), "c", CultureInfo.InvariantCulture); break;
             case "Guid": builder.Append(Guid.Parse("12345678-1234-1234-1234-123456789012"), "N"); break;
             default: throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown kind.");
         }

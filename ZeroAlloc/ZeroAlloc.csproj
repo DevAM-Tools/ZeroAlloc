@@ -12,21 +12,14 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="..\\README.md" Pack="true" PackagePath="README.md" />
-    <None Include="..\\icon.png" Pack="true" PackagePath="icon.png" />
-  </ItemGroup>
-
-  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="README.md" />
+    <None Include="..\icon.png" Pack="true" PackagePath="icon.png" />
     <ProjectReference Include="..\ZeroAlloc.Generator\ZeroAlloc.Generator.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />
-  </ItemGroup>
-
-  <ItemGroup>
     <InternalsVisibleTo Include="ZeroAlloc.Tests" />
   </ItemGroup>
 

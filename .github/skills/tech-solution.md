@@ -11,6 +11,11 @@ Load when `Directory.Build.props`, `Directory.Build.targets`, `Directory.Package
 | `Directory.Build.targets` | repository root (only when needed) |
 | `GlobalUsings.cs` | project root, no namespace |
 
+## GlobalUsings.cs
+
+- ❗Group `global using` directives by category; separate groups with a comment header.
+- Order groups: `System.*` → `Microsoft.*` → third-party → internal.
+
 ## Directory.Build.props
 
 ### Target Framework and Language
@@ -38,16 +43,16 @@ Generator projects only:
 | `EnforceCodeStyleInBuild` | `true` |
 | `AnalysisLevel` | `10-recommended` |
 | `GenerateDocumentationFile` | `true` |
-| `NoWarn` | omit globally |
+| `NoWarn` | omit globally; user approval only — document reason and scope |
 | `WarningsAsErrors` | optional; specific warning codes only |
-| `WarningsNotAsErrors` | omit; documented exception only |
+| `WarningsNotAsErrors` | user approval only — document reason and scope |
 
 ### Build Behavior
 
 | Property | Value |
 |----------|-------|
 | `Deterministic` | `true` |
-| `VersionPrefix` | central in `Directory.Build.props` (e.g. `1.1.0`) |
+| `VersionPrefix` | central in `Directory.Build.props` (e.g. `1.0.0`) |
 | `ContinuousIntegrationBuild` | `true` on Release builds; `true` when `CI` is set |
 | `DebugType` | `embedded` or `portable` (consistent) |
 
@@ -62,6 +67,7 @@ When publishing or packaging is in scope, ask user for: `VersionSuffix`, `Compan
 |---------------|-------|
 | `ManagePackageVersionsCentrally` | `true` |
 | `CentralPackageTransitivePinningEnabled` | `true` |
+| `CentralPackageFloatingVersionsEnabled` | `true` |
 | `PackageVersion` | `Include="{package-id}" Version="{version}"` |
 | Project `PackageReference` | `Include="{package-id}"` — no `Version` |
 
@@ -76,19 +82,19 @@ When publishing or packaging is in scope, ask user for: `VersionSuffix`, `Compan
 | `AssemblyName` | per project |
 | Duplicate `Directory.Build.props` properties | omit |
 
-## CSharpStyleValidator
+## CSharpStyleChecker
 
-❗ Mandatory NuGet **`2.*`** on every SDK-style consumer (`netstandard2.0` or `net5.0`+), including Roslyn source generators.
+❗ Mandatory NuGet **`1.*`** on every SDK-style consumer (`netstandard2.0` or `net5.0`+), including Roslyn source generators.
 
 | Step | Action |
 |------|--------|
-| CPM | `Directory.Packages.props`: `<PackageVersion Include="CSharpStyleValidator" Version="2.*" />` |
-| Project | `<PackageReference Include="CSharpStyleValidator" />` — omit `Version` when CPM enabled |
-| No CPM | `<PackageReference Include="CSharpStyleValidator" Version="2.*" />` in `.csproj` |
+| CPM | `Directory.Packages.props`: `<PackageVersion Include="CSharpStyleChecker" Version="1.*" />` |
+| Project | `<PackageReference Include="CSharpStyleChecker" />` — omit `Version` when CPM enabled |
+| No CPM | `<PackageReference Include="CSharpStyleChecker" Version="1.*" />` in `.csproj` |
 
 - Analyzers load from `analyzers/dotnet/cs`; **`ExitPoints` bundled** — no second package, no `PrivateAssets` / `IncludeAssets`.
-- Violations = compiler errors (CSV*). Rebuild after add.
-- Set `ApplyCSharpStyleValidator=false` only to opt out.
+- Violations = compiler errors (CSC*). Rebuild after add.
+- Set `ApplyCSharpStyleChecker=false` only to opt out.
 
 ## New Dependency Protocol
 

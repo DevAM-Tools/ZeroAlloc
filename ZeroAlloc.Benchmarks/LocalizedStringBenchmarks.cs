@@ -31,8 +31,9 @@ public class LocalizedStringBenchmarks
 
     private static readonly CultureInfo _GermanCulture = CultureInfo.GetCultureInfo("de-DE");
 
+    /// <summary>Sets German culture for culture-sensitive formatting benchmarks.</summary>
     [GlobalSetup]
-    public void Setup()
+    public static void Setup()
     {
         // Set German culture for culture-sensitive formatting tests
         CultureInfo.CurrentCulture = _GermanCulture;
@@ -67,12 +68,14 @@ public class LocalizedStringBenchmarks
     #region Category 1: Simple Integer
     // ═══════════════════════════════════════════════════════════════════════════
 
+    /// <summary>Formats a simple login message via string interpolation.</summary>
     [BenchmarkCategory("Simple"), Benchmark(Baseline = true)]
     public string Simple_Interpolation()
     {
         return $"User {_UserId} logged in";
     }
 
+    /// <summary>Formats a simple login message via Z.LocalizedString.</summary>
     [BenchmarkCategory("Simple"), Benchmark]
     public string Simple_LocalizedString()
     {
@@ -85,6 +88,7 @@ public class LocalizedStringBenchmarks
     #region Category 2: Numbers (Culture-sensitive formatting)
     // ═══════════════════════════════════════════════════════════════════════════
 
+    /// <summary>Formats balance and price via string interpolation with culture-sensitive numbers.</summary>
     [BenchmarkCategory("Numbers"), Benchmark(Baseline = true)]
     public string Numbers_Interpolation()
     {
@@ -92,6 +96,7 @@ public class LocalizedStringBenchmarks
         return $"Balance: {_Balance}, Price: {_Price}";
     }
 
+    /// <summary>Formats balance and price via Z.LocalizedString with culture-sensitive numbers.</summary>
     [BenchmarkCategory("Numbers"), Benchmark]
     public string Numbers_LocalizedString()
     {
@@ -104,6 +109,7 @@ public class LocalizedStringBenchmarks
     #region Category 3: DateTime (Culture-sensitive formatting)
     // ═══════════════════════════════════════════════════════════════════════════
 
+    /// <summary>Formats a login timestamp via string interpolation with culture-sensitive date/time.</summary>
     [BenchmarkCategory("DateTime"), Benchmark(Baseline = true)]
     public string DateTime_Interpolation()
     {
@@ -111,6 +117,7 @@ public class LocalizedStringBenchmarks
         return $"Logged in at {_Timestamp}";
     }
 
+    /// <summary>Formats a login timestamp via Z.LocalizedString with culture-sensitive date/time.</summary>
     [BenchmarkCategory("DateTime"), Benchmark]
     public string DateTime_LocalizedString()
     {
@@ -123,12 +130,14 @@ public class LocalizedStringBenchmarks
     #region Category 4: Complex (Multiple types)
     // ═══════════════════════════════════════════════════════════════════════════
 
+    /// <summary>Formats a complex order summary via string interpolation.</summary>
     [BenchmarkCategory("Complex"), Benchmark(Baseline = true)]
     public string Complex_Interpolation()
     {
         return $"Order #{_OrderId}: User {_UserName} spent {_Balance} ({_Percentage}%) at {_Timestamp}";
     }
 
+    /// <summary>Formats a complex order summary via Z.LocalizedString.</summary>
     [BenchmarkCategory("Complex"), Benchmark]
     public string Complex_LocalizedString()
     {
@@ -143,12 +152,14 @@ public class LocalizedStringBenchmarks
     #region Category 5: Mixed Strings and Numbers
     // ═══════════════════════════════════════════════════════════════════════════
 
+    /// <summary>Formats a mixed user and balance message via string interpolation.</summary>
     [BenchmarkCategory("Mixed"), Benchmark(Baseline = true)]
     public string Mixed_Interpolation()
     {
         return $"User {_UserName} has ID {_UserId} with balance {_Balance}";
     }
 
+    /// <summary>Formats a mixed user and balance message via Z.LocalizedString.</summary>
     [BenchmarkCategory("Mixed"), Benchmark]
     public string Mixed_LocalizedString()
     {

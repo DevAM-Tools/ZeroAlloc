@@ -1,17 +1,27 @@
 <Project>
-  <!-- Shared compile settings (all projects) -->
   <PropertyGroup>
     <LangVersion>14</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>10-recommended</AnalysisLevel>
     <Deterministic>true</Deterministic>
+    <DebugType>embedded</DebugType>
   </PropertyGroup>
 
-  <!-- NuGet / release metadata (packable projects only) -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release' or '$(CI)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <!-- XML docs only for shipped NuGet assemblies -->
+  <PropertyGroup Condition="'$(IsPackable)' == 'false' or '$(IsTestProject)' == 'true' or '$(OutputType)' == 'Exe'">
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
   <PropertyGroup Condition="'$(IsPackable)' != 'false'">
-    <Version>0.5.1</Version>
+    <Version>0.5.2</Version>
     <Authors>DevAM</Authors>
     <Company>DevAM</Company>
     <Copyright>Copyright © 2026 DevAM. All rights reserved.</Copyright>
@@ -23,5 +33,16 @@
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- CA1720: Identifiers should not contain type names (e.g. String, Int32).
+         Suppressed: public API methods intentionally mirror CLR type names (ZA.String, ZA.Utf8). -->
+    <!-- CA1304: Call behavior could vary by user locale; use CultureInfo overload instead.
+         Suppressed: ZA.String uses InvariantCulture by default; string args are copied without culture. -->
+    <!-- CA1707: Identifiers should not contain underscores.
+         Suppressed: test methods use Method_Scenario_Expected naming convention. -->
+    <NoWarn>$(NoWarn);CA1720;CA1304;CA1707</NoWarn>
   </PropertyGroup>
 </Project>

@@ -741,11 +741,11 @@ public static class BinaryParseValidator
 
         // Known wrapper types (check by name pattern)
         string name = type.Name;
-        return name.StartsWith("UInt") || name.StartsWith("Int") ||
-               name.StartsWith("F32") || name.StartsWith("F64") ||
+        return name.StartsWith("UInt", StringComparison.Ordinal) || name.StartsWith("Int", StringComparison.Ordinal) ||
+               name.StartsWith("F32", StringComparison.Ordinal) || name.StartsWith("F64", StringComparison.Ordinal) ||
                name == "VarInt" || name == "VarIntZigZag" ||
-               name == "Raw" || name.StartsWith("Utf8") ||
-               name.StartsWith("Bit") || name == "Nibble";
+               name == "Raw" || name.StartsWith("Utf8", StringComparison.Ordinal) ||
+               name.StartsWith("Bit", StringComparison.Ordinal) || name == "Nibble";
     }
 
     /// <summary>

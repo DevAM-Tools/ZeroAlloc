@@ -8,9 +8,12 @@ namespace ZeroAlloc.Tests;
 /// </summary>
 public sealed class FormattedWrapperTests
 {
+
     // ========================================================================
     // Formatted<T> - BASIC FORMATTING
     // ========================================================================
+
+
     /// <summary>Verifies basic formatting with a format string.</summary>
     [Test]
     public async Task Formatted_BasicWithFormatString()
@@ -80,7 +83,7 @@ public sealed class FormattedWrapperTests
     [Test]
     public async Task Formatted_Create_FactoryMethod()
     {
-        Formatted<int> formatted = Formatted<int>.Create(42, "X8");
+        Formatted<int> formatted = new(42, "X8");
 
         string result = formatted.ToString();
 
@@ -139,6 +142,7 @@ public sealed class FormattedWrapperTests
     // ========================================================================
     // Utf8Formatted<T> - BASIC FORMATTING
     // ========================================================================
+
 
     /// <summary>Verifies basic UTF-8 formatting with a format string.</summary>
     [Test]
@@ -209,7 +213,7 @@ public sealed class FormattedWrapperTests
     [Test]
     public async Task Utf8Formatted_Create_FactoryMethod()
     {
-        Utf8Formatted<int> formatted = Utf8Formatted<int>.Create(255, "X4");
+        Utf8Formatted<int> formatted = new(255, "X4");
 
         string result = formatted.ToString();
 
@@ -269,6 +273,7 @@ public sealed class FormattedWrapperTests
     // INTEGRATION WITH ZA API
     // ========================================================================
 
+
     /// <summary>Verifies Formatted works inside ZA.String().</summary>
     [Test]
     public async Task Formatted_InsideZaString()
@@ -300,12 +305,6 @@ public sealed class FormattedWrapperTests
 
         await Assert.That(result).IsEqualTo("00042");
     }
-
-    // ========================================================================
-    // STRING WRAPPER NULL + EMPTY DESTINATION TryFormat
-    // Verifies that Try-pattern contract is respected: null value + empty
-    // destination must return false without throwing IndexOutOfRangeException.
-    // ========================================================================
 
     #region StringWrapper NullValue EmptyDestination
 
@@ -723,52 +722,54 @@ public sealed class FormattedWrapperTests
     private readonly struct LargeSpanFormattedValue(string text) : ISpanFormattable
     {
         private readonly string _Text = text;
-
+        /// <summary>Verifies TryFormat.</summary>
         public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
         {
             charsWritten = 0;
             return false;
         }
-
+        /// <summary>Verifies ToString.</summary>
         public string ToString(string? format, IFormatProvider? formatProvider) => _Text;
-
+        /// <summary>Verifies ToString.</summary>
         public override string ToString() => _Text;
     }
 
     private readonly struct NullToStringSpanFormattedValue : ISpanFormattable
     {
+        /// <summary>Verifies TryFormat.</summary>
         public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
         {
             charsWritten = 0;
             return false;
         }
-
+        /// <summary>Verifies ToString.</summary>
         public string ToString(string? format, IFormatProvider? formatProvider) => null!;
-
+        /// <summary>Verifies ToString.</summary>
         public override string ToString() => null!;
     }
 
     private readonly struct LargeUtf8FormattedValue(string text) : IUtf8SpanFormattable
     {
         private readonly string _Text = text;
-
+        /// <summary>Verifies TryFormat.</summary>
         public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
         {
             bytesWritten = 0;
             return false;
         }
-
+        /// <summary>Verifies ToString.</summary>
         public override string ToString() => _Text;
     }
 
     private readonly struct NullToStringUtf8FormattedValue : IUtf8SpanFormattable
     {
+        /// <summary>Verifies TryFormat.</summary>
         public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
         {
             bytesWritten = 0;
             return false;
         }
-
+        /// <summary>Verifies ToString.</summary>
         public override string ToString() => null!;
     }
 }

@@ -92,16 +92,16 @@ public readonly struct Hex1 : ISpanFormattable, IUtf8SpanFormattable
     /// Formats the nibble value as 1-character uppercase hex (UTF-8).
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    public bool TryFormat(Span<byte> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (destination.Length < FormattedLength)
         {
-            bytesWritten = 0;
+            charsWritten = 0;
             return false;
         }
 
         destination[0] = _HexBytes[_Value];
-        bytesWritten = FormattedLength;
+        charsWritten = FormattedLength;
         return true;
     }
 
@@ -213,17 +213,17 @@ public readonly struct Hex2 : ISpanFormattable, IUtf8SpanFormattable
     /// Formats the byte value as 2-character uppercase hex (UTF-8).
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    public bool TryFormat(Span<byte> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (destination.Length < FormattedLength)
         {
-            bytesWritten = 0;
+            charsWritten = 0;
             return false;
         }
 
         destination[0] = _HexBytes[_Value >> 4];
         destination[1] = _HexBytes[_Value & 0xF];
-        bytesWritten = FormattedLength;
+        charsWritten = FormattedLength;
         return true;
     }
 
@@ -296,18 +296,18 @@ public readonly struct Hex3 : ISpanFormattable, IUtf8SpanFormattable
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    public bool TryFormat(Span<byte> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (destination.Length < FormattedLength)
         {
-            bytesWritten = 0;
+            charsWritten = 0;
             return false;
         }
 
         destination[0] = _HexBytes[(_Value >> 8) & 0xF];
         destination[1] = _HexBytes[(_Value >> 4) & 0xF];
         destination[2] = _HexBytes[_Value & 0xF];
-        bytesWritten = FormattedLength;
+        charsWritten = FormattedLength;
         return true;
     }
 
@@ -372,11 +372,11 @@ public readonly struct Hex4 : ISpanFormattable, IUtf8SpanFormattable
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    public bool TryFormat(Span<byte> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (destination.Length < FormattedLength)
         {
-            bytesWritten = 0;
+            charsWritten = 0;
             return false;
         }
 
@@ -384,7 +384,7 @@ public readonly struct Hex4 : ISpanFormattable, IUtf8SpanFormattable
         destination[1] = _HexBytes[(_Value >> 8) & 0xF];
         destination[2] = _HexBytes[(_Value >> 4) & 0xF];
         destination[3] = _HexBytes[_Value & 0xF];
-        bytesWritten = FormattedLength;
+        charsWritten = FormattedLength;
         return true;
     }
 
@@ -452,11 +452,11 @@ public readonly struct Hex5 : ISpanFormattable, IUtf8SpanFormattable
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    public bool TryFormat(Span<byte> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (destination.Length < FormattedLength)
         {
-            bytesWritten = 0;
+            charsWritten = 0;
             return false;
         }
 
@@ -465,7 +465,7 @@ public readonly struct Hex5 : ISpanFormattable, IUtf8SpanFormattable
         destination[2] = _HexBytes[(int)(_Value >> 8) & 0xF];
         destination[3] = _HexBytes[(int)(_Value >> 4) & 0xF];
         destination[4] = _HexBytes[(int)_Value & 0xF];
-        bytesWritten = FormattedLength;
+        charsWritten = FormattedLength;
         return true;
     }
 
@@ -535,11 +535,11 @@ public readonly struct Hex6 : ISpanFormattable, IUtf8SpanFormattable
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    public bool TryFormat(Span<byte> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (destination.Length < FormattedLength)
         {
-            bytesWritten = 0;
+            charsWritten = 0;
             return false;
         }
 
@@ -549,7 +549,7 @@ public readonly struct Hex6 : ISpanFormattable, IUtf8SpanFormattable
         destination[3] = _HexBytes[(int)(_Value >> 8) & 0xF];
         destination[4] = _HexBytes[(int)(_Value >> 4) & 0xF];
         destination[5] = _HexBytes[(int)_Value & 0xF];
-        bytesWritten = FormattedLength;
+        charsWritten = FormattedLength;
         return true;
     }
 
@@ -621,11 +621,11 @@ public readonly struct Hex7 : ISpanFormattable, IUtf8SpanFormattable
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    public bool TryFormat(Span<byte> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (destination.Length < FormattedLength)
         {
-            bytesWritten = 0;
+            charsWritten = 0;
             return false;
         }
 
@@ -636,7 +636,7 @@ public readonly struct Hex7 : ISpanFormattable, IUtf8SpanFormattable
         destination[4] = _HexBytes[(int)(_Value >> 8) & 0xF];
         destination[5] = _HexBytes[(int)(_Value >> 4) & 0xF];
         destination[6] = _HexBytes[(int)_Value & 0xF];
-        bytesWritten = FormattedLength;
+        charsWritten = FormattedLength;
         return true;
     }
 
@@ -705,11 +705,11 @@ public readonly struct Hex8 : ISpanFormattable, IUtf8SpanFormattable
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    public bool TryFormat(Span<byte> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (destination.Length < FormattedLength)
         {
-            bytesWritten = 0;
+            charsWritten = 0;
             return false;
         }
 
@@ -717,7 +717,7 @@ public readonly struct Hex8 : ISpanFormattable, IUtf8SpanFormattable
         {
             destination[i] = _HexBytes[(int)(_Value >> (28 - i * 4)) & 0xF];
         }
-        bytesWritten = FormattedLength;
+        charsWritten = FormattedLength;
         return true;
     }
 
@@ -783,11 +783,11 @@ public readonly struct Hex16 : ISpanFormattable, IUtf8SpanFormattable
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    public bool TryFormat(Span<byte> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         if (destination.Length < FormattedLength)
         {
-            bytesWritten = 0;
+            charsWritten = 0;
             return false;
         }
 
@@ -795,7 +795,7 @@ public readonly struct Hex16 : ISpanFormattable, IUtf8SpanFormattable
         {
             destination[i] = _HexBytes[(int)(_Value >> (60 - i * 4)) & 0xF];
         }
-        bytesWritten = FormattedLength;
+        charsWritten = FormattedLength;
         return true;
     }
 

@@ -25,8 +25,11 @@ namespace ZeroAlloc.Tests;
 [BinaryParsable]
 public readonly partial struct SimpleHeader
 {
+    /// <summary>Gets the Version field.</summary>
     public U16BE Version { get; init; }
+    /// <summary>Gets the Message Type field.</summary>
     public U32BE MessageType { get; init; }
+    /// <summary>Gets the Length field.</summary>
     public U16BE Length { get; init; }
 }
 
@@ -36,9 +39,13 @@ public readonly partial struct SimpleHeader
 [BinaryParsable]
 public readonly partial struct MixedEndianStruct
 {
+    /// <summary>Gets the Big Endian16 field.</summary>
     public U16BE BigEndian16 { get; init; }
+    /// <summary>Gets the Little Endian16 field.</summary>
     public U16LE LittleEndian16 { get; init; }
+    /// <summary>Gets the Big Endian32 field.</summary>
     public U32BE BigEndian32 { get; init; }
+    /// <summary>Gets the Little Endian32 field.</summary>
     public U32LE LittleEndian32 { get; init; }
 }
 
@@ -48,8 +55,11 @@ public readonly partial struct MixedEndianStruct
 [BinaryParsable]
 public readonly partial struct ByteStruct
 {
+    /// <summary>Gets the First field.</summary>
     public byte First { get; init; }
+    /// <summary>Gets the Second field.</summary>
     public byte Second { get; init; }
+    /// <summary>Gets the Third field.</summary>
     public byte Third { get; init; }
 }
 
@@ -59,9 +69,12 @@ public readonly partial struct ByteStruct
 [BinaryParsable]
 public readonly partial struct StructWithIgnoredMember
 {
+    /// <summary>Gets the Type field.</summary>
     public U16BE Type { get; init; }
+    /// <summary>Gets the Length field.</summary>
     public U16BE Length { get; init; }
 
+    /// <summary>Gets whether <see cref="Type"/> is below 100 (ignored on the wire).</summary>
     [BinaryIgnore]
     public bool IsControl => Type.Value < 100;
 }
@@ -72,12 +85,13 @@ public readonly partial struct StructWithIgnoredMember
 [BinaryParsable]
 public readonly partial struct ReorderedStruct
 {
+    /// <summary>Gets the Third field.</summary>
     [BinaryOrder(2)]
     public U16BE Third { get; init; }
-
+    /// <summary>Gets the First field.</summary>
     [BinaryOrder(0)]
     public U16BE First { get; init; }
-
+    /// <summary>Gets the Second field.</summary>
     [BinaryOrder(1)]
     public U16BE Second { get; init; }
 }
@@ -88,6 +102,7 @@ public readonly partial struct ReorderedStruct
 [BinaryParsable]
 public readonly partial struct MacAddress
 {
+    /// <summary>Gets the Address field.</summary>
     [BinaryFixedLength(6)]
     public byte[] Address { get; init; }
 }
@@ -104,8 +119,11 @@ public readonly partial struct MacAddress
 [BinaryParsable]
 public readonly partial struct VarIntThenFixedStruct
 {
+    /// <summary>Gets the Count field.</summary>
     public VarInt Count { get; init; }
+    /// <summary>Gets the Value field.</summary>
     public U32BE Value { get; init; }
+    /// <summary>Gets the Flags field.</summary>
     public U16BE Flags { get; init; }
 }
 
@@ -116,8 +134,10 @@ public readonly partial struct VarIntThenFixedStruct
 [BinaryParsable]
 public readonly partial struct StringThenFixedStruct
 {
+    /// <summary>Gets the Label field.</summary>
     [StringLengthVarInt]
     public string Label { get; init; }
+    /// <summary>Gets the Id field.</summary>
     public U32BE Id { get; init; }
 }
 
@@ -128,8 +148,10 @@ public readonly partial struct StringThenFixedStruct
 [BinaryParsable]
 public readonly partial struct FixedBEStringStruct
 {
+    /// <summary>Gets the Content field.</summary>
     [StringLengthBE(2)]
     public string Content { get; init; }
+    /// <summary>Gets the Crc field.</summary>
     public U16BE Crc { get; init; }
 }
 
@@ -144,18 +166,19 @@ public readonly partial struct FixedBEStringStruct
 [BinaryParsable]
 public readonly partial struct CANStandardHeader
 {
+    /// <summary>11 bits.</summary>
     [BinaryField(BitCount = 11)]
     public ushort Identifier { get; init; }    // 11 bits
-
+    /// <summary>1 bit (Remote Transmission Request).</summary>
     [BinaryField(BitCount = 1)]
     public byte RTR { get; init; }              // 1 bit (Remote Transmission Request)
-
+    /// <summary>1 bit (Identifier Extension).</summary>
     [BinaryField(BitCount = 1)]
     public byte IDE { get; init; }              // 1 bit (Identifier Extension)
-
+    /// <summary>1 bit.</summary>
     [BinaryField(BitCount = 1)]
     public byte Reserved { get; init; }         // 1 bit
-
+    /// <summary>4 bits (Data Length Code).</summary>
     [BinaryField(BitCount = 4)]
     public byte DLC { get; init; }              // 4 bits (Data Length Code)
 }
@@ -167,15 +190,16 @@ public readonly partial struct CANStandardHeader
 [BinaryParsable]
 public readonly partial struct CANExtendedHeader
 {
+    /// <summary>29 bits.</summary>
     [BinaryField(BitCount = 29)]
     public uint Identifier { get; init; }       // 29 bits
-
+    /// <summary>1 bit.</summary>
     [BinaryField(BitCount = 1)]
     public byte RTR { get; init; }              // 1 bit
-
+    /// <summary>1 bit.</summary>
     [BinaryField(BitCount = 1)]
     public byte IDE { get; init; }              // 1 bit
-
+    /// <summary>1 bit.</summary>
     [BinaryField(BitCount = 1)]
     public byte Reserved { get; init; }         // 1 bit
 }
@@ -187,15 +211,16 @@ public readonly partial struct CANExtendedHeader
 [BinaryParsable]
 public readonly partial struct MixedBitFieldStruct
 {
+    /// <summary>3 bits.</summary>
     [BinaryField(BitCount = 3)]
     public byte Field3Bit { get; init; }        // 3 bits
-
+    /// <summary>5 bits.</summary>
     [BinaryField(BitCount = 5)]
     public byte Field5Bit { get; init; }        // 5 bits
-
+    /// <summary>12 bits.</summary>
     [BinaryField(BitCount = 12)]
     public ushort Field12Bit { get; init; }     // 12 bits
-
+    /// <summary>4 bits.</summary>
     [BinaryField(BitCount = 4)]
     public byte Field4Bit { get; init; }        // 4 bits
 }
@@ -207,27 +232,28 @@ public readonly partial struct MixedBitFieldStruct
 [BinaryParsable]
 public readonly partial struct BitFlagsStruct
 {
+    /// <summary>Gets the Flag1 field.</summary>
     [BinaryField(BitCount = 1)]
     public byte Flag1 { get; init; }
-
+    /// <summary>Gets the Flag2 field.</summary>
     [BinaryField(BitCount = 1)]
     public byte Flag2 { get; init; }
-
+    /// <summary>Gets the Flag3 field.</summary>
     [BinaryField(BitCount = 1)]
     public byte Flag3 { get; init; }
-
+    /// <summary>Gets the Flag4 field.</summary>
     [BinaryField(BitCount = 1)]
     public byte Flag4 { get; init; }
-
+    /// <summary>Gets the Flag5 field.</summary>
     [BinaryField(BitCount = 1)]
     public byte Flag5 { get; init; }
-
+    /// <summary>Gets the Flag6 field.</summary>
     [BinaryField(BitCount = 1)]
     public byte Flag6 { get; init; }
-
+    /// <summary>Gets the Flag7 field.</summary>
     [BinaryField(BitCount = 1)]
     public byte Flag7 { get; init; }
-
+    /// <summary>Gets the Flag8 field.</summary>
     [BinaryField(BitCount = 1)]
     public byte Flag8 { get; init; }
 }
@@ -239,9 +265,10 @@ public readonly partial struct BitFlagsStruct
 [BinaryParsable]
 public readonly partial struct LargeBitFieldStruct
 {
+    /// <summary>48 bits (like MAC address as integer).</summary>
     [BinaryField(BitCount = 48)]
     public ulong Field48Bit { get; init; }      // 48 bits (like MAC address as integer)
-
+    /// <summary>16 bits.</summary>
     [BinaryField(BitCount = 16)]
     public ushort Field16Bit { get; init; }     // 16 bits
 }
@@ -258,11 +285,13 @@ public readonly partial struct LargeBitFieldStruct
 /// </summary>
 public sealed class BinaryParsableTests
 {
+
     // ========================================================================
     // BASIC PARSING TESTS
     // ========================================================================
-    #region Basic Parsing
 
+    #region Basic Parsing
+    /// <summary>Verifies SimpleHeader ParsesCorrectly.</summary>
     [Test]
     public async Task SimpleHeader_ParsesCorrectly()
     {
@@ -279,7 +308,7 @@ public sealed class BinaryParsableTests
         await Assert.That(header.MessageType.Value).IsEqualTo(0x12345678u);
         await Assert.That((int)header.Length.Value).IsEqualTo(0x00FF);
     }
-
+    /// <summary>Verifies SimpleHeader FailsWithInsufficientData.</summary>
     [Test]
     public async Task SimpleHeader_FailsWithInsufficientData()
     {
@@ -292,7 +321,7 @@ public sealed class BinaryParsableTests
         // Assert
         await Assert.That(success).IsFalse();
     }
-
+    /// <summary>Verifies MixedEndian ParsesCorrectly.</summary>
     [Test]
     public async Task MixedEndian_ParsesCorrectly()
     {
@@ -310,7 +339,7 @@ public sealed class BinaryParsableTests
         await Assert.That(result.BigEndian32.Value).IsEqualTo(0xAABBCCDDu);
         await Assert.That(result.LittleEndian32.Value).IsEqualTo(0x11223344u);
     }
-
+    /// <summary>Verifies ByteStruct ParsesCorrectly.</summary>
     [Test]
     public async Task ByteStruct_ParsesCorrectly()
     {
@@ -327,7 +356,7 @@ public sealed class BinaryParsableTests
         await Assert.That((int)result.Second).IsEqualTo(0x22);
         await Assert.That((int)result.Third).IsEqualTo(0x33);
     }
-
+    /// <summary>Verifies StructWithIgnoredMember ParsesOnlyRelevantFields.</summary>
     [Test]
     public async Task StructWithIgnoredMember_ParsesOnlyRelevantFields()
     {
@@ -344,7 +373,7 @@ public sealed class BinaryParsableTests
         await Assert.That((int)result.Length.Value).IsEqualTo(0x0100);
         await Assert.That(result.IsControl).IsTrue(); // 16 < 100
     }
-
+    /// <summary>Verifies ReorderedStruct ParsesInCorrectOrder.</summary>
     [Test]
     public async Task ReorderedStruct_ParsesInCorrectOrder()
     {
@@ -362,7 +391,7 @@ public sealed class BinaryParsableTests
         await Assert.That((int)result.Second.Value).IsEqualTo(0x2222);
         await Assert.That((int)result.Third.Value).IsEqualTo(0x3333);
     }
-
+    /// <summary>Verifies MacAddress ParsesFixedLengthArray.</summary>
     [Test]
     public async Task MacAddress_ParsesFixedLengthArray()
     {
@@ -384,8 +413,9 @@ public sealed class BinaryParsableTests
     // BITFIELD PARSING TESTS
     // ========================================================================
 
-    #region BitField Parsing
 
+    #region BitField Parsing
+    /// <summary>Verifies CANStandardHeader ParsesCorrectly.</summary>
     [Test]
     public async Task CANStandardHeader_ParsesCorrectly()
     {
@@ -423,7 +453,7 @@ public sealed class BinaryParsableTests
         await Assert.That((int)header.Reserved).IsEqualTo(0);
         await Assert.That((int)header.DLC).IsEqualTo(8);
     }
-
+    /// <summary>Verifies CANExtendedHeader ParsesCorrectly.</summary>
     [Test]
     public async Task CANExtendedHeader_ParsesCorrectly()
     {
@@ -451,7 +481,7 @@ public sealed class BinaryParsableTests
         await Assert.That((int)header.IDE).IsEqualTo(1);
         await Assert.That((int)header.Reserved).IsEqualTo(0);
     }
-
+    /// <summary>Verifies MixedBitFieldStruct ParsesCorrectly.</summary>
     [Test]
     public async Task MixedBitFieldStruct_ParsesCorrectly()
     {
@@ -479,7 +509,7 @@ public sealed class BinaryParsableTests
         await Assert.That((int)result.Field12Bit).IsEqualTo(2047);
         await Assert.That((int)result.Field4Bit).IsEqualTo(9);
     }
-
+    /// <summary>Verifies BitFlagsStruct ParsesAllFlags.</summary>
     [Test]
     public async Task BitFlagsStruct_ParsesAllFlags()
     {
@@ -502,7 +532,7 @@ public sealed class BinaryParsableTests
         await Assert.That((int)flags.Flag7).IsEqualTo(1);
         await Assert.That((int)flags.Flag8).IsEqualTo(0);
     }
-
+    /// <summary>Verifies LargeBitFieldStruct ParsesCorrectly.</summary>
     [Test]
     public async Task LargeBitFieldStruct_ParsesCorrectly()
     {
@@ -520,7 +550,7 @@ public sealed class BinaryParsableTests
         await Assert.That(result.Field48Bit).IsEqualTo(0xAABBCCDDEEFFuL);
         await Assert.That((int)result.Field16Bit).IsEqualTo(0x1234);
     }
-
+    /// <summary>Verifies CANStandardHeader FailsWithInsufficientData.</summary>
     [Test]
     public async Task CANStandardHeader_FailsWithInsufficientData()
     {
@@ -533,7 +563,7 @@ public sealed class BinaryParsableTests
         // Assert
         await Assert.That(success).IsFalse();
     }
-
+    /// <summary>Verifies BitField ZeroValues ParsesCorrectly.</summary>
     [Test]
     public async Task BitField_ZeroValues_ParsesCorrectly()
     {
@@ -551,7 +581,7 @@ public sealed class BinaryParsableTests
         await Assert.That((int)header.Reserved).IsEqualTo(0);
         await Assert.That((int)header.DLC).IsEqualTo(0);
     }
-
+    /// <summary>Verifies BitField MaxValues ParsesCorrectly.</summary>
     [Test]
     public async Task BitField_MaxValues_ParsesCorrectly()
     {
@@ -582,8 +612,9 @@ public sealed class BinaryParsableTests
     // EDGE CASES
     // ========================================================================
 
-    #region Edge Cases
 
+    #region Edge Cases
+    /// <summary>Verifies SimpleHeader EmptySpan ReturnsFalse.</summary>
     [Test]
     public async Task SimpleHeader_EmptySpan_ReturnsFalse()
     {
@@ -596,7 +627,7 @@ public sealed class BinaryParsableTests
         // Assert
         await Assert.That(success).IsFalse();
     }
-
+    /// <summary>Verifies SimpleHeader ExtraData IgnoresExtraBytes.</summary>
     [Test]
     public async Task SimpleHeader_ExtraData_IgnoresExtraBytes()
     {
@@ -617,8 +648,9 @@ public sealed class BinaryParsableTests
     // PADDING BITS TESTS
     // ========================================================================
 
-    #region PaddingBits Tests
 
+    #region PaddingBits Tests
+    /// <summary>Verifies PaddingBitsStruct ParsesCorrectlyWithPadding.</summary>
     [Test]
     public async Task PaddingBitsStruct_ParsesCorrectlyWithPadding()
     {
@@ -643,8 +675,9 @@ public sealed class BinaryParsableTests
     // PRIMITIVE INTEGER TESTS
     // ========================================================================
 
-    #region Primitive Integer Tests
 
+    #region Primitive Integer Tests
+    /// <summary>Verifies PrimitiveIntegerStructBE ParsesAllTypes.</summary>
     [Test]
     public async Task PrimitiveIntegerStructBE_ParsesAllTypes()
     {
@@ -679,7 +712,7 @@ public sealed class BinaryParsableTests
         await Assert.That((int)result.SByteValue).IsEqualTo(-2);
         await Assert.That(consumed).IsEqualTo(41);
     }
-
+    /// <summary>Verifies PrimitiveIntegerStructLE ParsesLittleEndian.</summary>
     [Test]
     public async Task PrimitiveIntegerStructLE_ParsesLittleEndian()
     {
@@ -699,7 +732,7 @@ public sealed class BinaryParsableTests
         await Assert.That(result.SingleValue).IsEqualTo(1200.0f);
         await Assert.That(consumed).IsEqualTo(8);
     }
-
+    /// <summary>Verifies PrimitiveIntegerStructBE ReportsTryGetSerializedSizeCorrectly.</summary>
     [Test]
     public async Task PrimitiveIntegerStructBE_ReportsTryGetSerializedSizeCorrectly()
     {
@@ -717,8 +750,9 @@ public sealed class BinaryParsableTests
     // STRING PARSING TESTS
     // ========================================================================
 
-    #region String Parsing Tests
 
+    #region String Parsing Tests
+    /// <summary>Verifies StringVarIntStruct ParsesVarIntPrefixedString.</summary>
     [Test]
     public async Task StringVarIntStruct_ParsesVarIntPrefixedString()
     {
@@ -733,7 +767,7 @@ public sealed class BinaryParsableTests
         await Assert.That(result.Message).IsEqualTo("Hello");
         await Assert.That(consumed).IsEqualTo(6); // 1 byte VarInt + 5 bytes string
     }
-
+    /// <summary>Verifies StringFixedBEStruct ParsesBigEndianLengthPrefixedString.</summary>
     [Test]
     public async Task StringFixedBEStruct_ParsesBigEndianLengthPrefixedString()
     {
@@ -748,7 +782,7 @@ public sealed class BinaryParsableTests
         await Assert.That(result.Message).IsEqualTo("Hello");
         await Assert.That(consumed).IsEqualTo(7); // 2 bytes length + 5 bytes string
     }
-
+    /// <summary>Verifies StringFixedLEStruct ParsesLittleEndianLengthPrefixedString.</summary>
     [Test]
     public async Task StringFixedLEStruct_ParsesLittleEndianLengthPrefixedString()
     {
@@ -763,7 +797,7 @@ public sealed class BinaryParsableTests
         await Assert.That(result.Message).IsEqualTo("Hello");
         await Assert.That(consumed).IsEqualTo(7); // 2 bytes length + 5 bytes string
     }
-
+    /// <summary>Verifies StringNullTerminatedStruct ParsesNullTerminatedString.</summary>
     [Test]
     public async Task StringNullTerminatedStruct_ParsesNullTerminatedString()
     {
@@ -778,7 +812,7 @@ public sealed class BinaryParsableTests
         await Assert.That(result.Message).IsEqualTo("Hello");
         await Assert.That(consumed).IsEqualTo(6); // 5 bytes string + 1 null
     }
-
+    /// <summary>Verifies StringFixedLengthStruct ParsesFixedLengthString.</summary>
     [Test]
     public async Task StringFixedLengthStruct_ParsesFixedLengthString()
     {
@@ -793,7 +827,7 @@ public sealed class BinaryParsableTests
         await Assert.That(result.Message).IsEqualTo("Hello");
         await Assert.That(consumed).IsEqualTo(8); // Fixed 8 bytes
     }
-
+    /// <summary>Verifies StringWithHeaderStruct ParsesHeaderAndString.</summary>
     [Test]
     public async Task StringWithHeaderStruct_ParsesHeaderAndString()
     {
@@ -809,7 +843,7 @@ public sealed class BinaryParsableTests
         await Assert.That(result.Message).IsEqualTo("Hello");
         await Assert.That(consumed).IsEqualTo(8);
     }
-
+    /// <summary>Verifies Utf8Var ParsesVarIntPrefixedString.</summary>
     [Test]
     public async Task Utf8Var_ParsesVarIntPrefixedString()
     {
@@ -824,7 +858,7 @@ public sealed class BinaryParsableTests
         await Assert.That(result.Value).IsEqualTo("Hello");
         await Assert.That(consumed).IsEqualTo(6);
     }
-
+    /// <summary>Verifies Utf8FixBE ParsesBigEndianLengthPrefixedString.</summary>
     [Test]
     public async Task Utf8FixBE_ParsesBigEndianLengthPrefixedString()
     {
@@ -839,7 +873,7 @@ public sealed class BinaryParsableTests
         await Assert.That(result.Value).IsEqualTo("Hello");
         await Assert.That(consumed).IsEqualTo(9);
     }
-
+    /// <summary>Verifies Utf8Z ParsesNullTerminatedString.</summary>
     [Test]
     public async Task Utf8Z_ParsesNullTerminatedString()
     {
@@ -854,7 +888,7 @@ public sealed class BinaryParsableTests
         await Assert.That(result.Value).IsEqualTo("Hello");
         await Assert.That(consumed).IsEqualTo(6);
     }
-
+    /// <summary>Verifies StringWrapperInBinaryParsable WorksWithGenerator.</summary>
     [Test]
     public async Task StringWrapperInBinaryParsable_WorksWithGenerator()
     {
@@ -876,8 +910,9 @@ public sealed class BinaryParsableTests
     // NEW STRING ATTRIBUTE TESTS
     // ========================================================================
 
-    #region New String Attribute Tests
 
+    #region New String Attribute Tests
+    /// <summary>Verifies StringVarIntAttr ParsesVarIntPrefixedString.</summary>
     [Test]
     public async Task StringVarIntAttr_ParsesVarIntPrefixedString()
     {
@@ -892,7 +927,7 @@ public sealed class BinaryParsableTests
         await Assert.That(result.Message).IsEqualTo("Hello");
         await Assert.That(consumed).IsEqualTo(6);
     }
-
+    /// <summary>Verifies StringBE2Attr ParsesBigEndianLengthPrefixedString.</summary>
     [Test]
     public async Task StringBE2Attr_ParsesBigEndianLengthPrefixedString()
     {
@@ -907,7 +942,7 @@ public sealed class BinaryParsableTests
         await Assert.That(result.Message).IsEqualTo("Hello");
         await Assert.That(consumed).IsEqualTo(7);
     }
-
+    /// <summary>Verifies StringLE2Attr ParsesLittleEndianLengthPrefixedString.</summary>
     [Test]
     public async Task StringLE2Attr_ParsesLittleEndianLengthPrefixedString()
     {
@@ -922,7 +957,7 @@ public sealed class BinaryParsableTests
         await Assert.That(result.Message).IsEqualTo("Hello");
         await Assert.That(consumed).IsEqualTo(7);
     }
-
+    /// <summary>Verifies StringNullTermAttr ParsesNullTerminatedString.</summary>
     [Test]
     public async Task StringNullTermAttr_ParsesNullTerminatedString()
     {
@@ -937,7 +972,7 @@ public sealed class BinaryParsableTests
         await Assert.That(result.Message).IsEqualTo("Hello");
         await Assert.That(consumed).IsEqualTo(6);
     }
-
+    /// <summary>Verifies StringFixedAttr ParsesFixedLengthString.</summary>
     [Test]
     public async Task StringFixedAttr_ParsesFixedLengthString()
     {
@@ -952,7 +987,7 @@ public sealed class BinaryParsableTests
         await Assert.That(result.Message).IsEqualTo("Hello");
         await Assert.That(consumed).IsEqualTo(8);
     }
-
+    /// <summary>Verifies StringFromField ParsesStringWithLengthFromField.</summary>
     [Test]
     public async Task StringFromField_ParsesStringWithLengthFromField()
     {
@@ -968,7 +1003,7 @@ public sealed class BinaryParsableTests
         await Assert.That(result.Name).IsEqualTo("Hello");
         await Assert.That(consumed).IsEqualTo(6);
     }
-
+    /// <summary>Verifies StringFromFieldBE ParsesStringWithLengthFromBEField.</summary>
     [Test]
     public async Task StringFromFieldBE_ParsesStringWithLengthFromBEField()
     {
@@ -991,8 +1026,9 @@ public sealed class BinaryParsableTests
     // BYTE ARRAY ATTRIBUTE TESTS
     // ========================================================================
 
-    #region Byte Array Attribute Tests
 
+    #region Byte Array Attribute Tests
+    /// <summary>Verifies ByteArrayVarInt ParsesVarIntPrefixedArray.</summary>
     [Test]
     public async Task ByteArrayVarInt_ParsesVarIntPrefixedArray()
     {
@@ -1007,7 +1043,7 @@ public sealed class BinaryParsableTests
         await Assert.That(result.Data).IsEquivalentTo((byte[])[0xAA, 0xBB, 0xCC, 0xDD]);
         await Assert.That(consumed).IsEqualTo(5);
     }
-
+    /// <summary>Verifies ByteArrayBE2 ParsesBigEndianLengthPrefixedArray.</summary>
     [Test]
     public async Task ByteArrayBE2_ParsesBigEndianLengthPrefixedArray()
     {
@@ -1022,7 +1058,7 @@ public sealed class BinaryParsableTests
         await Assert.That(result.Data).IsEquivalentTo((byte[])[0xAA, 0xBB, 0xCC, 0xDD]);
         await Assert.That(consumed).IsEqualTo(6);
     }
-
+    /// <summary>Verifies ByteArrayLE4 ParsesLittleEndianLengthPrefixedArray.</summary>
     [Test]
     public async Task ByteArrayLE4_ParsesLittleEndianLengthPrefixedArray()
     {
@@ -1037,7 +1073,7 @@ public sealed class BinaryParsableTests
         await Assert.That(result.Data).IsEquivalentTo((byte[])[0xAA, 0xBB, 0xCC, 0xDD]);
         await Assert.That(consumed).IsEqualTo(8);
     }
-
+    /// <summary>Verifies ByteArrayFromField ParsesArrayWithLengthFromField.</summary>
     [Test]
     public async Task ByteArrayFromField_ParsesArrayWithLengthFromField()
     {
@@ -1053,7 +1089,7 @@ public sealed class BinaryParsableTests
         await Assert.That(result.Data).IsEquivalentTo((byte[])[0xAA, 0xBB, 0xCC, 0xDD]);
         await Assert.That(consumed).IsEqualTo(6);
     }
-
+    /// <summary>Verifies MemoryVarInt ParsesVarIntPrefixedMemory.</summary>
     [Test]
     public async Task MemoryVarInt_ParsesVarIntPrefixedMemory()
     {
@@ -1069,7 +1105,7 @@ public sealed class BinaryParsableTests
         await Assert.That(result.Data.ToArray()).IsEquivalentTo((byte[])[0xAA, 0xBB, 0xCC, 0xDD]);
         await Assert.That(consumed).IsEqualTo(5);
     }
-
+    /// <summary>Verifies ReadOnlyMemoryBE2 ParsesBigEndianLengthPrefixedMemory.</summary>
     [Test]
     public async Task ReadOnlyMemoryBE2_ParsesBigEndianLengthPrefixedMemory()
     {
@@ -1085,7 +1121,7 @@ public sealed class BinaryParsableTests
         await Assert.That(result.Data.ToArray()).IsEquivalentTo((byte[])[0xAA, 0xBB, 0xCC, 0xDD]);
         await Assert.That(consumed).IsEqualTo(6);
     }
-
+    /// <summary>Verifies MemoryFromField ParsesMemoryWithLengthFromField.</summary>
     [Test]
     public async Task MemoryFromField_ParsesMemoryWithLengthFromField()
     {
@@ -1108,8 +1144,9 @@ public sealed class BinaryParsableTests
     // ========================================================================
     // MIXED VARIABLE/FIXED PARSING TESTS
     // ========================================================================
-    #region Mixed Variable/Fixed Parsing
 
+    #region Mixed Variable/Fixed Parsing
+    /// <summary>Verifies VarIntThenFixedStruct ParsesCorrectly.</summary>
     [Test]
     public async Task VarIntThenFixedStruct_ParsesCorrectly()
     {
@@ -1126,7 +1163,7 @@ public sealed class BinaryParsableTests
         await Assert.That(result.Value.Value).IsEqualTo(0x01020304u);
         await Assert.That((int)result.Flags.Value).IsEqualTo(0xABCD);
     }
-
+    /// <summary>Verifies StringThenFixedStruct ParsesCorrectly.</summary>
     [Test]
     public async Task StringThenFixedStruct_ParsesCorrectly()
     {
@@ -1142,7 +1179,7 @@ public sealed class BinaryParsableTests
         await Assert.That(result.Label).IsEqualTo("hi");
         await Assert.That(result.Id.Value).IsEqualTo(0xDEADBEEFu);
     }
-
+    /// <summary>Verifies FixedBEStringStruct ParsesCorrectly.</summary>
     [Test]
     public async Task FixedBEStringStruct_ParsesCorrectly()
     {
@@ -1174,9 +1211,10 @@ public sealed class BinaryParsableTests
 [BinaryParsable]
 public readonly partial struct PaddingBitsTestStruct
 {
+    /// <summary>Gets the Flags field.</summary>
     [BinaryField(BitCount = 4, PaddingBits = 4)]  // 4 bits for Flags, then skip 4 padding bits → byte-aligned!
     public byte Flags { get; init; }
-
+    /// <summary>4 bytes.</summary>
     public U32BE Payload { get; init; }       // 4 bytes
 }
 
@@ -1190,6 +1228,7 @@ public readonly partial struct PaddingBitsTestStruct
 [BinaryParsable]
 public readonly partial struct StringVarIntTestStruct
 {
+    /// <summary>Gets the Message field.</summary>
     [BinaryStringLength(StringLengthEncoding.VarInt)]
     public string Message { get; init; }
 }
@@ -1200,6 +1239,7 @@ public readonly partial struct StringVarIntTestStruct
 [BinaryParsable]
 public readonly partial struct StringFixedBE2TestStruct
 {
+    /// <summary>Gets the Message field.</summary>
     [BinaryStringLength(StringLengthEncoding.FixedBE, LengthBytes = 2)]
     public string Message { get; init; }
 }
@@ -1210,6 +1250,7 @@ public readonly partial struct StringFixedBE2TestStruct
 [BinaryParsable]
 public readonly partial struct StringFixedLE2TestStruct
 {
+    /// <summary>Gets the Message field.</summary>
     [BinaryStringLength(StringLengthEncoding.FixedLE, LengthBytes = 2)]
     public string Message { get; init; }
 }
@@ -1220,6 +1261,7 @@ public readonly partial struct StringFixedLE2TestStruct
 [BinaryParsable]
 public readonly partial struct StringNullTerminatedTestStruct
 {
+    /// <summary>Gets the Message field.</summary>
     [BinaryStringLength(StringLengthEncoding.NullTerminated)]
     public string Message { get; init; }
 }
@@ -1230,6 +1272,7 @@ public readonly partial struct StringNullTerminatedTestStruct
 [BinaryParsable]
 public readonly partial struct StringFixedLengthTestStruct
 {
+    /// <summary>Gets the Message field.</summary>
     [BinaryStringLength(StringLengthEncoding.Fixed, FixedLength = 8)]
     public string Message { get; init; }
 }
@@ -1240,8 +1283,9 @@ public readonly partial struct StringFixedLengthTestStruct
 [BinaryParsable]
 public readonly partial struct StringWithHeaderTestStruct
 {
+    /// <summary>Gets the Version field.</summary>
     public U16BE Version { get; init; }
-
+    /// <summary>Gets the Message field.</summary>
     [BinaryStringLength(StringLengthEncoding.VarInt)]
     public string Message { get; init; }
 }
@@ -1256,14 +1300,23 @@ public readonly partial struct StringWithHeaderTestStruct
 [BinaryParsable(DefaultEndianness = Endianness.BigEndian)]
 public readonly partial struct PrimitiveIntegerTestStructBE
 {
+    /// <summary>Gets the Int16 Value field.</summary>
     public short Int16Value { get; init; }
+    /// <summary>Gets the UInt16 Value field.</summary>
     public ushort UInt16Value { get; init; }
+    /// <summary>Gets the Int32 Value field.</summary>
     public int Int32Value { get; init; }
+    /// <summary>Gets the UInt32 Value field.</summary>
     public uint UInt32Value { get; init; }
+    /// <summary>Gets the Int64 Value field.</summary>
     public long Int64Value { get; init; }
+    /// <summary>Gets the UInt64 Value field.</summary>
     public ulong UInt64Value { get; init; }
+    /// <summary>Gets the Single Value field.</summary>
     public float SingleValue { get; init; }
+    /// <summary>Gets the Double Value field.</summary>
     public double DoubleValue { get; init; }
+    /// <summary>Gets the SByte Value field.</summary>
     public sbyte SByteValue { get; init; }
 }
 
@@ -1273,7 +1326,9 @@ public readonly partial struct PrimitiveIntegerTestStructBE
 [BinaryParsable(DefaultEndianness = Endianness.LittleEndian)]
 public readonly partial struct PrimitiveIntegerTestStructLE
 {
+    /// <summary>Gets the Int32 Value field.</summary>
     public int Int32Value { get; init; }
+    /// <summary>Gets the Single Value field.</summary>
     public float SingleValue { get; init; }
 }
 
@@ -1287,6 +1342,7 @@ public readonly partial struct PrimitiveIntegerTestStructLE
 [BinaryParsable]
 public readonly partial struct Utf8FixBETestStruct
 {
+    /// <summary>Gets the Message field.</summary>
     public Utf8FixBE Message { get; init; }
 }
 
@@ -1300,6 +1356,7 @@ public readonly partial struct Utf8FixBETestStruct
 [BinaryParsable]
 public readonly partial struct StringVarIntAttrTestStruct
 {
+    /// <summary>Gets the Message field.</summary>
     [StringLengthVarInt]
     public string Message { get; init; }
 }
@@ -1310,6 +1367,7 @@ public readonly partial struct StringVarIntAttrTestStruct
 [BinaryParsable]
 public readonly partial struct StringBE2AttrTestStruct
 {
+    /// <summary>Gets the Message field.</summary>
     [StringLengthBE(2)]
     public string Message { get; init; }
 }
@@ -1320,6 +1378,7 @@ public readonly partial struct StringBE2AttrTestStruct
 [BinaryParsable]
 public readonly partial struct StringLE2AttrTestStruct
 {
+    /// <summary>Gets the Message field.</summary>
     [StringLengthLE(2)]
     public string Message { get; init; }
 }
@@ -1330,6 +1389,7 @@ public readonly partial struct StringLE2AttrTestStruct
 [BinaryParsable]
 public readonly partial struct StringNullTermAttrTestStruct
 {
+    /// <summary>Gets the Message field.</summary>
     [StringNullTerminated]
     public string Message { get; init; }
 }
@@ -1340,6 +1400,7 @@ public readonly partial struct StringNullTermAttrTestStruct
 [BinaryParsable]
 public readonly partial struct StringFixedAttrTestStruct
 {
+    /// <summary>Gets the Message field.</summary>
     [StringFixedLength(8)]
     public string Message { get; init; }
 }
@@ -1350,8 +1411,9 @@ public readonly partial struct StringFixedAttrTestStruct
 [BinaryParsable]
 public readonly partial struct StringFromFieldTestStruct
 {
+    /// <summary>Gets the Name Length field.</summary>
     public byte NameLength { get; init; }
-
+    /// <summary>Gets the Name field.</summary>
     [StringLengthFromField(nameof(NameLength))]
     public string Name { get; init; }
 }
@@ -1362,8 +1424,9 @@ public readonly partial struct StringFromFieldTestStruct
 [BinaryParsable]
 public readonly partial struct StringFromFieldBETestStruct
 {
+    /// <summary>Gets the Message Length field.</summary>
     public U16BE MessageLength { get; init; }
-
+    /// <summary>Gets the Message field.</summary>
     [StringLengthFromField(nameof(MessageLength))]
     public string Message { get; init; }
 }
@@ -1378,6 +1441,7 @@ public readonly partial struct StringFromFieldBETestStruct
 [BinaryParsable]
 public readonly partial struct ByteArrayVarIntTestStruct
 {
+    /// <summary>Gets the Data field.</summary>
     [BytesLengthVarInt]
     public byte[] Data { get; init; }
 }
@@ -1388,6 +1452,7 @@ public readonly partial struct ByteArrayVarIntTestStruct
 [BinaryParsable]
 public readonly partial struct ByteArrayBE2TestStruct
 {
+    /// <summary>Gets the Data field.</summary>
     [BytesLengthBE(2)]
     public byte[] Data { get; init; }
 }
@@ -1398,6 +1463,7 @@ public readonly partial struct ByteArrayBE2TestStruct
 [BinaryParsable]
 public readonly partial struct ByteArrayLE4TestStruct
 {
+    /// <summary>Gets the Data field.</summary>
     [BytesLengthLE(4)]
     public byte[] Data { get; init; }
 }
@@ -1408,8 +1474,9 @@ public readonly partial struct ByteArrayLE4TestStruct
 [BinaryParsable]
 public readonly partial struct ByteArrayFromFieldTestStruct
 {
+    /// <summary>Gets the Data Length field.</summary>
     public U16BE DataLength { get; init; }
-
+    /// <summary>Gets the Data field.</summary>
     [BytesLengthFromField(nameof(DataLength))]
     public byte[] Data { get; init; }
 }
@@ -1420,6 +1487,7 @@ public readonly partial struct ByteArrayFromFieldTestStruct
 [BinaryParsable]
 public readonly partial struct MemoryVarIntTestStruct
 {
+    /// <summary>Gets the Data field.</summary>
     [BytesLengthVarInt]
     public Memory<byte> Data { get; init; }
 }
@@ -1430,6 +1498,7 @@ public readonly partial struct MemoryVarIntTestStruct
 [BinaryParsable]
 public readonly partial struct ReadOnlyMemoryBE2TestStruct
 {
+    /// <summary>Gets the Data field.</summary>
     [BytesLengthBE(2)]
     public ReadOnlyMemory<byte> Data { get; init; }
 }
@@ -1440,8 +1509,9 @@ public readonly partial struct ReadOnlyMemoryBE2TestStruct
 [BinaryParsable]
 public readonly partial struct MemoryFromFieldTestStruct
 {
+    /// <summary>Gets the Data Size field.</summary>
     public byte DataSize { get; init; }
-
+    /// <summary>Gets the Data field.</summary>
     [BytesLengthFromField(nameof(DataSize))]
     public Memory<byte> Data { get; init; }
 }
@@ -1455,6 +1525,7 @@ public readonly partial struct MemoryFromFieldTestStruct
 /// </summary>
 public sealed class VarIntTests
 {
+    /// <summary>Verifies VarInt TryParse ParsesCorrectly.</summary>
     [Test]
     [Arguments(0UL, new byte[] { 0x00 })]
     [Arguments(127UL, new byte[] { 0x7F })]
@@ -1477,7 +1548,7 @@ public sealed class VarIntTests
         await Assert.That(value.Value).IsEqualTo(expected);
         await Assert.That(bytesConsumed).IsEqualTo(data.Length);
     }
-
+    /// <summary>Verifies VarInt TryFormat WritesCorrectly.</summary>
     [Test]
     public async Task VarInt_TryFormat_WritesCorrectly()
     {
@@ -1501,7 +1572,7 @@ public sealed class VarIntTests
         await Assert.That((int)byte0).IsEqualTo(0xAC);
         await Assert.That((int)byte1).IsEqualTo(0x02);
     }
-
+    /// <summary>Verifies VarInt EncodedSize ReturnsCorrectSize.</summary>
     [Test]
     public async Task VarInt_EncodedSize_ReturnsCorrectSize()
     {
@@ -1542,13 +1613,13 @@ public sealed class VarIntTests
             await Assert.That(writeSuccess).IsTrue().Because($"Failed to write {expected}");
 
             // Read
-            bool readSuccess = VarInt.TryParse(buffer[..bytesWritten], out VarInt parsed, out int bytesConsumed);
+            bool readSuccess = VarInt.TryParse(buffer.AsSpan(0, bytesWritten), out VarInt parsed, out int bytesConsumed);
             await Assert.That(readSuccess).IsTrue().Because($"Failed to read {expected}");
             await Assert.That(parsed.Value).IsEqualTo(expected);
             await Assert.That(bytesConsumed).IsEqualTo(bytesWritten);
         }
     }
-
+    /// <summary>Verifies VarInt TryParse InsufficientData ReturnsFalse.</summary>
     [Test]
     public async Task VarInt_TryParse_InsufficientData_ReturnsFalse()
     {
@@ -1562,7 +1633,7 @@ public sealed class VarIntTests
         await Assert.That(success).IsFalse();
         await Assert.That(bytesConsumed).IsEqualTo(0);
     }
-
+    /// <summary>Verifies VarInt TryGetWrittenSize ReturnsEncodedSize.</summary>
     [Test]
     public async Task VarInt_TryGetWrittenSize_ReturnsEncodedSize()
     {
@@ -1583,7 +1654,7 @@ public sealed class VarIntTests
         await Assert.That(varInt16383.TryGetWrittenSize(out int size16383)).IsTrue();
         await Assert.That(size16383).IsEqualTo(2);
     }
-
+    /// <summary>Verifies VarInt ToString ReturnsDecimalString.</summary>
     [Test]
     public async Task VarInt_ToString_ReturnsDecimalString()
     {
@@ -1593,7 +1664,7 @@ public sealed class VarIntTests
         // Act & Assert
         await Assert.That(varInt.ToString()).IsEqualTo("12345");
     }
-
+    /// <summary>Verifies VarInt ImplicitConversions work.</summary>
     [Test]
     public async Task VarInt_ImplicitConversions_Work()
     {
@@ -1616,6 +1687,7 @@ public sealed class VarIntTests
 /// </summary>
 public sealed class VarIntZigZagTests
 {
+    /// <summary>Verifies VarIntZigZag TryParse ParsesCorrectly.</summary>
     [Test]
     [Arguments(0L, new byte[] { 0x00 })]
     [Arguments(-1L, new byte[] { 0x01 })]
@@ -1634,7 +1706,7 @@ public sealed class VarIntZigZagTests
         await Assert.That(value.Value).IsEqualTo(expected);
         await Assert.That(bytesConsumed).IsEqualTo(data.Length);
     }
-
+    /// <summary>Verifies VarIntZigZag TryFormat WritesCorrectly.</summary>
     [Test]
     public async Task VarIntZigZag_TryFormat_WritesCorrectly()
     {
@@ -1656,7 +1728,7 @@ public sealed class VarIntZigZagTests
         await Assert.That(bytesWritten).IsEqualTo(1);
         await Assert.That((int)byte0).IsEqualTo(0x01);
     }
-
+    /// <summary>Verifies VarIntZigZag ZigZagEncoded ReturnsCorrectValue.</summary>
     [Test]
     public async Task VarIntZigZag_ZigZagEncoded_ReturnsCorrectValue()
     {
@@ -1667,7 +1739,7 @@ public sealed class VarIntZigZagTests
         await Assert.That(new VarIntZigZag(-2).ZigZagEncoded).IsEqualTo(3UL);
         await Assert.That(new VarIntZigZag(2).ZigZagEncoded).IsEqualTo(4UL);
     }
-
+    /// <summary>Verifies VarIntZigZag DecodeZigZag DecodesCorrectly.</summary>
     [Test]
     public async Task VarIntZigZag_DecodeZigZag_DecodesCorrectly()
     {
@@ -1678,7 +1750,7 @@ public sealed class VarIntZigZagTests
         await Assert.That(VarIntZigZag.DecodeZigZag(3)).IsEqualTo(-2L);
         await Assert.That(VarIntZigZag.DecodeZigZag(4)).IsEqualTo(2L);
     }
-
+    /// <summary>Verifies VarIntZigZag EncodedSize ReturnsCorrectSize.</summary>
     [Test]
     public async Task VarIntZigZag_EncodedSize_ReturnsCorrectSize()
     {
@@ -1700,7 +1772,7 @@ public sealed class VarIntZigZagTests
         await Assert.That(new VarIntZigZag(long.MaxValue).EncodedSize).IsEqualTo(10);
         await Assert.That(new VarIntZigZag(long.MinValue).EncodedSize).IsEqualTo(10);
     }
-
+    /// <summary>Verifies VarIntZigZag TryParse InsufficientData ReturnsFalse.</summary>
     [Test]
     public async Task VarIntZigZag_TryParse_InsufficientData_ReturnsFalse()
     {
@@ -1714,7 +1786,7 @@ public sealed class VarIntZigZagTests
         await Assert.That(success).IsFalse();
         await Assert.That(bytesConsumed).IsEqualTo(0);
     }
-
+    /// <summary>Verifies VarIntZigZag ToString ReturnsDecimalString.</summary>
     [Test]
     public async Task VarIntZigZag_ToString_ReturnsDecimalString()
     {
@@ -1724,7 +1796,7 @@ public sealed class VarIntZigZagTests
         // Act & Assert
         await Assert.That(varInt.ToString()).IsEqualTo("-12345");
     }
-
+    /// <summary>Verifies VarIntZigZag ImplicitConversions work.</summary>
     [Test]
     public async Task VarIntZigZag_ImplicitConversions_Work()
     {
@@ -1740,7 +1812,7 @@ public sealed class VarIntZigZagTests
         await Assert.That(fromShort.Value).IsEqualTo(-12345L);
         await Assert.That(fromSbyte.Value).IsEqualTo(-123L);
     }
-
+    /// <summary>Verifies VarIntZigZag RoundTrip PreservesValue.</summary>
     [Test]
     public async Task VarIntZigZag_RoundTrip_PreservesValue()
     {
@@ -1757,7 +1829,7 @@ public sealed class VarIntZigZagTests
             bool writeSuccess = original.TryFormat(buffer, out int bytesWritten, default, null);
 
             // Act - Read
-            bool readSuccess = VarIntZigZag.TryParse(buffer[..bytesWritten], out VarIntZigZag parsed, out int bytesConsumed);
+            bool readSuccess = VarIntZigZag.TryParse(buffer.AsSpan(0, bytesWritten), out VarIntZigZag parsed, out int bytesConsumed);
 
             // Assert
             await Assert.That(writeSuccess).IsTrue().Because($"Failed to write {expected}");

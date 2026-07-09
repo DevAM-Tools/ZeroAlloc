@@ -5,24 +5,26 @@ namespace ZeroAlloc.Tests;
 /// <summary>Test double that always fails <see cref="IUtf8SpanFormattable.TryFormat"/>.</summary>
 internal readonly struct AlwaysFailUtf8Format : IUtf8SpanFormattable
 {
+    /// <summary>Verifies TryFormat.</summary>
     public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         bytesWritten = 0;
         return false;
     }
-
+    /// <summary>Verifies ToString.</summary>
     public override string ToString() => "fail";
 }
 
 /// <summary>Test double that always fails <see cref="IBinarySerializable.TryWrite"/>.</summary>
 internal readonly struct AlwaysFailBinaryWrite : IBinarySerializable
 {
+    /// <summary>Verifies TryGetWrittenSize.</summary>
     public bool TryGetWrittenSize(out int size)
     {
         size = 0;
         return false;
     }
-
+    /// <summary>Verifies TryWrite.</summary>
     public bool TryWrite(Span<byte> destination, out int bytesWritten)
     {
         bytesWritten = 0;
@@ -36,10 +38,13 @@ internal readonly struct AlwaysFailBinaryWrite : IBinarySerializable
 /// </summary>
 public sealed class TempBytesBuilderTests
 {
+
     // ========================================================================
     // CREATION AND PROPERTIES
     // ========================================================================
 
+
+    /// <summary>Verifies Create ReturnsEmptyBuilder.</summary>
     [Test]
     public async Task Create_ReturnsEmptyBuilder()
     {
@@ -58,6 +63,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That(capacityPositive).IsTrue();
     }
 
+    /// <summary>Verifies IsHeapAllocated FalseForNormalUse.</summary>
     [Test]
     public async Task IsHeapAllocated_FalseForNormalUse()
     {
@@ -70,6 +76,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That(isHeapAllocated).IsFalse();
     }
 
+    /// <summary>Verifies WrittenSpan MatchesAsSpan.</summary>
     [Test]
     public async Task WrittenSpan_MatchesAsSpan()
     {
@@ -85,6 +92,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That(written).IsEquivalentTo(asSpan);
     }
 
+    /// <summary>Verifies ImplicitConversionToReadOnlySpan ImplicitConversionToReadOnlySpan works.</summary>
     [Test]
     public async Task ImplicitConversionToReadOnlySpan_Works()
     {
@@ -103,6 +111,8 @@ public sealed class TempBytesBuilderTests
     // APPEND CHAIN
     // ========================================================================
 
+
+    /// <summary>Verifies AppendChain BytesAndIntegers WritesCorrectly.</summary>
     [Test]
     public async Task AppendChain_BytesAndIntegers_WritesCorrectly()
     {
@@ -127,6 +137,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That(bytes).Contains((byte)0x34);
     }
 
+    /// <summary>Verifies AppendChain FloatAnd128BitTypes WritesCorrectly.</summary>
     [Test]
     public async Task AppendChain_FloatAnd128BitTypes_WritesCorrectly()
     {
@@ -150,6 +161,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That(length).IsGreaterThan(0);
     }
 
+    /// <summary>Verifies AppendUtf8 EncodesCorrectly.</summary>
     [Test]
     public async Task AppendUtf8_EncodesCorrectly()
     {
@@ -163,6 +175,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That(bytes).IsEquivalentTo("Hello"u8.ToArray());
     }
 
+    /// <summary>Verifies AppendUtf8 UnicodeCharacters EncodesCorrectly.</summary>
     [Test]
     public async Task AppendUtf8_UnicodeCharacters_EncodesCorrectly()
     {
@@ -176,6 +189,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That(bytes).IsEquivalentTo(System.Text.Encoding.UTF8.GetBytes("Héllo €"));
     }
 
+    /// <summary>Verifies AppendUtf8NullTerminated IncludesZeroByte.</summary>
     [Test]
     public async Task AppendUtf8NullTerminated_IncludesZeroByte()
     {
@@ -189,6 +203,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That((int)bytes[^1]).IsEqualTo(0);
     }
 
+    /// <summary>Verifies AppendUtf8WithPrefixes EncodeLengthAndContent.</summary>
     [Test]
     public async Task AppendUtf8WithPrefixes_EncodeLengthAndContent()
     {
@@ -220,6 +235,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That((int)le[3]).IsEqualTo(0x00);
     }
 
+    /// <summary>Verifies AppendVarInt EncodesExpectedByteCount.</summary>
     [Test]
     [Arguments(127UL, 1)]
     [Arguments(128UL, 2)]
@@ -236,6 +252,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That(length).IsEqualTo(expectedLength);
     }
 
+    /// <summary>Verifies AppendVarIntZigZag EncodesSignedValue.</summary>
     [Test]
     public async Task AppendVarIntZigZag_EncodesSignedValue()
     {
@@ -250,6 +267,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That(bytes).IsEquivalentTo((byte[])[0x01, 0x02]);
     }
 
+    /// <summary>Verifies Append IBinarySerializable WritesStruct.</summary>
     [Test]
     public async Task Append_IBinarySerializable_WritesStruct()
     {
@@ -264,6 +282,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That(bytes).IsEquivalentTo((byte[])[0x01, 0x02, 0x03]);
     }
 
+    /// <summary>Verifies AppendUtf8Formattable EncodesFormattedValue.</summary>
     [Test]
     public async Task AppendUtf8Formattable_EncodesFormattedValue()
     {
@@ -277,6 +296,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That(bytes).IsEquivalentTo("2A"u8.ToArray());
     }
 
+    /// <summary>Verifies AppendHex AndBinary FormatsAscii.</summary>
     [Test]
     public async Task AppendHex_AndBinary_FormatsAscii()
     {
@@ -293,6 +313,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That((int)bytes[1]).IsEqualTo((int)(byte)'B');
     }
 
+    /// <summary>Verifies Append NullByteArray DoesNothing.</summary>
     [Test]
     public async Task Append_NullByteArray_DoesNothing()
     {
@@ -306,6 +327,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That(isEmpty).IsTrue();
     }
 
+    /// <summary>Verifies Append EmptySpan DoesNothing.</summary>
     [Test]
     public async Task Append_EmptySpan_DoesNothing()
     {
@@ -323,6 +345,8 @@ public sealed class TempBytesBuilderTests
     // CLEAR AND SEEKBACK
     // ========================================================================
 
+
+    /// <summary>Verifies Clear ResetsLength.</summary>
     [Test]
     public async Task Clear_ResetsLength()
     {
@@ -337,6 +361,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That(isEmpty).IsTrue();
     }
 
+    /// <summary>Verifies SeekBack DecreasesLength.</summary>
     [Test]
     public async Task SeekBack_DecreasesLength()
     {
@@ -351,6 +376,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That(bytes).IsEquivalentTo((byte[])[0x01, 0x02]);
     }
 
+    /// <summary>Verifies SeekBack TooMuch ThrowsArgumentOutOfRangeException.</summary>
     [Test]
     public async Task SeekBack_TooMuch_ThrowsArgumentOutOfRangeException()
     {
@@ -365,6 +391,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies TrySeekBack Valid ReturnsTrue.</summary>
     [Test]
     public async Task TrySeekBack_Valid_ReturnsTrue()
     {
@@ -381,6 +408,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That(length).IsEqualTo(2);
     }
 
+    /// <summary>Verifies TrySeekBack Invalid ReturnsFalse.</summary>
     [Test]
     public async Task TrySeekBack_Invalid_ReturnsFalse()
     {
@@ -401,6 +429,8 @@ public sealed class TempBytesBuilderTests
     // TRYAPPEND
     // ========================================================================
 
+
+    /// <summary>Verifies TryAppend Bytes ReturnTrue.</summary>
     [Test]
     public async Task TryAppend_Bytes_ReturnTrue()
     {
@@ -419,6 +449,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That(bytes).IsEquivalentTo((byte[])[0x01, 0x02, 0x03]);
     }
 
+    /// <summary>Verifies TryAppend IBinarySerializable ReturnsTrue.</summary>
     [Test]
     public async Task TryAppend_IBinarySerializable_ReturnsTrue()
     {
@@ -435,6 +466,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That(bytes).IsEquivalentTo((byte[])[0xAA, 0xBB, 0xCC]);
     }
 
+    /// <summary>Verifies TryAppendHex2 ReturnsTrue.</summary>
     [Test]
     public async Task TryAppendHex2_ReturnsTrue()
     {
@@ -454,6 +486,8 @@ public sealed class TempBytesBuilderTests
     // GROW / NESTED BUILDER
     // ========================================================================
 
+
+    /// <summary>Verifies NestedBuilder GrowsBeyondDefaultBuffer PreservesOuterContent.</summary>
     [Test]
     public async Task NestedBuilder_GrowsBeyondDefaultBuffer_PreservesOuterContent()
     {
@@ -490,6 +524,8 @@ public sealed class TempBytesBuilderTests
     // OUTPUT AND DISPOSAL
     // ========================================================================
 
+
+    /// <summary>Verifies ToArray ReturnsCopyOfWrittenBytes.</summary>
     [Test]
     public async Task ToArray_ReturnsCopyOfWrittenBytes()
     {
@@ -503,6 +539,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That(array).IsEquivalentTo((byte[])[0x01, 0x02]);
     }
 
+    /// <summary>Verifies ToString ReturnsDiagnosticMessage.</summary>
     [Test]
     public async Task ToString_ReturnsDiagnosticMessage()
     {
@@ -516,6 +553,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That(text).Contains("3 bytes");
     }
 
+    /// <summary>Verifies Dispose ReleasesBuffer.</summary>
     [Test]
     public async Task Dispose_ReleasesBuffer()
     {
@@ -530,6 +568,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That(length).IsEqualTo(4);
     }
 
+    /// <summary>Verifies BuildPacket ProducesCorrectBytes.</summary>
     [Test]
     public async Task BuildPacket_ProducesCorrectBytes()
     {
@@ -546,6 +585,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That(packet).IsEquivalentTo(expected);
     }
 
+    /// <summary>Verifies ClearAndReuse ClearAndReuse works.</summary>
     [Test]
     public async Task ClearAndReuse_Works()
     {
@@ -568,6 +608,8 @@ public sealed class TempBytesBuilderTests
     // EXIT-POINT COVERAGE
     // ========================================================================
 
+
+    /// <summary>Verifies ExitCoverage AppendWrappers AndLittleEndian Succeed.</summary>
     [Test]
     public async Task ExitCoverage_AppendWrappers_AndLittleEndian_Succeed()
     {
@@ -608,6 +650,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That(bytes.Length).IsEqualTo(length);
     }
 
+    /// <summary>Verifies ExitCoverage AppendUtf8Null AndToArrayEmpty work.</summary>
     [Test]
     public async Task ExitCoverage_AppendUtf8Null_AndToArrayEmpty_Work()
     {
@@ -629,6 +672,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That(emptyArray.Length).IsEqualTo(0);
     }
 
+    /// <summary>Verifies ExitCoverage TryAppendHexBinary Success.</summary>
     [Test]
     [Arguments(nameof(TempBytesBuilder.TryAppendHex4), 4)]
     [Arguments(nameof(TempBytesBuilder.TryAppendHex8), 8)]
@@ -644,6 +688,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That(success).IsTrue();
     }
 
+    /// <summary>Verifies ExitCoverage TryAppendBytes AndGeneric Paths.</summary>
     [Test]
     public async Task ExitCoverage_TryAppendBytes_AndGeneric_Paths()
     {
@@ -667,6 +712,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That(genericOk).IsTrue();
     }
 
+    /// <summary>Verifies ExitCoverage TryAppendUtf8Formattable succeeds.</summary>
     [Test]
     public async Task ExitCoverage_TryAppendUtf8Formattable_Succeeds()
     {
@@ -679,6 +725,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That(tryOk).IsTrue();
     }
 
+    /// <summary>Verifies ExitCoverage Grow TriggersEnsureCapacitySuccess.</summary>
     [Test]
     public async Task ExitCoverage_Grow_TriggersEnsureCapacitySuccess()
     {
@@ -702,6 +749,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That(length).IsEqualTo(capacity + 1);
     }
 
+    /// <summary>Verifies ExitCoverage TryAppend FailsWhenGrowUnavailable.</summary>
     [Test]
     [NotInParallel("Corrupts thread-static byte buffer")]
     public async Task ExitCoverage_TryAppend_FailsWhenGrowUnavailable()
@@ -749,6 +797,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That(utf8Fail).IsFalse();
     }
 
+    /// <summary>Verifies ExitCoverage TryEnsureCapacity SucceedsViaTryAppend.</summary>
     [Test]
     [NotInParallel("Corrupts thread-static byte buffer")]
     public async Task ExitCoverage_TryEnsureCapacity_SucceedsViaTryAppend()
@@ -770,6 +819,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That(grew).IsTrue();
     }
 
+    /// <summary>Verifies ExitCoverage AppendGeneric AndUtf8 ThrowWhenGrowStalls.</summary>
     [Test]
     [NotInParallel("SimulateGrowStallForCoverage")]
     public async Task ExitCoverage_AppendGeneric_AndUtf8_ThrowWhenGrowStalls()
@@ -799,6 +849,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That(utf8Threw).IsTrue();
     }
 
+    /// <summary>Verifies ExitCoverage TryAppend GenericAndUtf8 ReturnFalseWhenGrowStalls.</summary>
     [Test]
     [NotInParallel("SimulateGrowStallForCoverage")]
     public async Task ExitCoverage_TryAppend_GenericAndUtf8_ReturnFalseWhenGrowStalls()
@@ -826,6 +877,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That(utf8Fail).IsFalse();
     }
 
+    /// <summary>Verifies ExitCoverage AppendGeneric AndUtf8Formattable ThrowWhenBufferUnavailable.</summary>
     [Test]
     [NotInParallel("Corrupts thread-static byte buffer")]
     public async Task ExitCoverage_AppendGeneric_AndUtf8Formattable_ThrowWhenBufferUnavailable()
@@ -851,6 +903,7 @@ public sealed class TempBytesBuilderTests
         await Assert.That(genericThrew).IsTrue();
     }
 
+    /// <summary>Verifies ExitCoverage TryAppendHexBinary FailsWhenGrowUnavailable.</summary>
     [Test]
     [NotInParallel("Corrupts thread-static byte buffer")]
     public async Task ExitCoverage_TryAppendHexBinary_FailsWhenGrowUnavailable()

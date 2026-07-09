@@ -16,6 +16,7 @@ public sealed class StringWrappersTests
     // UTF-8 WRAPPERS
     // ========================================================================
 
+
     /// <summary>Verifies plain Utf8 encodes UTF-8 bytes without a length prefix.</summary>
     [Test]
     public async Task Utf8_TryFormat_WritesUtf8BytesWithoutPrefix()
@@ -96,6 +97,7 @@ public sealed class StringWrappersTests
     // UTF-16 WRAPPERS
     // ========================================================================
 
+
     /// <summary>Verifies UTF-16 BE/LE plain wrappers encode two bytes per char.</summary>
     [Test]
     [Arguments(nameof(Utf16BE), true)]
@@ -134,6 +136,7 @@ public sealed class StringWrappersTests
     // UTF-32 WRAPPERS
     // ========================================================================
 
+
     /// <summary>Verifies UTF-32 plain wrappers encode using the configured endianness.</summary>
     [Test]
     [Arguments(nameof(Utf32BE))]
@@ -165,6 +168,7 @@ public sealed class StringWrappersTests
     // ========================================================================
     // ASCII WRAPPERS
     // ========================================================================
+
 
     /// <summary>Verifies Ascii replaces non-ASCII code points with question marks.</summary>
     [Test]
@@ -202,6 +206,7 @@ public sealed class StringWrappersTests
     // ========================================================================
     // LATIN1 WRAPPERS
     // ========================================================================
+
 
     /// <summary>Verifies Latin1 encodes ISO-8859-1 bytes for extended characters.</summary>
     [Test]
@@ -761,10 +766,6 @@ public sealed class StringWrappersTests
         await Assert.That(success).IsFalse();
         await Assert.That(size).IsEqualTo(0);
     }
-
-    // ========================================================================
-    // HELPERS
-    // ========================================================================
 
     private static int _FormatStringWrapper(string wrapperName, string? value, Span<byte> destination)
     {

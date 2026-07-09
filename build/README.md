@@ -19,7 +19,7 @@ Consumers: `dotnet add package ZeroAlloc` and define `internal partial class ZA 
 | File | Purpose |
 |------|---------|
 | `Directory.Build.props` | Shared compile settings and release metadata |
-| `Directory.Build.targets` | CSharpStyleValidator (quality gate; `PrivateAssets=all` so it is not packed as a consumer dependency) |
+| `Directory.Build.targets` | CSharpStyleChecker (quality gate; not packed as a consumer dependency) |
 | `Directory.Packages.props` | Central package versions |
 | `build/ZeroAlloc.Pack.targets` | Pack output, analyzer inclusion, buildTransitive props |
 | `ZeroAlloc.Generator/build/ZeroAlloc.Generator.props` | Source for `buildTransitive/ZeroAlloc.props` (imported in-repo via `ZeroAlloc.csproj`) |

@@ -9,10 +9,14 @@ namespace ZeroAlloc.Tests;
 /// </summary>
 public sealed class LocalizedFormattingTests
 {
+
     // ========================================================================
     // TEMPSTRING WITH CULTURE - DECIMAL FORMATTING
     // These tests use ZA.String(culture, ...) which has generated overloads
     // ========================================================================
+
+
+    /// <summary>Verifies String German FormatsDecimalWithComma.</summary>
     [Test]
     public async Task String_German_FormatsDecimalWithComma()
     {
@@ -31,6 +35,7 @@ public sealed class LocalizedFormattingTests
         await Assert.That(content).IsEqualTo("Preis: 1234,56");
     }
 
+    /// <summary>Verifies String English FormatsDecimalWithPeriod.</summary>
     [Test]
     public async Task String_English_FormatsDecimalWithPeriod()
     {
@@ -49,6 +54,7 @@ public sealed class LocalizedFormattingTests
         await Assert.That(content).IsEqualTo("Price: 1234.56");
     }
 
+    /// <summary>Verifies String French FormatsDecimalWithComma.</summary>
     [Test]
     public async Task String_French_FormatsDecimalWithComma()
     {
@@ -67,6 +73,7 @@ public sealed class LocalizedFormattingTests
         await Assert.That(content).Contains(",");
     }
 
+    /// <summary>Verifies String InvariantCulture FormatsConsistently.</summary>
     [Test]
     public async Task String_InvariantCulture_FormatsConsistently()
     {
@@ -89,6 +96,8 @@ public sealed class LocalizedFormattingTests
     // TEMPSTRING WITH CULTURE - PROPERTIES
     // ========================================================================
 
+
+    /// <summary>Verifies String WithCulture Length ReturnsCorrectValue.</summary>
     [Test]
     public async Task String_WithCulture_Length_ReturnsCorrectValue()
     {
@@ -107,6 +116,7 @@ public sealed class LocalizedFormattingTests
         await Assert.That(length).IsEqualTo(12);
     }
 
+    /// <summary>Verifies String WithCulture IsEmpty ReturnsFalseForContent.</summary>
     [Test]
     public async Task String_WithCulture_IsEmpty_ReturnsFalseForContent()
     {
@@ -124,6 +134,7 @@ public sealed class LocalizedFormattingTests
         await Assert.That(isEmpty).IsFalse();
     }
 
+    /// <summary>Verifies String WithCulture AsSpan ReturnsCorrectCharacters.</summary>
     [Test]
     public async Task String_WithCulture_AsSpan_ReturnsCorrectCharacters()
     {
@@ -146,6 +157,8 @@ public sealed class LocalizedFormattingTests
     // TEMPSTRING WITH CULTURE - IMPLICIT OPERATORS
     // ========================================================================
 
+
+    /// <summary>Verifies String WithCulture ImplicitToString ReturnsCorrectValue.</summary>
     [Test]
     public async Task String_WithCulture_ImplicitToString_ReturnsCorrectValue()
     {
@@ -160,6 +173,7 @@ public sealed class LocalizedFormattingTests
         await Assert.That(result).IsEqualTo("Preis: 1234,56");
     }
 
+    /// <summary>Verifies String WithCulture ImplicitToSpan ReturnsCorrectValue.</summary>
     [Test]
     public async Task String_WithCulture_ImplicitToSpan_ReturnsCorrectValue()
     {
@@ -182,6 +196,8 @@ public sealed class LocalizedFormattingTests
     // TEMPSTRING WITH CULTURE - MULTIPLE VALUES
     // ========================================================================
 
+
+    /// <summary>Verifies String WithCulture MultipleValues FormatsAllCorrectly.</summary>
     [Test]
     public async Task String_WithCulture_MultipleValues_FormatsAllCorrectly()
     {
@@ -201,6 +217,7 @@ public sealed class LocalizedFormattingTests
         await Assert.That(content).IsEqualTo("Artikel: 5, Preis: 99,99 €");
     }
 
+    /// <summary>Verifies String WithCulture MultipleDoubles AllUseCulture.</summary>
     [Test]
     public async Task String_WithCulture_MultipleDoubles_AllUseCulture()
     {
@@ -226,6 +243,8 @@ public sealed class LocalizedFormattingTests
     // Note: ZA.Utf8() does not have culture-aware overloads
     // ========================================================================
 
+
+    /// <summary>Verifies Utf8 SimpleString EncodesCorrectly.</summary>
     [Test]
     public async Task Utf8_SimpleString_EncodesCorrectly()
     {
@@ -240,6 +259,7 @@ public sealed class LocalizedFormattingTests
         await Assert.That(bytes).IsEquivalentTo("Hello World"u8.ToArray());
     }
 
+    /// <summary>Verifies Utf8 WithValue EncodesCorrectly.</summary>
     [Test]
     public async Task Utf8_WithValue_EncodesCorrectly()
     {
@@ -254,6 +274,7 @@ public sealed class LocalizedFormattingTests
         await Assert.That(bytes).IsEquivalentTo("Value: 42"u8.ToArray());
     }
 
+    /// <summary>Verifies Utf8 UnicodeCharacters EncodesCorrectly.</summary>
     [Test]
     public async Task Utf8_UnicodeCharacters_EncodesCorrectly()
     {
@@ -269,6 +290,7 @@ public sealed class LocalizedFormattingTests
         await Assert.That(content).IsEqualTo("Price: €100");
     }
 
+    /// <summary>Verifies Utf8 GermanUmlauts EncodesCorrectly.</summary>
     [Test]
     public async Task Utf8_GermanUmlauts_EncodesCorrectly()
     {
@@ -283,6 +305,7 @@ public sealed class LocalizedFormattingTests
         await Assert.That(content).IsEqualTo("Größe: äöüß");
     }
 
+    /// <summary>Verifies Utf8 Emoji EncodesCorrectly.</summary>
     [Test]
     public async Task Utf8_Emoji_EncodesCorrectly()
     {
@@ -301,6 +324,8 @@ public sealed class LocalizedFormattingTests
     // TEMPBYTES (UTF8) - PROPERTIES
     // ========================================================================
 
+
+    /// <summary>Verifies Utf8 Length ReturnsCorrectByteCount.</summary>
     [Test]
     public async Task Utf8_Length_ReturnsCorrectByteCount()
     {
@@ -319,6 +344,7 @@ public sealed class LocalizedFormattingTests
         await Assert.That(length).IsEqualTo(System.Text.Encoding.UTF8.GetByteCount(expected));
     }
 
+    /// <summary>Verifies Utf8 IsEmpty ReturnsFalseForContent.</summary>
     [Test]
     public async Task Utf8_IsEmpty_ReturnsFalseForContent()
     {
@@ -333,6 +359,7 @@ public sealed class LocalizedFormattingTests
         await Assert.That(isEmpty).IsFalse();
     }
 
+    /// <summary>Verifies Utf8 AsSpan ReturnsCorrectBytes.</summary>
     [Test]
     public async Task Utf8_AsSpan_ReturnsCorrectBytes()
     {
@@ -351,6 +378,8 @@ public sealed class LocalizedFormattingTests
     // TEMPBYTES (UTF8) - IMPLICIT OPERATORS
     // ========================================================================
 
+
+    /// <summary>Verifies Utf8 ImplicitToByteArray ReturnsCorrectValue.</summary>
     [Test]
     public async Task Utf8_ImplicitToByteArray_ReturnsCorrectValue()
     {
@@ -368,6 +397,8 @@ public sealed class LocalizedFormattingTests
     // DISPOSE BEHAVIOR
     // ========================================================================
 
+
+    /// <summary>Verifies String WithCulture Dispose ReleasesBuffer.</summary>
     [Test]
     public async Task String_WithCulture_Dispose_ReleasesBuffer()
     {
@@ -386,6 +417,7 @@ public sealed class LocalizedFormattingTests
         // This test just validates that Dispose completes without exception
     }
 
+    /// <summary>Verifies Utf8 Dispose ReleasesBuffer.</summary>
     [Test]
     public async Task Utf8_Dispose_ReleasesBuffer()
     {
@@ -408,6 +440,8 @@ public sealed class LocalizedFormattingTests
     // EDGE CASES
     // ========================================================================
 
+
+    /// <summary>Verifies String WithCulture EmptyString ReturnsEmpty.</summary>
     [Test]
     public async Task String_WithCulture_EmptyString_ReturnsEmpty()
     {
@@ -428,6 +462,7 @@ public sealed class LocalizedFormattingTests
         await Assert.That(length).IsEqualTo(0);
     }
 
+    /// <summary>Verifies Utf8 EmptyString ReturnsEmpty.</summary>
     [Test]
     public async Task Utf8_EmptyString_ReturnsEmpty()
     {
@@ -445,6 +480,7 @@ public sealed class LocalizedFormattingTests
         await Assert.That(length).IsEqualTo(0);
     }
 
+    /// <summary>Verifies String WithCulture LargeValue HandlesCorrectly.</summary>
     [Test]
     public async Task String_WithCulture_LargeValue_HandlesCorrectly()
     {
@@ -463,6 +499,7 @@ public sealed class LocalizedFormattingTests
         await Assert.That(content).IsEqualTo("Large: 9999999999999");
     }
 
+    /// <summary>Verifies Utf8 LargeValue HandlesCorrectly.</summary>
     [Test]
     public async Task Utf8_LargeValue_HandlesCorrectly()
     {
@@ -480,6 +517,7 @@ public sealed class LocalizedFormattingTests
         await Assert.That(content).IsEqualTo("Large: 9999999999999");
     }
 
+    /// <summary>Verifies String WithCulture NegativeValue FormatsCorrectly.</summary>
     [Test]
     public async Task String_WithCulture_NegativeValue_FormatsCorrectly()
     {
@@ -498,6 +536,7 @@ public sealed class LocalizedFormattingTests
         await Assert.That(content).IsEqualTo("Wert: -1234,56");
     }
 
+    /// <summary>Verifies String WithCulture Zero FormatsCorrectly.</summary>
     [Test]
     public async Task String_WithCulture_Zero_FormatsCorrectly()
     {
@@ -520,6 +559,8 @@ public sealed class LocalizedFormattingTests
     // COMPARISON WITH DIFFERENT CULTURES
     // ========================================================================
 
+
+    /// <summary>Verifies String SameValue DifferentCultures ProducesDifferentOutput.</summary>
     [Test]
     public async Task String_SameValue_DifferentCultures_ProducesDifferentOutput()
     {
@@ -548,6 +589,8 @@ public sealed class LocalizedFormattingTests
     // EXPLICIT SCOPE VS IMPLICIT CONVERSION
     // ========================================================================
 
+
+    /// <summary>Verifies String WithCulture ExplicitScope PreservesBuffer.</summary>
     [Test]
     public async Task String_WithCulture_ExplicitScope_PreservesBuffer()
     {
@@ -564,6 +607,7 @@ public sealed class LocalizedFormattingTests
         await Assert.That(capturedValue).IsEqualTo("Hello World");
     }
 
+    /// <summary>Verifies Utf8 ExplicitScope PreservesBuffer.</summary>
     [Test]
     public async Task Utf8_ExplicitScope_PreservesBuffer()
     {
@@ -583,6 +627,8 @@ public sealed class LocalizedFormattingTests
     // ISHEAPALLOCATED PROPERTY
     // ========================================================================
 
+
+    /// <summary>Verifies String WithCulture SmallContent UsesThreadStaticBuffer.</summary>
     [Test]
     public async Task String_WithCulture_SmallContent_UsesThreadStaticBuffer()
     {
@@ -600,6 +646,7 @@ public sealed class LocalizedFormattingTests
         await Assert.That(isHeapAllocated).IsFalse();
     }
 
+    /// <summary>Verifies Utf8 SmallContent UsesThreadStaticBuffer.</summary>
     [Test]
     public async Task Utf8_SmallContent_UsesThreadStaticBuffer()
     {
@@ -618,6 +665,8 @@ public sealed class LocalizedFormattingTests
     // SEQUENTIAL CALLS WITH CULTURE
     // ========================================================================
 
+
+    /// <summary>Verifies String WithCulture SequentialCalls WorkCorrectly.</summary>
     [Test]
     public async Task String_WithCulture_SequentialCalls_WorkCorrectly()
     {
@@ -635,6 +684,7 @@ public sealed class LocalizedFormattingTests
         }
     }
 
+    /// <summary>Verifies Utf8 SequentialCalls WorkCorrectly.</summary>
     [Test]
     public async Task Utf8_SequentialCalls_WorkCorrectly()
     {

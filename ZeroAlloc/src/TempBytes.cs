@@ -189,7 +189,7 @@ public readonly ref struct TempBytes : IDisposable
     public static implicit operator ReadOnlySpan<byte>(TempBytes temp) => temp.AsSpan();
 
     /// <summary>
-    /// Implicitly converts a <see cref="TempBytes"/> to a heap-allocated <see cref="T:byte[]"/>.
+    /// Implicitly converts a <see cref="TempBytes"/> to a heap-allocated byte array.
     /// </summary>
     /// <param name="temp">The temporary bytes to convert.</param>
     /// <returns>A new heap-allocated byte array containing the content.</returns>

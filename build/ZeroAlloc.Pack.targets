@@ -1,13 +1,11 @@
 <Project>
-  <!-- Pack and publish wiring for the ZeroAlloc NuGet package (repo maintainers only). -->
-
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageOutputPath>$(MSBuildProjectDirectory)\..\artifacts</PackageOutputPath>
   </PropertyGroup>
 
-  <!-- Deterministic source paths for explicit pack only (coverage runs must not use PathMap). -->
-  <PropertyGroup Condition="'$(ContinuousIntegrationBuild)' == 'true'">
+  <!-- PathMap only when packing — keeps Release test/coverage PDB paths stable. -->
+  <PropertyGroup Condition="'$(ContinuousIntegrationBuild)' == 'true' and '$(GeneratePackageOnBuild)' == 'true'">
     <DeterministicSourcePaths>true</DeterministicSourcePaths>
     <PathMap>$(MSBuildProjectDirectory)=/</PathMap>
   </PropertyGroup>

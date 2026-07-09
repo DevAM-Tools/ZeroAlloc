@@ -620,7 +620,7 @@ internal sealed class GeneratorExitCoverageTests
     [Test]
     public async Task ZeroAlloc_MayUseZeroAllocInternally_NullNamespace_ReturnsFalse()
     {
-        ITypeSymbol typeWithNullNamespace = _NullNamespaceTypeProxy.Create();
+        ITypeSymbol typeWithNullNamespace = NullNamespaceTypeProxy.Create();
 
         CSharpCompilation compilation = GeneratorTestHelper.CreateCompilation("internal static class Host { }");
 
@@ -971,10 +971,10 @@ internal sealed class GeneratorExitCoverageTests
     #endregion
 
     /// <summary>Dispatch proxy returning null <see cref="ISymbol.ContainingNamespace"/>.</summary>
-    private class _NullNamespaceTypeProxy : DispatchProxy
+    private sealed class NullNamespaceTypeProxy : DispatchProxy
     {
         public static ITypeSymbol Create()
-            => DispatchProxy.Create<ITypeSymbol, _NullNamespaceTypeProxy>();
+            => DispatchProxy.Create<ITypeSymbol, NullNamespaceTypeProxy>();
 
         protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
         {

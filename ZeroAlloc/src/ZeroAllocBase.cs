@@ -1,4 +1,4 @@
-﻿// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
+// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
 // ============================================================================
 // ZeroAlloc - Base Class for User-Defined Allocation Helpers
@@ -140,7 +140,7 @@ public abstract class ZeroAllocBase
     /// Encodes the concatenated values as temporary UTF-8 bytes with zero intermediate allocations.
     /// </summary>
     /// <param name="values">The values to concatenate and encode.</param>
-    /// <returns>A <see cref="TempBytes"/> that can be implicitly converted to <see cref="T:byte[]"/> or used as <see cref="ReadOnlySpan{Byte}"/>.</returns>
+    /// <returns>A <see cref="TempBytes"/> that can be implicitly converted to a byte array or used as <see cref="ReadOnlySpan{Byte}"/>.</returns>
     /// <remarks>
     /// <para>
     /// The returned <see cref="TempBytes"/> can be used in several ways:
@@ -200,7 +200,7 @@ public abstract class ZeroAllocBase
     /// Serializes the given values into temporary binary bytes with zero intermediate allocations.
     /// </summary>
     /// <param name="values">The values to serialize.</param>
-    /// <returns>A <see cref="TempBytes"/> that can be implicitly converted to <see cref="T:byte[]"/> or used as <see cref="ReadOnlySpan{Byte}"/>.</returns>
+    /// <returns>A <see cref="TempBytes"/> that can be implicitly converted to a byte array or used as <see cref="ReadOnlySpan{Byte}"/>.</returns>
     /// <remarks>
     /// <para>
     /// The returned <see cref="TempBytes"/> can be used in several ways:
@@ -322,7 +322,7 @@ public abstract class ZeroAllocBase
     /// </summary>
     /// <param name="provider">The format provider (culture) to use for formatting.</param>
     /// <param name="values">The values to encode.</param>
-    /// <returns>A <see cref="TempBytes"/> that can be implicitly converted to <see cref="T:byte[]"/> or used as <see cref="ReadOnlySpan{Byte}"/>.</returns>
+    /// <returns>A <see cref="TempBytes"/> that can be implicitly converted to a byte array or used as <see cref="ReadOnlySpan{Byte}"/>.</returns>
     /// <remarks>
     /// <para>
     /// Unlike <see cref="Utf8(object?[])"/>, this method formats numbers, dates, and other values

@@ -8,9 +8,13 @@ namespace ZeroAlloc.Tests;
 /// </summary>
 public sealed class BitReaderTests
 {
+
     // ========================================================================
     // SINGLE BIT READS
     // ========================================================================
+
+
+    /// <summary>Verifies BitReader ReadBit1 ReadsCorrectBit.</summary>
     [Test]
     public async Task BitReader_ReadBit1_ReadsCorrectBit()
     {
@@ -32,6 +36,7 @@ public sealed class BitReaderTests
         await Assert.That(bitOffset).IsEqualTo(1);
     }
 
+    /// <summary>Verifies BitReader ReadBit1 MultipleBits ReadsInOrder.</summary>
     [Test]
     public async Task BitReader_ReadBit1_MultipleBits_ReadsInOrder()
     {
@@ -67,6 +72,8 @@ public sealed class BitReaderTests
     // MULTI-BIT READS (2-7 BITS)
     // ========================================================================
 
+
+    /// <summary>Verifies BitReader ReadBit2 ReadsCorrectValue.</summary>
     [Test]
     public async Task BitReader_ReadBit2_ReadsCorrectValue()
     {
@@ -88,6 +95,7 @@ public sealed class BitReaderTests
         await Assert.That(bitOffset).IsEqualTo(2);
     }
 
+    /// <summary>Verifies BitReader ReadBit3 ReadsCorrectValue.</summary>
     [Test]
     public async Task BitReader_ReadBit3_ReadsCorrectValue()
     {
@@ -109,6 +117,7 @@ public sealed class BitReaderTests
         await Assert.That(bitOffset).IsEqualTo(3);
     }
 
+    /// <summary>Verifies BitReader ReadNibble ReadsCorrectValue.</summary>
     [Test]
     public async Task BitReader_ReadNibble_ReadsCorrectValue()
     {
@@ -130,6 +139,7 @@ public sealed class BitReaderTests
         await Assert.That(bitOffset).IsEqualTo(4);
     }
 
+    /// <summary>Verifies BitReader ReadBit5 ReadsCorrectValue.</summary>
     [Test]
     public async Task BitReader_ReadBit5_ReadsCorrectValue()
     {
@@ -151,6 +161,7 @@ public sealed class BitReaderTests
         await Assert.That(bitOffset).IsEqualTo(5);
     }
 
+    /// <summary>Verifies BitReader ReadBit6 ReadsCorrectValue.</summary>
     [Test]
     public async Task BitReader_ReadBit6_ReadsCorrectValue()
     {
@@ -172,6 +183,7 @@ public sealed class BitReaderTests
         await Assert.That(bitOffset).IsEqualTo(6);
     }
 
+    /// <summary>Verifies BitReader ReadBit7 ReadsCorrectValue.</summary>
     [Test]
     public async Task BitReader_ReadBit7_ReadsCorrectValue()
     {
@@ -197,6 +209,8 @@ public sealed class BitReaderTests
     // READBITS - GENERIC BIT READING
     // ========================================================================
 
+
+    /// <summary>Verifies BitReader ReadBits 1Bit ReadsCorrectly.</summary>
     [Test]
     public async Task BitReader_ReadBits_1Bit_ReadsCorrectly()
     {
@@ -214,6 +228,7 @@ public sealed class BitReaderTests
         await Assert.That(result).IsEqualTo(1UL);
     }
 
+    /// <summary>Verifies BitReader ReadBits 8Bits ReadsCorrectly.</summary>
     [Test]
     public async Task BitReader_ReadBits_8Bits_ReadsCorrectly()
     {
@@ -231,6 +246,7 @@ public sealed class BitReaderTests
         await Assert.That(result).IsEqualTo(0xABUL);
     }
 
+    /// <summary>Verifies BitReader ReadBits 16Bits ReadsCorrectly.</summary>
     [Test]
     public async Task BitReader_ReadBits_16Bits_ReadsCorrectly()
     {
@@ -248,6 +264,7 @@ public sealed class BitReaderTests
         await Assert.That(result).IsEqualTo(0x1234UL);
     }
 
+    /// <summary>Verifies BitReader ReadBits 32Bits ReadsCorrectly.</summary>
     [Test]
     public async Task BitReader_ReadBits_32Bits_ReadsCorrectly()
     {
@@ -265,6 +282,7 @@ public sealed class BitReaderTests
         await Assert.That(result).IsEqualTo(0x12345678UL);
     }
 
+    /// <summary>Verifies BitReader ReadBits 64Bits ReadsCorrectly.</summary>
     [Test]
     public async Task BitReader_ReadBits_64Bits_ReadsCorrectly()
     {
@@ -282,6 +300,7 @@ public sealed class BitReaderTests
         await Assert.That(result).IsEqualTo(0x123456789ABCDEF0UL);
     }
 
+    /// <summary>Verifies BitReader ReadBits NonAligned ReadsCorrectly.</summary>
     [Test]
     public async Task BitReader_ReadBits_NonAligned_ReadsCorrectly()
     {
@@ -299,6 +318,7 @@ public sealed class BitReaderTests
         await Assert.That(result).IsEqualTo(0xABCUL);
     }
 
+    /// <summary>Verifies BitReader ReadBits InvalidBitCount ThrowsException.</summary>
     [Test]
     public async Task BitReader_ReadBits_InvalidBitCount_ThrowsException()
     {
@@ -324,6 +344,8 @@ public sealed class BitReaderTests
     // BYTE READS
     // ========================================================================
 
+
+    /// <summary>Verifies BitReader ReadByte ByteAligned ReadsCorrectly.</summary>
     [Test]
     public async Task BitReader_ReadByte_ByteAligned_ReadsCorrectly()
     {
@@ -344,6 +366,7 @@ public sealed class BitReaderTests
         await Assert.That(bitOffset).IsEqualTo(8);
     }
 
+    /// <summary>Verifies BitReader ReadByte NotByteAligned ReadsCorrectly.</summary>
     [Test]
     public async Task BitReader_ReadByte_NotByteAligned_ReadsCorrectly()
     {
@@ -368,6 +391,8 @@ public sealed class BitReaderTests
     // INTEGER READS
     // ========================================================================
 
+
+    /// <summary>Verifies BitReader ReadUInt16 ReadsCorrectly.</summary>
     [Test]
     public async Task BitReader_ReadUInt16_ReadsCorrectly()
     {
@@ -385,6 +410,7 @@ public sealed class BitReaderTests
         await Assert.That((int)result).IsEqualTo(0x1234);
     }
 
+    /// <summary>Verifies BitReader ReadUInt32 ReadsCorrectly.</summary>
     [Test]
     public async Task BitReader_ReadUInt32_ReadsCorrectly()
     {
@@ -402,6 +428,7 @@ public sealed class BitReaderTests
         await Assert.That(result).IsEqualTo(0x12345678U);
     }
 
+    /// <summary>Verifies BitReader ReadUInt64 ReadsCorrectly.</summary>
     [Test]
     public async Task BitReader_ReadUInt64_ReadsCorrectly()
     {
@@ -419,6 +446,7 @@ public sealed class BitReaderTests
         await Assert.That(result).IsEqualTo(0x123456789ABCDEF0UL);
     }
 
+    /// <summary>Verifies BitReader ReadInt16 ReadsCorrectly.</summary>
     [Test]
     public async Task BitReader_ReadInt16_ReadsCorrectly()
     {
@@ -436,6 +464,7 @@ public sealed class BitReaderTests
         await Assert.That((int)result).IsEqualTo(-2);
     }
 
+    /// <summary>Verifies BitReader ReadInt32 ReadsCorrectly.</summary>
     [Test]
     public async Task BitReader_ReadInt32_ReadsCorrectly()
     {
@@ -453,6 +482,7 @@ public sealed class BitReaderTests
         await Assert.That(result).IsEqualTo(-1);
     }
 
+    /// <summary>Verifies BitReader ReadInt64 ReadsCorrectly.</summary>
     [Test]
     public async Task BitReader_ReadInt64_ReadsCorrectly()
     {
@@ -470,6 +500,7 @@ public sealed class BitReaderTests
         await Assert.That(result).IsEqualTo(-1L);
     }
 
+    /// <summary>Verifies BitReader ReadUInt128 ReadsCorrectly.</summary>
     [Test]
     public async Task BitReader_ReadUInt128_ReadsCorrectly()
     {
@@ -491,6 +522,7 @@ public sealed class BitReaderTests
         await Assert.That(bitOffset).IsEqualTo(128);
     }
 
+    /// <summary>Verifies BitReader ReadInt128 AllOnes ReturnsMinusOne.</summary>
     [Test]
     public async Task BitReader_ReadInt128_AllOnes_ReturnsMinusOne()
     {
@@ -509,6 +541,7 @@ public sealed class BitReaderTests
         await Assert.That(result).IsEqualTo((Int128)(-1));
     }
 
+    /// <summary>Verifies BitReader ReadUInt128 AfterOtherRead ReadsCorrectly.</summary>
     [Test]
     public async Task BitReader_ReadUInt128_AfterOtherRead_ReadsCorrectly()
     {
@@ -535,6 +568,8 @@ public sealed class BitReaderTests
     // UINTBITS AND INTBITS
     // ========================================================================
 
+
+    /// <summary>Verifies BitReader ReadUIntBits ReadsCorrectly.</summary>
     [Test]
     public async Task BitReader_ReadUIntBits_ReadsCorrectly()
     {
@@ -556,6 +591,7 @@ public sealed class BitReaderTests
         await Assert.That((int)resultBitCount).IsEqualTo(12);
     }
 
+    /// <summary>Verifies BitReader ReadIntBits PositiveValue ReadsCorrectly.</summary>
     [Test]
     public async Task BitReader_ReadIntBits_PositiveValue_ReadsCorrectly()
     {
@@ -574,6 +610,7 @@ public sealed class BitReaderTests
         await Assert.That(resultValue).IsEqualTo(5L);
     }
 
+    /// <summary>Verifies BitReader ReadIntBits NegativeValue ReadsCorrectly.</summary>
     [Test]
     public async Task BitReader_ReadIntBits_NegativeValue_ReadsCorrectly()
     {
@@ -596,6 +633,8 @@ public sealed class BitReaderTests
     // ALIGNMENT
     // ========================================================================
 
+
+    /// <summary>Verifies BitReader IsByteAligned InitiallyTrue.</summary>
     [Test]
     public async Task BitReader_IsByteAligned_InitiallyTrue()
     {
@@ -611,6 +650,7 @@ public sealed class BitReaderTests
         await Assert.That(isByteAligned).IsTrue();
     }
 
+    /// <summary>Verifies BitReader IsByteAligned FalseAfterBitRead.</summary>
     [Test]
     public async Task BitReader_IsByteAligned_FalseAfterBitRead()
     {
@@ -629,6 +669,7 @@ public sealed class BitReaderTests
         await Assert.That(isByteAligned).IsFalse();
     }
 
+    /// <summary>Verifies BitReader AlignToNextByte AlignsCorrectly.</summary>
     [Test]
     public async Task BitReader_AlignToNextByte_AlignsCorrectly()
     {
@@ -651,6 +692,7 @@ public sealed class BitReaderTests
         await Assert.That(bitOffset).IsEqualTo(8);
     }
 
+    /// <summary>Verifies BitReader AlignToNextByte AlreadyAligned NoChange.</summary>
     [Test]
     public async Task BitReader_AlignToNextByte_AlreadyAligned_NoChange()
     {
@@ -669,6 +711,7 @@ public sealed class BitReaderTests
         await Assert.That(bitOffset).IsEqualTo(0);
     }
 
+    /// <summary>Verifies BitReader AlignToNextByte AfterNibble AlignsTo8.</summary>
     [Test]
     public async Task BitReader_AlignToNextByte_AfterNibble_AlignsTo8()
     {
@@ -695,6 +738,8 @@ public sealed class BitReaderTests
     // SKIP BITS
     // ========================================================================
 
+
+    /// <summary>Verifies BitReader SkipBits AdvancesCorrectly.</summary>
     [Test]
     public async Task BitReader_SkipBits_AdvancesCorrectly()
     {
@@ -716,6 +761,7 @@ public sealed class BitReaderTests
         await Assert.That((int)nextByte).IsEqualTo(0xAB);
     }
 
+    /// <summary>Verifies BitReader SkipBits NonByteAligned AdvancesCorrectly.</summary>
     [Test]
     public async Task BitReader_SkipBits_NonByteAligned_AdvancesCorrectly()
     {
@@ -741,6 +787,8 @@ public sealed class BitReaderTests
     // READ BYTES
     // ========================================================================
 
+
+    /// <summary>Verifies BitReader ReadBytes ByteAligned ReadsCorrectly.</summary>
     [Test]
     public async Task BitReader_ReadBytes_ByteAligned_ReadsCorrectly()
     {
@@ -762,6 +810,7 @@ public sealed class BitReaderTests
         await Assert.That(bitOffset).IsEqualTo(24);
     }
 
+    /// <summary>Verifies BitReader ReadBytes NotByteAligned ThrowsException.</summary>
     [Test]
     public async Task BitReader_ReadBytes_NotByteAligned_ThrowsException()
     {
@@ -781,6 +830,8 @@ public sealed class BitReaderTests
     // PROPERTIES
     // ========================================================================
 
+
+    /// <summary>Verifies BitReader BitOffset ReturnsCorrectValue.</summary>
     [Test]
     public async Task BitReader_BitOffset_ReturnsCorrectValue()
     {
@@ -803,6 +854,7 @@ public sealed class BitReaderTests
         await Assert.That(bitOffset5).IsEqualTo(5);
     }
 
+    /// <summary>Verifies BitReader BytePosition ReturnsCorrectValue.</summary>
     [Test]
     public async Task BitReader_BytePosition_ReturnsCorrectValue()
     {
@@ -828,6 +880,7 @@ public sealed class BitReaderTests
         await Assert.That(bytePos2).IsEqualTo(2);
     }
 
+    /// <summary>Verifies BitReader BitPositionInByte ReturnsCorrectValue.</summary>
     [Test]
     public async Task BitReader_BitPositionInByte_ReturnsCorrectValue()
     {
@@ -853,6 +906,7 @@ public sealed class BitReaderTests
         await Assert.That(bitPosInByte0r).IsEqualTo(0); // Rolled over to next byte
     }
 
+    /// <summary>Verifies BitReader RemainingBits ReturnsCorrectValue.</summary>
     [Test]
     public async Task BitReader_RemainingBits_ReturnsCorrectValue()
     {
@@ -876,6 +930,8 @@ public sealed class BitReaderTests
     // CROSS-BYTE READING
     // ========================================================================
 
+
+    /// <summary>Verifies BitReader ReadBitsCrossingBytesBoundary ReadsCorrectly.</summary>
     [Test]
     public async Task BitReader_ReadBitsCrossingBytesBoundary_ReadsCorrectly()
     {
@@ -896,6 +952,7 @@ public sealed class BitReaderTests
         await Assert.That(result).IsEqualTo(0xBCDUL);
     }
 
+    /// <summary>Verifies BitReader ReadNibblesAcrossBytes ReadsCorrectly.</summary>
     [Test]
     public async Task BitReader_ReadNibblesAcrossBytes_ReadsCorrectly()
     {
@@ -923,6 +980,8 @@ public sealed class BitReaderTests
     // COMPLEX SCENARIOS
     // ========================================================================
 
+
+    /// <summary>Verifies BitReader MixedReads WorkCorrectly.</summary>
     [Test]
     public async Task BitReader_MixedReads_WorkCorrectly()
     {
@@ -950,6 +1009,7 @@ public sealed class BitReaderTests
         await Assert.That((int)id).IsEqualTo(0x1234);
     }
 
+    /// <summary>Verifies BitReader ReadThenAlign WorksCorrectly.</summary>
     [Test]
     public async Task BitReader_ReadThenAlign_WorksCorrectly()
     {
@@ -972,6 +1032,7 @@ public sealed class BitReaderTests
     // ========================================================================
     // BOUNDARY VALIDATION — ReadBit1
     // ========================================================================
+
 
     /// <summary>Verifies ReadBit1 throws when no bits remain.</summary>
     [Test]
@@ -1002,6 +1063,7 @@ public sealed class BitReaderTests
     // BOUNDARY VALIDATION — ReadByte (aligned fast-path)
     // ========================================================================
 
+
     /// <summary>Verifies aligned ReadByte throws when no bytes remain.</summary>
     [Test]
     public async Task BitReader_ReadByte_Aligned_NoBytesRemaining_ThrowsInvalidOperationException()
@@ -1030,6 +1092,7 @@ public sealed class BitReaderTests
     // ========================================================================
     // BOUNDARY VALIDATION — SkipBits
     // ========================================================================
+
 
     /// <summary>Verifies SkipBits throws for negative count.</summary>
     [Test]
@@ -1094,6 +1157,7 @@ public sealed class BitReaderTests
     // BOUNDARY VALIDATION — ReadBytes
     // ========================================================================
 
+
     /// <summary>Verifies ReadBytes throws for negative byteCount.</summary>
     [Test]
     public async Task BitReader_ReadBytes_NegativeCount_ThrowsArgumentOutOfRangeException()
@@ -1154,6 +1218,8 @@ public sealed class BitReaderTests
     // TRY-READ — SUCCESS PATHS
     // ========================================================================
 
+
+    /// <summary>Verifies BitReader TryReadBits SufficientData ReturnsTrueAndValue.</summary>
     [Test]
     public async Task BitReader_TryReadBits_SufficientData_ReturnsTrueAndValue()
     {
@@ -1172,6 +1238,7 @@ public sealed class BitReaderTests
         await Assert.That(bitOffset).IsEqualTo(4);
     }
 
+    /// <summary>Verifies BitReader TryReadBit1 SufficientData ReturnsTrueAndValue.</summary>
     [Test]
     public async Task BitReader_TryReadBit1_SufficientData_ReturnsTrueAndValue()
     {
@@ -1188,6 +1255,7 @@ public sealed class BitReaderTests
         await Assert.That(valueValue).IsTrue();
     }
 
+    /// <summary>Verifies BitReader TryReadBit2 SufficientData ReturnsTrueAndValue.</summary>
     [Test]
     public async Task BitReader_TryReadBit2_SufficientData_ReturnsTrueAndValue()
     {
@@ -1204,6 +1272,7 @@ public sealed class BitReaderTests
         await Assert.That((int)valueValue).IsEqualTo(3);
     }
 
+    /// <summary>Verifies BitReader TryReadBit3 SufficientData ReturnsTrueAndValue.</summary>
     [Test]
     public async Task BitReader_TryReadBit3_SufficientData_ReturnsTrueAndValue()
     {
@@ -1220,6 +1289,7 @@ public sealed class BitReaderTests
         await Assert.That((int)valueValue).IsEqualTo(7);
     }
 
+    /// <summary>Verifies BitReader TryReadNibble SufficientData ReturnsTrueAndValue.</summary>
     [Test]
     public async Task BitReader_TryReadNibble_SufficientData_ReturnsTrueAndValue()
     {
@@ -1236,6 +1306,7 @@ public sealed class BitReaderTests
         await Assert.That((int)valueValue).IsEqualTo(0xF);
     }
 
+    /// <summary>Verifies BitReader TryReadBit5 SufficientData ReturnsTrueAndValue.</summary>
     [Test]
     public async Task BitReader_TryReadBit5_SufficientData_ReturnsTrueAndValue()
     {
@@ -1252,6 +1323,7 @@ public sealed class BitReaderTests
         await Assert.That((int)valueValue).IsEqualTo(31);
     }
 
+    /// <summary>Verifies BitReader TryReadBit6 SufficientData ReturnsTrueAndValue.</summary>
     [Test]
     public async Task BitReader_TryReadBit6_SufficientData_ReturnsTrueAndValue()
     {
@@ -1268,6 +1340,7 @@ public sealed class BitReaderTests
         await Assert.That((int)valueValue).IsEqualTo(63);
     }
 
+    /// <summary>Verifies BitReader TryReadBit7 SufficientData ReturnsTrueAndValue.</summary>
     [Test]
     public async Task BitReader_TryReadBit7_SufficientData_ReturnsTrueAndValue()
     {
@@ -1284,6 +1357,7 @@ public sealed class BitReaderTests
         await Assert.That((int)valueValue).IsEqualTo(127);
     }
 
+    /// <summary>Verifies BitReader TryReadUIntBits SufficientData ReturnsTrueAndValue.</summary>
     [Test]
     public async Task BitReader_TryReadUIntBits_SufficientData_ReturnsTrueAndValue()
     {
@@ -1300,6 +1374,7 @@ public sealed class BitReaderTests
         await Assert.That(valueValue).IsEqualTo(0b10101010UL);
     }
 
+    /// <summary>Verifies BitReader TryReadIntBits SufficientData PositiveValue ReturnsTrueAndValue.</summary>
     [Test]
     public async Task BitReader_TryReadIntBits_SufficientData_PositiveValue_ReturnsTrueAndValue()
     {
@@ -1317,6 +1392,7 @@ public sealed class BitReaderTests
         await Assert.That(valueValue).IsEqualTo(5L);
     }
 
+    /// <summary>Verifies BitReader TryReadIntBits SufficientData NegativeValue ReturnsTrueAndValue.</summary>
     [Test]
     public async Task BitReader_TryReadIntBits_SufficientData_NegativeValue_ReturnsTrueAndValue()
     {
@@ -1334,6 +1410,7 @@ public sealed class BitReaderTests
         await Assert.That(valueValue).IsEqualTo(-3L);
     }
 
+    /// <summary>Verifies BitReader TryReadByte SufficientData ReturnsTrueAndValue.</summary>
     [Test]
     public async Task BitReader_TryReadByte_SufficientData_ReturnsTrueAndValue()
     {
@@ -1349,6 +1426,7 @@ public sealed class BitReaderTests
         await Assert.That((int)value).IsEqualTo(0xAB);
     }
 
+    /// <summary>Verifies BitReader TryReadUInt16 SufficientData ReturnsTrueAndValue.</summary>
     [Test]
     public async Task BitReader_TryReadUInt16_SufficientData_ReturnsTrueAndValue()
     {
@@ -1364,6 +1442,7 @@ public sealed class BitReaderTests
         await Assert.That((int)value).IsEqualTo(0x1234);
     }
 
+    /// <summary>Verifies BitReader TryReadUInt32 SufficientData ReturnsTrueAndValue.</summary>
     [Test]
     public async Task BitReader_TryReadUInt32_SufficientData_ReturnsTrueAndValue()
     {
@@ -1379,6 +1458,7 @@ public sealed class BitReaderTests
         await Assert.That(value).IsEqualTo(0x12345678u);
     }
 
+    /// <summary>Verifies BitReader TryReadUInt64 SufficientData ReturnsTrueAndValue.</summary>
     [Test]
     public async Task BitReader_TryReadUInt64_SufficientData_ReturnsTrueAndValue()
     {
@@ -1394,6 +1474,7 @@ public sealed class BitReaderTests
         await Assert.That(value).IsEqualTo(0x0102030405060708UL);
     }
 
+    /// <summary>Verifies BitReader TryReadInt16 SufficientData ReturnsTrueAndValue.</summary>
     [Test]
     public async Task BitReader_TryReadInt16_SufficientData_ReturnsTrueAndValue()
     {
@@ -1409,6 +1490,7 @@ public sealed class BitReaderTests
         await Assert.That((int)value).IsEqualTo(-2);
     }
 
+    /// <summary>Verifies BitReader TryReadInt32 SufficientData ReturnsTrueAndValue.</summary>
     [Test]
     public async Task BitReader_TryReadInt32_SufficientData_ReturnsTrueAndValue()
     {
@@ -1424,6 +1506,7 @@ public sealed class BitReaderTests
         await Assert.That(value).IsEqualTo(-1);
     }
 
+    /// <summary>Verifies BitReader TryReadInt64 SufficientData ReturnsTrueAndValue.</summary>
     [Test]
     public async Task BitReader_TryReadInt64_SufficientData_ReturnsTrueAndValue()
     {
@@ -1439,6 +1522,7 @@ public sealed class BitReaderTests
         await Assert.That(value).IsEqualTo(-1L);
     }
 
+    /// <summary>Verifies BitReader TrySkipBits SufficientData ReturnsTrueAndAdvances.</summary>
     [Test]
     public async Task BitReader_TrySkipBits_SufficientData_ReturnsTrueAndAdvances()
     {
@@ -1455,6 +1539,7 @@ public sealed class BitReaderTests
         await Assert.That(bitOffset).IsEqualTo(8);
     }
 
+    /// <summary>Verifies BitReader TryReadBytes AlignedSufficientData ReturnsTrueAndSpan.</summary>
     [Test]
     public async Task BitReader_TryReadBytes_AlignedSufficientData_ReturnsTrueAndSpan()
     {
@@ -1480,6 +1565,8 @@ public sealed class BitReaderTests
     // TRY-READ — FAILURE PATHS (insufficient data — returns false, no state change)
     // ========================================================================
 
+
+    /// <summary>Verifies BitReader TryReadBits InsufficientData ReturnsFalseAndPreservesState.</summary>
     [Test]
     public async Task BitReader_TryReadBits_InsufficientData_ReturnsFalseAndPreservesState()
     {
@@ -1499,6 +1586,7 @@ public sealed class BitReaderTests
         await Assert.That(bitOffset).IsEqualTo(6); // state must not advance
     }
 
+    /// <summary>Verifies BitReader TryReadBit1 EmptyBuffer ReturnsFalse.</summary>
     [Test]
     public async Task BitReader_TryReadBit1_EmptyBuffer_ReturnsFalse()
     {
@@ -1514,6 +1602,7 @@ public sealed class BitReaderTests
         await Assert.That(bitOffset).IsEqualTo(0);
     }
 
+    /// <summary>Verifies BitReader TryReadBit2 InsufficientBits ReturnsFalse.</summary>
     [Test]
     public async Task BitReader_TryReadBit2_InsufficientBits_ReturnsFalse()
     {
@@ -1531,6 +1620,7 @@ public sealed class BitReaderTests
         await Assert.That(bitOffset).IsEqualTo(7);
     }
 
+    /// <summary>Verifies BitReader TryReadNibble InsufficientBits ReturnsFalse.</summary>
     [Test]
     public async Task BitReader_TryReadNibble_InsufficientBits_ReturnsFalse()
     {
@@ -1548,6 +1638,7 @@ public sealed class BitReaderTests
         await Assert.That(bitOffset).IsEqualTo(5);
     }
 
+    /// <summary>Verifies BitReader TryReadByte InsufficientBits ReturnsFalse.</summary>
     [Test]
     public async Task BitReader_TryReadByte_InsufficientBits_ReturnsFalse()
     {
@@ -1567,6 +1658,7 @@ public sealed class BitReaderTests
         await Assert.That(bitOffset).IsEqualTo(4);
     }
 
+    /// <summary>Verifies BitReader TryReadUInt16 InsufficientBits ReturnsFalse.</summary>
     [Test]
     public async Task BitReader_TryReadUInt16_InsufficientBits_ReturnsFalse()
     {
@@ -1583,6 +1675,7 @@ public sealed class BitReaderTests
         await Assert.That(bitOffset).IsEqualTo(0);
     }
 
+    /// <summary>Verifies BitReader TryReadUInt32 InsufficientBits ReturnsFalse.</summary>
     [Test]
     public async Task BitReader_TryReadUInt32_InsufficientBits_ReturnsFalse()
     {
@@ -1599,6 +1692,7 @@ public sealed class BitReaderTests
         await Assert.That(bitOffset).IsEqualTo(0);
     }
 
+    /// <summary>Verifies BitReader TryReadUInt64 InsufficientBits ReturnsFalse.</summary>
     [Test]
     public async Task BitReader_TryReadUInt64_InsufficientBits_ReturnsFalse()
     {
@@ -1615,6 +1709,7 @@ public sealed class BitReaderTests
         await Assert.That(bitOffset).IsEqualTo(0);
     }
 
+    /// <summary>Verifies BitReader TryReadInt32 InsufficientBits ReturnsFalse.</summary>
     [Test]
     public async Task BitReader_TryReadInt32_InsufficientBits_ReturnsFalse()
     {
@@ -1631,6 +1726,7 @@ public sealed class BitReaderTests
         await Assert.That(bitOffset).IsEqualTo(0);
     }
 
+    /// <summary>Verifies BitReader TrySkipBits InsufficientData ReturnsFalseAndPreservesState.</summary>
     [Test]
     public async Task BitReader_TrySkipBits_InsufficientData_ReturnsFalseAndPreservesState()
     {
@@ -1647,6 +1743,7 @@ public sealed class BitReaderTests
         await Assert.That(bitOffset).IsEqualTo(0);
     }
 
+    /// <summary>Verifies BitReader TrySkipBits Zero AlwaysReturnsTrue.</summary>
     [Test]
     public async Task BitReader_TrySkipBits_Zero_AlwaysReturnsTrue()
     {
@@ -1662,6 +1759,7 @@ public sealed class BitReaderTests
         await Assert.That(bitOffset).IsEqualTo(0);
     }
 
+    /// <summary>Verifies BitReader TryReadBytes NotAligned ReturnsFalse.</summary>
     [Test]
     public async Task BitReader_TryReadBytes_NotAligned_ReturnsFalse()
     {
@@ -1679,6 +1777,7 @@ public sealed class BitReaderTests
         await Assert.That(bitOffset).IsEqualTo(1); // state must not advance
     }
 
+    /// <summary>Verifies BitReader TryReadBytes InsufficientBytes ReturnsFalse.</summary>
     [Test]
     public async Task BitReader_TryReadBytes_InsufficientBytes_ReturnsFalse()
     {
@@ -1699,6 +1798,8 @@ public sealed class BitReaderTests
     // TRY-READ — INVALID ARGUMENT PATHS (programming errors — still throw)
     // ========================================================================
 
+
+    /// <summary>Verifies BitReader TryReadBits BitCountZero ThrowsArgumentOutOfRangeException.</summary>
     [Test]
     public async Task BitReader_TryReadBits_BitCountZero_ThrowsArgumentOutOfRangeException()
     {
@@ -1710,6 +1811,7 @@ public sealed class BitReaderTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies BitReader TryReadBits BitCountOver64 ThrowsArgumentOutOfRangeException.</summary>
     [Test]
     public async Task BitReader_TryReadBits_BitCountOver64_ThrowsArgumentOutOfRangeException()
     {
@@ -1721,6 +1823,7 @@ public sealed class BitReaderTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies BitReader TrySkipBits NegativeCount ThrowsArgumentOutOfRangeException.</summary>
     [Test]
     public async Task BitReader_TrySkipBits_NegativeCount_ThrowsArgumentOutOfRangeException()
     {
@@ -1732,6 +1835,7 @@ public sealed class BitReaderTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies BitReader TryReadBytes NegativeCount ThrowsArgumentOutOfRangeException.</summary>
     [Test]
     public async Task BitReader_TryReadBytes_NegativeCount_ThrowsArgumentOutOfRangeException()
     {
@@ -1743,6 +1847,7 @@ public sealed class BitReaderTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies BitReader TryReadUIntBits ZeroBitCount ThrowsArgumentOutOfRangeException.</summary>
     [Test]
     public async Task BitReader_TryReadUIntBits_ZeroBitCount_ThrowsArgumentOutOfRangeException()
     {
@@ -1754,6 +1859,7 @@ public sealed class BitReaderTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies BitReader TryReadIntBits ZeroBitCount ThrowsArgumentOutOfRangeException.</summary>
     [Test]
     public async Task BitReader_TryReadIntBits_ZeroBitCount_ThrowsArgumentOutOfRangeException()
     {
@@ -1769,6 +1875,8 @@ public sealed class BitReaderTests
     // EXIT-POINT COVERAGE — ReadBits throw / TryRead failure paths
     // ========================================================================
 
+
+    /// <summary>Verifies BitReader ReadBits InsufficientData ThrowsInvalidOperationException.</summary>
     [Test]
     public async Task BitReader_ReadBits_InsufficientData_ThrowsInvalidOperationException()
     {
@@ -1784,6 +1892,7 @@ public sealed class BitReaderTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies BitReader TryReadBitFields InsufficientBits ReturnsFalse.</summary>
     [Test]
     [Arguments(6, 3)]
     [Arguments(4, 5)]
@@ -1812,6 +1921,7 @@ public sealed class BitReaderTests
         await Assert.That(bitOffset).IsEqualTo(consumedBits);
     }
 
+    /// <summary>Verifies BitReader TryReadUIntBits InsufficientBits ReturnsFalse.</summary>
     [Test]
     public async Task BitReader_TryReadUIntBits_InsufficientBits_ReturnsFalse()
     {
@@ -1829,6 +1939,7 @@ public sealed class BitReaderTests
         await Assert.That(bitOffset).IsEqualTo(1);
     }
 
+    /// <summary>Verifies BitReader TryReadIntBits InsufficientBits ReturnsFalse.</summary>
     [Test]
     public async Task BitReader_TryReadIntBits_InsufficientBits_ReturnsFalse()
     {
@@ -1846,6 +1957,7 @@ public sealed class BitReaderTests
         await Assert.That(bitOffset).IsEqualTo(5);
     }
 
+    /// <summary>Verifies BitReader TryReadInt16 InsufficientBits ReturnsFalse.</summary>
     [Test]
     public async Task BitReader_TryReadInt16_InsufficientBits_ReturnsFalse()
     {
@@ -1863,6 +1975,7 @@ public sealed class BitReaderTests
         await Assert.That(bitOffset).IsEqualTo(1);
     }
 
+    /// <summary>Verifies BitReader TryReadInt64 InsufficientBits ReturnsFalse.</summary>
     [Test]
     public async Task BitReader_TryReadInt64_InsufficientBits_ReturnsFalse()
     {

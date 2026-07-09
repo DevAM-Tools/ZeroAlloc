@@ -159,6 +159,22 @@ internal sealed class BinaryGeneratorHelpersTests
     }
 
     [Test]
+    public async Task ToXmlDocCode_EscapesGenericAngleBrackets()
+    {
+        string actual = BinaryGeneratorHelpers.ToXmlDocCode("ZeroAlloc.Formatted<double>");
+
+        await Assert.That(actual).IsEqualTo("ZeroAlloc.Formatted&lt;double&gt;");
+    }
+
+    [Test]
+    public async Task ToXmlDocCode_EscapesAmpersand()
+    {
+        string actual = BinaryGeneratorHelpers.ToXmlDocCode("A&B");
+
+        await Assert.That(actual).IsEqualTo("A&amp;B");
+    }
+
+    [Test]
     public async Task CalculateFixedSize_AllFixedMembers_ReturnsSum()
     {
         List<ParsableMemberInfo> members =

@@ -1,4 +1,4 @@
-﻿// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
+// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
 // ============================================================================
 // ZeroAlloc - ThreadStatic Buffer Management
@@ -355,13 +355,17 @@ public static class ZeroAllocHelper
     /// Gets the current size of the ThreadStatic char buffer for this thread.
     /// </summary>
     /// <returns>The buffer size in characters, or 0 if the buffer has not been allocated yet.</returns>
-    public static int GetCharBufferSize() => _CharBuffer?.Length ?? 0;
+    public static int GetCharBufferSize() =>
+        _CharBuffer?.Length
+        ?? 0;
 
     /// <summary>
     /// Gets the current size of the ThreadStatic byte buffer for this thread.
     /// </summary>
     /// <returns>The buffer size in bytes, or 0 if the buffer has not been allocated yet.</returns>
-    public static int GetByteBufferSize() => _ByteBuffer?.Length ?? 0;
+    public static int GetByteBufferSize() =>
+        _ByteBuffer?.Length
+        ?? 0;
 
     /// <summary>
     /// Releases the ThreadStatic buffers, freeing memory.
@@ -461,7 +465,8 @@ public static class ZeroAllocHelper
     /// </remarks>
     public static char[] GrowCharBuffer(int requiredSize)
     {
-        char[] oldBuffer = _CharBuffer ?? throw new InvalidOperationException("Char buffer not acquired.");
+        char[] oldBuffer = _CharBuffer
+            ?? throw new InvalidOperationException("Char buffer not acquired.");
         int newSize = CalculateGrowth(oldBuffer.Length, requiredSize);
         char[] newBuffer = new char[newSize];
         oldBuffer.AsSpan().CopyTo(newBuffer);
@@ -503,7 +508,8 @@ public static class ZeroAllocHelper
     /// </remarks>
     public static byte[] GrowByteBuffer(int requiredSize)
     {
-        byte[] oldBuffer = _ByteBuffer ?? throw new InvalidOperationException("Byte buffer not acquired.");
+        byte[] oldBuffer = _ByteBuffer
+            ?? throw new InvalidOperationException("Byte buffer not acquired.");
         int newSize = CalculateGrowth(oldBuffer.Length, requiredSize);
         byte[] newBuffer = new byte[newSize];
         oldBuffer.AsSpan().CopyTo(newBuffer);

@@ -10,9 +10,6 @@
 
   <ItemGroup>
     <PackageReference Include="TUnit" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\ZeroAlloc\ZeroAlloc.csproj" />
     <!-- Analyzer does not flow from ProjectReference; required for ZA source generation in tests. -->
     <ProjectReference Include="..\ZeroAlloc.Generator\ZeroAlloc.Generator.csproj"

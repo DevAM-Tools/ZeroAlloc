@@ -17,8 +17,9 @@ namespace ZeroAlloc.Benchmarks;
 /// Verify LocalizedString output:
 ///   dotnet run -- --verify-local
 /// </summary>
-class Program
+internal sealed class Program
 {
+    /// <summary>Entry point that runs benchmarks or verifies localized string output.</summary>
     public static int Main(string[] args)
     {
         // Quick verification mode

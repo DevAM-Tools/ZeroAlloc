@@ -1,107 +1,123 @@
 # TUnit Testing Rules
 
-Load when test files or test projects are in scope. Implements Section 4.5 enforcement in `copilot-instructions.md`.
+Load when test files or test projects are in scope. Implements Section 4.5 in `copilot-instructions.md`.
 
 ## Scope
 
-- Unit tests in `.Tests` projects; bUnit component tests for Razor/Blazor → `tech-blazor.md`. Exit-point gate on testable `.razor.cs` and service logic.
+- Unit tests in `.Tests` projects.
+- bUnit for Razor/Blazor → `tech-blazor.md`.
 
 ## Framework
 
-- Use TUnit
-- Make every test method `async Task`.
-- Use NSubstitute for doubles.
-- Enable Microsoft Testing Platform (MTP) in repo-root `global.json` — required for `dotnet test` with TUnit on .NET SDK 10+:
+❗ **This repo uses TUnit only.** Do not add or migrate to xUnit, NUnit, MSTest, or FluentAssertions — incompatible with MTP + ExitPointGaps.
 
-```json
-{
-  "test": {
-    "runner": "Microsoft.Testing.Platform"
-  }
-}
-```
+**Minimal stack (nothing else required for unit tests):**
 
-- No extra coverage NuGet package: MTP + TUnit on .NET SDK 10+; `dotnet tool run coveragegap run` passes `--coverage --coverage-output-format cobertura` to `dotnet test`. Do not add `coverlet.collector` (VSTest-only; incompatible with MTP).
+| Piece | Role |
+|-------|------|
+| **TUnit** | Test framework (`[Test]`, `await Assert.That(...)`, `[Arguments]`, `[Before]`) |
+| **NSubstitute** | Mocks/stubs when needed |
+| **MTP** | Test runner (`global.json` → `Microsoft.Testing.Platform`) |
+| **ExitPointGaps** | Exit-point coverage gate (local dotnet tool) |
 
-## Test Quality
+Common agent mistakes — **do not** port xUnit/NUnit habits:
 
-- Never use `Thread.Sleep` in tests.
-- Cover happy path, errors, edges, boundaries, corners.
-- Cover `null`, empty, min/max, off-by-one, max-length strings, collections 0/1/2, concurrency, branch-straddling values.
-- Use data-driven tests (`[Arguments(...)]`, `[MethodDataSource(...)]`).
-- Keep tests deterministic, independent, order-insensitive.
-- Run tests on Windows/Linux/macOS and x64/ARM64.
-- Assert one logical outcome per test.
+| Wrong (xUnit/NUnit) | Use instead (TUnit) |
+|---------------------|---------------------|
+| `[Fact]` / `[TestMethod]` | `[Test]` on `async Task` method |
+| `Assert.Equal(...)` | `await Assert.That(actual).IsEqualTo(...)` |
+| `[Theory]` + `[InlineData]` | `[Test]` + `[Arguments(...)]` or `[MethodDataSource]` |
+| `IClassFixture<T>` / `[SetUp]` | `[Before(Class)]` / `[Before(Test)]` |
+| `coverlet.collector` | MTP coverage via ExitPointGaps (no extra NuGet) |
+| `PackageReference` xunit/nunit | **Remove** — only `TUnit` in test `.csproj` |
 
-## CoverageGap.Tool
+**`global.json` (repo root):**
 
-❗ Mandatory NuGet local tool at version **`2.*`** on every repo with test projects. SSOT for exit-point coverage.
+- SDK `10.0.100`
+- `"test": { "runner": "Microsoft.Testing.Platform" }`
 
-**Gate:** `summary.exitGapCount == 0`. Branch fields informational. **`run`** gates class-library projects only (`OutputType` `Exe` excluded).
+## ExitPointGaps (agent contract)
 
-**Setup** (once per repo root):
+❗ Local dotnet tool **`ExitPointGaps` `1.*`** on every repo with test projects.
+
+| Rule | Value |
+|------|-------|
+| Release gate | `summary.exitGapCount == 0` |
+| Branch gaps | informational only |
+| `run` scope | class libraries (`OutputType` `Exe` excluded) |
+| Test pairing | `{Project}.Tests` sibling or reference scan |
+
+### Agent workflow
+
+1. **Once per repo**
+   - `dotnet new tool-manifest`
+   - `dotnet tool install ExitPointGaps --version 1.*`
+   - Fresh clone: `dotnet tool restore`
+2. **Gate:** `dotnet tool run exitpointgaps --repo-root .`
+   - Auto-discovers `.slnx`/`.sln`, pairs tests, runs Cobertura + gap report
+3. **Read result**
+   - Exit `0` pass · `1` gap/failure · `2` usage
+   - Confirm `summary.exitGapCount == 0`
+4. **Fix gaps:** every `exitGaps[]` item (`file`, `line`, `exitPointId`, `kind`) — re-gate until zero
+5. **No tests yet:** `plan` → add tests → gate
+
+**Multi-project output:**
+
+- `summary.json` schema v3
+- `projects[].reportFile` → per-project v1 JSON with `exitGaps[]`
+
+**Scoped commands:**
+
+| Intent | Command |
+|--------|---------|
+| Gate repo | `dotnet tool run exitpointgaps --repo-root .` |
+| Gate solution | `dotnet tool run exitpointgaps run solution path/File.slnx --repo-root . --configuration Release` |
+| Gate project | `dotnet tool run exitpointgaps run project path/Proj.csproj --repo-root .` |
+| Plan exits (no tests) | `dotnet tool run exitpointgaps plan project path/Proj.csproj -o exits.json --repo-root .` |
+
+**CLI details (flags, formats, paths):** run help — do not duplicate here.
 
 ```bash
-dotnet new tool-manifest
-dotnet tool install CoverageGap.Tool --version 2.*
+dotnet tool run exitpointgaps -- run --help
+# This repo (contributors):
+dotnet run --project src/ExitPointGaps -c Release -- run --help
 ```
 
-Fresh clone / new machine: `dotnet tool restore` before first run.
+## Test quality
 
-**Gate** (primary):
-
-```bash
-dotnet tool run coveragegap --repo-root .
-```
-
-Auto-discovers `.slnx`/`.sln`; pairs `{Project}.Tests`; runs MTP Cobertura + exit-gap report. Exit codes: `0` pass · `1` gap/failure · `2` usage.
-
-| Task | Command |
-|------|---------|
-| Gate solution | `dotnet tool run coveragegap run solution path/File.slnx --repo-root . --configuration Release --format agent` |
-| Gate project(s) | `dotnet tool run coveragegap run project path/Proj.csproj --repo-root .` |
-| Plan exits (no tests) | `dotnet tool run coveragegap plan project path/Proj.csproj -o exits.json --repo-root .` |
-
-Fix every `exitGaps[]` entry (`file`, `line`, `exitPointId`, `kind`); re-run until `exitGapCount == 0`. No tests yet: `plan` → add tests → gate.
-
-Pairing override: `--test-project`. Parallel-safe: isolated `--work-dir`; relative `-o` under work dir. Flags: `--skip-no-tests`, `--no-build`, `--cobertura <file>`, `--include-snippet`, `--keep-work-dir`.
-
-**This repository (contributors):** `dotnet run --project src/CoverageGap.Tool -c Release -- run --repo-root .`
+- Cover happy path, errors, and edges.
+- Edge cases: `null`, empty, min/max, off-by-one, collections 0/1/2, concurrency.
+- Data-driven: `[Arguments]`, `[MethodDataSource]`.
+- Deterministic; no `Thread.Sleep`.
+- One logical assertion per test.
+- Windows/Linux/macOS, x64/ARM64.
 
 ## Structure
 
-- Name test project `<ProductionProjectName>.Tests`.
-- Mirror production namespace and folder structure.
-- Use one test file per production class: `<ClassName>Tests.cs`.
-- Put shared helpers in `Helpers/`.
-- Name test methods `<Method>_<Scenario>_<ExpectedResult>`.
-- Name method data sources `<Method>_<Scenario>_Data`.
+- Test project: `<ProductionProjectName>.Tests` — mirror prod namespace and folders.
+- One file per class: `<ClassName>Tests.cs`.
+- Shared helpers: `Helpers/`.
+- Test names: `<Method>_<Scenario>_<ExpectedResult>`.
+- Data source names: `<Method>_<Scenario>_Data`.
 
 ## Authoring
 
 - Separate Arrange, Act, Assert with blank lines.
-- Use `await Assert.That(actual).Is...`.
-- Use builders for non-trivial setup.
-- Use `[Arguments(...)]` for corner cases.
-- Use `[MethodDataSource(...)]` for reusable data sets.
+- `await Assert.That(actual).Is...`
 - Always await async operations.
-- Assert exceptions: `await Assert.That(async () => await sut.Method()).Throws<ExceptionType>()`.
-- Pass `CancellationToken` to cancellation-aware APIs; test cancellation.
+- Pass `CancellationToken` to cancellation-aware APIs.
+- Exceptions: `await Assert.That(async () => await sut.M()).Throws<T>()`.
 
-## Fixtures and Parallelism
+## Fixtures and parallelism
 
-- Use `[Before(Test)]` / `[After(Test)]` for per-test setup.
-- Use `[Before(Class)]` / `[After(Class)]` for class resources.
-- Implement `IAsyncDisposable` on test classes holding resources.
-- Keep tests parallel-safe by default.
-- Avoid shared mutable statics.
-- Use `[NotInParallel]` only when required; document reason in XML.
-- Run coordinated concurrent tasks in concurrency tests; verify no corruption, deadlock, or data loss.
+- `[Before(Test)]` / `[After(Test)]` for per-test setup.
+- `[Before(Class)]` / `[After(Class)]` for class resources.
+- `IAsyncDisposable` on test classes holding resources.
+- Parallel-safe by default; no shared mutable statics.
+- `[NotInParallel]` only when required — document reason in XML.
 
-## Doubles and Coverage
+## Doubles and coverage
 
-- Prefer real implementations when deterministic.
-- Substitute only external or non-deterministic dependencies.
-- Prefer outcome assertions over interaction counts.
-- Never relax access modifiers for tests only.
-- Document `[ExcludeFromCodeCoverage]` with XML reason; excluded exits are omitted from the exit-coverage gate.
+- Prefer real deterministic implementations.
+- NSubstitute only for external or non-deterministic dependencies.
+- `[ExcludeFromCodeCoverage]` only with XML reason — excluded exits skip the gate.

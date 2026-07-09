@@ -43,11 +43,11 @@ public readonly struct U16BE : IUtf8SpanFormattable, IBinaryParsable<U16BE>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    public bool TryFormat(Span<byte> utf8Destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size)
+        if (utf8Destination.Length < Size)
         { bytesWritten = 0; return false; }
-        BinaryPrimitives.WriteUInt16BigEndian(destination, Value);
+        BinaryPrimitives.WriteUInt16BigEndian(utf8Destination, Value);
         bytesWritten = Size;
         return true;
     }
@@ -121,11 +121,11 @@ public readonly struct U32BE : IUtf8SpanFormattable, IBinaryParsable<U32BE>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    public bool TryFormat(Span<byte> utf8Destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size)
+        if (utf8Destination.Length < Size)
         { bytesWritten = 0; return false; }
-        BinaryPrimitives.WriteUInt32BigEndian(destination, Value);
+        BinaryPrimitives.WriteUInt32BigEndian(utf8Destination, Value);
         bytesWritten = Size;
         return true;
     }
@@ -199,11 +199,11 @@ public readonly struct U64BE : IUtf8SpanFormattable, IBinaryParsable<U64BE>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    public bool TryFormat(Span<byte> utf8Destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size)
+        if (utf8Destination.Length < Size)
         { bytesWritten = 0; return false; }
-        BinaryPrimitives.WriteUInt64BigEndian(destination, Value);
+        BinaryPrimitives.WriteUInt64BigEndian(utf8Destination, Value);
         bytesWritten = Size;
         return true;
     }
@@ -269,11 +269,11 @@ public readonly struct U128BE : IUtf8SpanFormattable, IBinaryParsable<U128BE>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    public bool TryFormat(Span<byte> utf8Destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size)
+        if (utf8Destination.Length < Size)
         { bytesWritten = 0; return false; }
-        BinaryPrimitives.WriteUInt128BigEndian(destination, Value);
+        BinaryPrimitives.WriteUInt128BigEndian(utf8Destination, Value);
         bytesWritten = Size;
         return true;
     }
@@ -344,11 +344,11 @@ public readonly struct I16BE : IUtf8SpanFormattable, IBinaryParsable<I16BE>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    public bool TryFormat(Span<byte> utf8Destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size)
+        if (utf8Destination.Length < Size)
         { bytesWritten = 0; return false; }
-        BinaryPrimitives.WriteInt16BigEndian(destination, Value);
+        BinaryPrimitives.WriteInt16BigEndian(utf8Destination, Value);
         bytesWritten = Size;
         return true;
     }
@@ -372,7 +372,7 @@ public readonly struct I16BE : IUtf8SpanFormattable, IBinaryParsable<I16BE>
     }
 
     /// <inheritdoc/>
-    public override string ToString() => Value.ToString();
+    public override string ToString() => Value.ToString(CultureInfo.InvariantCulture);
 
     /// <inheritdoc/>
     public string ToString(string? format, IFormatProvider? formatProvider) => Value.ToString(format, formatProvider);
@@ -402,11 +402,11 @@ public readonly struct I32BE : IUtf8SpanFormattable, IBinaryParsable<I32BE>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    public bool TryFormat(Span<byte> utf8Destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size)
+        if (utf8Destination.Length < Size)
         { bytesWritten = 0; return false; }
-        BinaryPrimitives.WriteInt32BigEndian(destination, Value);
+        BinaryPrimitives.WriteInt32BigEndian(utf8Destination, Value);
         bytesWritten = Size;
         return true;
     }
@@ -430,7 +430,7 @@ public readonly struct I32BE : IUtf8SpanFormattable, IBinaryParsable<I32BE>
     }
 
     /// <inheritdoc/>
-    public override string ToString() => Value.ToString();
+    public override string ToString() => Value.ToString(CultureInfo.InvariantCulture);
 
     /// <inheritdoc/>
     public string ToString(string? format, IFormatProvider? formatProvider) => Value.ToString(format, formatProvider);
@@ -460,11 +460,11 @@ public readonly struct I64BE : IUtf8SpanFormattable, IBinaryParsable<I64BE>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    public bool TryFormat(Span<byte> utf8Destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size)
+        if (utf8Destination.Length < Size)
         { bytesWritten = 0; return false; }
-        BinaryPrimitives.WriteInt64BigEndian(destination, Value);
+        BinaryPrimitives.WriteInt64BigEndian(utf8Destination, Value);
         bytesWritten = Size;
         return true;
     }
@@ -488,7 +488,7 @@ public readonly struct I64BE : IUtf8SpanFormattable, IBinaryParsable<I64BE>
     }
 
     /// <inheritdoc/>
-    public override string ToString() => Value.ToString();
+    public override string ToString() => Value.ToString(CultureInfo.InvariantCulture);
 
     /// <inheritdoc/>
     public string ToString(string? format, IFormatProvider? formatProvider) => Value.ToString(format, formatProvider);
@@ -518,11 +518,11 @@ public readonly struct I128BE : IUtf8SpanFormattable, IBinaryParsable<I128BE>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    public bool TryFormat(Span<byte> utf8Destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size)
+        if (utf8Destination.Length < Size)
         { bytesWritten = 0; return false; }
-        BinaryPrimitives.WriteInt128BigEndian(destination, Value);
+        BinaryPrimitives.WriteInt128BigEndian(utf8Destination, Value);
         bytesWritten = Size;
         return true;
     }
@@ -546,7 +546,7 @@ public readonly struct I128BE : IUtf8SpanFormattable, IBinaryParsable<I128BE>
     }
 
     /// <inheritdoc/>
-    public override string ToString() => Value.ToString();
+    public override string ToString() => Value.ToString(CultureInfo.InvariantCulture);
 
     /// <inheritdoc/>
     public string ToString(string? format, IFormatProvider? formatProvider) => Value.ToString(format, formatProvider);
@@ -588,11 +588,11 @@ public readonly struct U16LE : IUtf8SpanFormattable, IBinaryParsable<U16LE>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    public bool TryFormat(Span<byte> utf8Destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size)
+        if (utf8Destination.Length < Size)
         { bytesWritten = 0; return false; }
-        BinaryPrimitives.WriteUInt16LittleEndian(destination, Value);
+        BinaryPrimitives.WriteUInt16LittleEndian(utf8Destination, Value);
         bytesWritten = Size;
         return true;
     }
@@ -666,11 +666,11 @@ public readonly struct U32LE : IUtf8SpanFormattable, IBinaryParsable<U32LE>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    public bool TryFormat(Span<byte> utf8Destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size)
+        if (utf8Destination.Length < Size)
         { bytesWritten = 0; return false; }
-        BinaryPrimitives.WriteUInt32LittleEndian(destination, Value);
+        BinaryPrimitives.WriteUInt32LittleEndian(utf8Destination, Value);
         bytesWritten = Size;
         return true;
     }
@@ -744,11 +744,11 @@ public readonly struct U64LE : IUtf8SpanFormattable, IBinaryParsable<U64LE>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    public bool TryFormat(Span<byte> utf8Destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size)
+        if (utf8Destination.Length < Size)
         { bytesWritten = 0; return false; }
-        BinaryPrimitives.WriteUInt64LittleEndian(destination, Value);
+        BinaryPrimitives.WriteUInt64LittleEndian(utf8Destination, Value);
         bytesWritten = Size;
         return true;
     }
@@ -814,11 +814,11 @@ public readonly struct U128LE : IUtf8SpanFormattable, IBinaryParsable<U128LE>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    public bool TryFormat(Span<byte> utf8Destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size)
+        if (utf8Destination.Length < Size)
         { bytesWritten = 0; return false; }
-        BinaryPrimitives.WriteUInt128LittleEndian(destination, Value);
+        BinaryPrimitives.WriteUInt128LittleEndian(utf8Destination, Value);
         bytesWritten = Size;
         return true;
     }
@@ -889,11 +889,11 @@ public readonly struct I16LE : IUtf8SpanFormattable, IBinaryParsable<I16LE>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    public bool TryFormat(Span<byte> utf8Destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size)
+        if (utf8Destination.Length < Size)
         { bytesWritten = 0; return false; }
-        BinaryPrimitives.WriteInt16LittleEndian(destination, Value);
+        BinaryPrimitives.WriteInt16LittleEndian(utf8Destination, Value);
         bytesWritten = Size;
         return true;
     }
@@ -917,7 +917,7 @@ public readonly struct I16LE : IUtf8SpanFormattable, IBinaryParsable<I16LE>
     }
 
     /// <inheritdoc/>
-    public override string ToString() => Value.ToString();
+    public override string ToString() => Value.ToString(CultureInfo.InvariantCulture);
 
     /// <inheritdoc/>
     public string ToString(string? format, IFormatProvider? formatProvider) => Value.ToString(format, formatProvider);
@@ -947,11 +947,11 @@ public readonly struct I32LE : IUtf8SpanFormattable, IBinaryParsable<I32LE>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    public bool TryFormat(Span<byte> utf8Destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size)
+        if (utf8Destination.Length < Size)
         { bytesWritten = 0; return false; }
-        BinaryPrimitives.WriteInt32LittleEndian(destination, Value);
+        BinaryPrimitives.WriteInt32LittleEndian(utf8Destination, Value);
         bytesWritten = Size;
         return true;
     }
@@ -975,7 +975,7 @@ public readonly struct I32LE : IUtf8SpanFormattable, IBinaryParsable<I32LE>
     }
 
     /// <inheritdoc/>
-    public override string ToString() => Value.ToString();
+    public override string ToString() => Value.ToString(CultureInfo.InvariantCulture);
 
     /// <inheritdoc/>
     public string ToString(string? format, IFormatProvider? formatProvider) => Value.ToString(format, formatProvider);
@@ -1005,11 +1005,11 @@ public readonly struct I64LE : IUtf8SpanFormattable, IBinaryParsable<I64LE>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    public bool TryFormat(Span<byte> utf8Destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size)
+        if (utf8Destination.Length < Size)
         { bytesWritten = 0; return false; }
-        BinaryPrimitives.WriteInt64LittleEndian(destination, Value);
+        BinaryPrimitives.WriteInt64LittleEndian(utf8Destination, Value);
         bytesWritten = Size;
         return true;
     }
@@ -1033,7 +1033,7 @@ public readonly struct I64LE : IUtf8SpanFormattable, IBinaryParsable<I64LE>
     }
 
     /// <inheritdoc/>
-    public override string ToString() => Value.ToString();
+    public override string ToString() => Value.ToString(CultureInfo.InvariantCulture);
 
     /// <inheritdoc/>
     public string ToString(string? format, IFormatProvider? formatProvider) => Value.ToString(format, formatProvider);
@@ -1063,11 +1063,11 @@ public readonly struct I128LE : IUtf8SpanFormattable, IBinaryParsable<I128LE>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    public bool TryFormat(Span<byte> utf8Destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size)
+        if (utf8Destination.Length < Size)
         { bytesWritten = 0; return false; }
-        BinaryPrimitives.WriteInt128LittleEndian(destination, Value);
+        BinaryPrimitives.WriteInt128LittleEndian(utf8Destination, Value);
         bytesWritten = Size;
         return true;
     }
@@ -1091,7 +1091,7 @@ public readonly struct I128LE : IUtf8SpanFormattable, IBinaryParsable<I128LE>
     }
 
     /// <inheritdoc/>
-    public override string ToString() => Value.ToString();
+    public override string ToString() => Value.ToString(CultureInfo.InvariantCulture);
 
     /// <inheritdoc/>
     public string ToString(string? format, IFormatProvider? formatProvider) => Value.ToString(format, formatProvider);
@@ -1125,11 +1125,11 @@ public readonly struct F32BE : IUtf8SpanFormattable, IBinaryParsable<F32BE>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    public bool TryFormat(Span<byte> utf8Destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size)
+        if (utf8Destination.Length < Size)
         { bytesWritten = 0; return false; }
-        BinaryPrimitives.WriteSingleBigEndian(destination, Value);
+        BinaryPrimitives.WriteSingleBigEndian(utf8Destination, Value);
         bytesWritten = Size;
         return true;
     }
@@ -1153,7 +1153,7 @@ public readonly struct F32BE : IUtf8SpanFormattable, IBinaryParsable<F32BE>
     }
 
     /// <inheritdoc/>
-    public override string ToString() => Value.ToString();
+    public override string ToString() => Value.ToString(CultureInfo.InvariantCulture);
 
     /// <inheritdoc/>
     public string ToString(string? format, IFormatProvider? formatProvider) => Value.ToString(format, formatProvider);
@@ -1183,11 +1183,11 @@ public readonly struct F32LE : IUtf8SpanFormattable, IBinaryParsable<F32LE>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    public bool TryFormat(Span<byte> utf8Destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size)
+        if (utf8Destination.Length < Size)
         { bytesWritten = 0; return false; }
-        BinaryPrimitives.WriteSingleLittleEndian(destination, Value);
+        BinaryPrimitives.WriteSingleLittleEndian(utf8Destination, Value);
         bytesWritten = Size;
         return true;
     }
@@ -1211,7 +1211,7 @@ public readonly struct F32LE : IUtf8SpanFormattable, IBinaryParsable<F32LE>
     }
 
     /// <inheritdoc/>
-    public override string ToString() => Value.ToString();
+    public override string ToString() => Value.ToString(CultureInfo.InvariantCulture);
 
     /// <inheritdoc/>
     public string ToString(string? format, IFormatProvider? formatProvider) => Value.ToString(format, formatProvider);
@@ -1241,11 +1241,11 @@ public readonly struct F64BE : IUtf8SpanFormattable, IBinaryParsable<F64BE>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    public bool TryFormat(Span<byte> utf8Destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size)
+        if (utf8Destination.Length < Size)
         { bytesWritten = 0; return false; }
-        BinaryPrimitives.WriteDoubleBigEndian(destination, Value);
+        BinaryPrimitives.WriteDoubleBigEndian(utf8Destination, Value);
         bytesWritten = Size;
         return true;
     }
@@ -1269,7 +1269,7 @@ public readonly struct F64BE : IUtf8SpanFormattable, IBinaryParsable<F64BE>
     }
 
     /// <inheritdoc/>
-    public override string ToString() => Value.ToString();
+    public override string ToString() => Value.ToString(CultureInfo.InvariantCulture);
 
     /// <inheritdoc/>
     public string ToString(string? format, IFormatProvider? formatProvider) => Value.ToString(format, formatProvider);
@@ -1299,11 +1299,11 @@ public readonly struct F64LE : IUtf8SpanFormattable, IBinaryParsable<F64LE>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    public bool TryFormat(Span<byte> utf8Destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < Size)
+        if (utf8Destination.Length < Size)
         { bytesWritten = 0; return false; }
-        BinaryPrimitives.WriteDoubleLittleEndian(destination, Value);
+        BinaryPrimitives.WriteDoubleLittleEndian(utf8Destination, Value);
         bytesWritten = Size;
         return true;
     }
@@ -1327,7 +1327,7 @@ public readonly struct F64LE : IUtf8SpanFormattable, IBinaryParsable<F64LE>
     }
 
     /// <inheritdoc/>
-    public override string ToString() => Value.ToString();
+    public override string ToString() => Value.ToString(CultureInfo.InvariantCulture);
 
     /// <inheritdoc/>
     public string ToString(string? format, IFormatProvider? formatProvider) => Value.ToString(format, formatProvider);
@@ -1365,18 +1365,18 @@ public readonly ref struct Raw
         _Value = value;
     }
 
-    /// <summary>Formats the raw bytes to the destination.</summary>
-    /// <param name="destination">The destination span to write to.</param>
+    /// <summary>Formats the raw bytes to the utf8Destination.</summary>
+    /// <param name="utf8Destination">The destination span to write to.</param>
     /// <param name="bytesWritten">The number of bytes written.</param>
     /// <param name="format">Not used.</param>
     /// <param name="provider">Not used.</param>
     /// <returns><c>true</c> if the data was written successfully; otherwise <c>false</c>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    public bool TryFormat(Span<byte> utf8Destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        if (destination.Length < _Value.Length)
+        if (utf8Destination.Length < _Value.Length)
         { bytesWritten = 0; return false; }
-        _Value.CopyTo(destination);
+        _Value.CopyTo(utf8Destination);
         bytesWritten = _Value.Length;
         return true;
     }
@@ -1445,22 +1445,22 @@ public readonly struct VarInt : IUtf8SpanFormattable, IBinarySerializable, IBina
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    public bool TryFormat(Span<byte> utf8Destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         ulong value = Value;
         int pos = 0;
 
         while (value >= 0x80)
         {
-            if (pos >= destination.Length)
+            if (pos >= utf8Destination.Length)
             { bytesWritten = 0; return false; }
-            destination[pos++] = (byte)(value | 0x80);
+            utf8Destination[pos++] = (byte)(value | 0x80);
             value >>= 7;
         }
 
-        if (pos >= destination.Length)
+        if (pos >= utf8Destination.Length)
         { bytesWritten = 0; return false; }
-        destination[pos++] = (byte)value;
+        utf8Destination[pos++] = (byte)value;
         bytesWritten = pos;
         return true;
     }
@@ -1486,7 +1486,7 @@ public readonly struct VarInt : IUtf8SpanFormattable, IBinarySerializable, IBina
     public bool TryWrite(Span<byte> destination, out int bytesWritten) => TryFormat(destination, out bytesWritten, default, null);
 
     /// <inheritdoc/>
-    public override string ToString() => Value.ToString();
+    public override string ToString() => Value.ToString(CultureInfo.InvariantCulture);
 
     /// <inheritdoc/>
     public string ToString(string? format, IFormatProvider? formatProvider) => Value.ToString(format, formatProvider);
@@ -1590,22 +1590,22 @@ public readonly struct VarIntZigZag : IUtf8SpanFormattable, IBinarySerializable,
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    public bool TryFormat(Span<byte> utf8Destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
         ulong value = ZigZagEncoded;
         int pos = 0;
 
         while (value >= 0x80)
         {
-            if (pos >= destination.Length)
+            if (pos >= utf8Destination.Length)
             { bytesWritten = 0; return false; }
-            destination[pos++] = (byte)(value | 0x80);
+            utf8Destination[pos++] = (byte)(value | 0x80);
             value >>= 7;
         }
 
-        if (pos >= destination.Length)
+        if (pos >= utf8Destination.Length)
         { bytesWritten = 0; return false; }
-        destination[pos++] = (byte)value;
+        utf8Destination[pos++] = (byte)value;
         bytesWritten = pos;
         return true;
     }
@@ -1627,7 +1627,7 @@ public readonly struct VarIntZigZag : IUtf8SpanFormattable, IBinarySerializable,
     }
 
     /// <inheritdoc/>
-    public override string ToString() => Value.ToString();
+    public override string ToString() => Value.ToString(CultureInfo.InvariantCulture);
 
     /// <inheritdoc/>
     public string ToString(string? format, IFormatProvider? formatProvider) => Value.ToString(format, formatProvider);

@@ -7,9 +7,11 @@ namespace ZeroAlloc.Tests;
 /// </summary>
 public sealed class HexWrappersTests
 {
+
     // ========================================================================
     // FORMAT / TOSTRING
     // ========================================================================
+
 
     /// <summary>Verifies each HexN wrapper formats to the expected uppercase fixed-width string.</summary>
     [Test]
@@ -95,6 +97,7 @@ public sealed class HexWrappersTests
     // MASKING / BOUNDARY VALUES
     // ========================================================================
 
+
     /// <summary>Verifies nibble wrappers mask input to the lower 4 bits.</summary>
     [Test]
     public async Task Hex1_Constructor_MasksToLowerNibble()
@@ -144,6 +147,7 @@ public sealed class HexWrappersTests
     // FAILURE PATHS
     // ========================================================================
 
+
     /// <summary>Verifies char TryFormat returns false when the destination is too small.</summary>
     [Test]
     [Arguments(nameof(Hex1))]
@@ -186,6 +190,7 @@ public sealed class HexWrappersTests
     // IMPLICIT CONVERSION + IFORMATTABLE OVERLOAD
     // ========================================================================
 
+
     /// <summary>Verifies implicit primitive conversion matches explicit constructor formatting.</summary>
     [Test]
     [Arguments(nameof(Hex2), (byte)0x5A)]
@@ -218,10 +223,6 @@ public sealed class HexWrappersTests
 
         await Assert.That(overload).IsEqualTo(plain);
     }
-
-    // ========================================================================
-    // HELPERS
-    // ========================================================================
 
     private static int _FormattedLength(string typeName) => typeName switch
     {

@@ -10,16 +10,18 @@
 namespace ZeroAlloc.Tests;
 
 /// <summary>
-/// Comprehensive tests for <see cref="TempString"/> and <see cref="ZA.String"/> methods.
+/// Comprehensive tests for <see cref="TempString"/> and <c>ZA.String</c> methods.
 /// </summary>
 public sealed class TempStringTests
 {
+
     // ========================================================================
     // BASIC FORMATTING TESTS
     // Tests for fundamental string formatting operations
     // ========================================================================
-    #region Basic Formatting
 
+    #region Basic Formatting
+    /// <summary>Verifies String SimpleString ReturnsCorrectContent.</summary>
     [Test]
     public async Task String_SimpleString_ReturnsCorrectContent()
     {
@@ -30,7 +32,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("Hello");
     }
-
+    /// <summary>Verifies String IntValue FormatsCorrectly.</summary>
     [Test]
     public async Task String_IntValue_FormatsCorrectly()
     {
@@ -41,7 +43,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("Value: 42");
     }
-
+    /// <summary>Verifies String MultipleStrings ConcatenatesCorrectly.</summary>
     [Test]
     public async Task String_MultipleStrings_ConcatenatesCorrectly()
     {
@@ -52,7 +54,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("Hello World");
     }
-
+    /// <summary>Verifies String MixedTypes FormatsCorrectly.</summary>
     [Test]
     public async Task String_MixedTypes_FormatsCorrectly()
     {
@@ -63,7 +65,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("User 12345 logged in");
     }
-
+    /// <summary>Verifies String Length ReturnsCorrectLength.</summary>
     [Test]
     public async Task String_Length_ReturnsCorrectLength()
     {
@@ -74,7 +76,7 @@ public sealed class TempStringTests
         }
         await Assert.That(length).IsEqualTo(7); // "Test123"
     }
-
+    /// <summary>Verifies String ToString ReturnsCorrectString.</summary>
     [Test]
     public async Task String_ToString_ReturnsCorrectString()
     {
@@ -85,7 +87,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("Hello World");
     }
-
+    /// <summary>Verifies TempString ToString Empty ReturnsEmpty.</summary>
     [Test]
     public async Task TempString_ToString_Empty_ReturnsEmpty()
     {
@@ -96,7 +98,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo(string.Empty);
     }
-
+    /// <summary>Verifies TempString IsEmpty TrueForZeroLength.</summary>
     [Test]
     public async Task TempString_IsEmpty_TrueForZeroLength()
     {
@@ -107,7 +109,7 @@ public sealed class TempStringTests
         }
         await Assert.That(isEmpty).IsTrue();
     }
-
+    /// <summary>Verifies TempString Dispose HeapAllocated CompletesWithoutError.</summary>
     [Test]
     public async Task TempString_Dispose_HeapAllocated_CompletesWithoutError()
     {
@@ -120,7 +122,7 @@ public sealed class TempStringTests
 
         await Assert.That(innerWasHeapAllocated).IsTrue();
     }
-
+    /// <summary>Verifies String AsSpan ReturnsSameAsToString.</summary>
     [Test]
     public async Task String_AsSpan_ReturnsSameAsToString()
     {
@@ -141,8 +143,9 @@ public sealed class TempStringTests
     // Tests for formatting specific .NET types
     // ========================================================================
 
-    #region Boolean Formatting
 
+    #region Boolean Formatting
+    /// <summary>Verifies String BooleanTrue FormatsAsTrue.</summary>
     [Test]
     public async Task String_BooleanTrue_FormatsAsTrue()
     {
@@ -153,7 +156,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("Result: True");
     }
-
+    /// <summary>Verifies String BooleanFalse FormatsAsFalse.</summary>
     [Test]
     public async Task String_BooleanFalse_FormatsAsFalse()
     {
@@ -164,7 +167,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("Result: False");
     }
-
+    /// <summary>Verifies String MultipleBooleans FormatsCorrectly.</summary>
     [Test]
     public async Task String_MultipleBooleans_FormatsCorrectly()
     {
@@ -179,7 +182,7 @@ public sealed class TempStringTests
     #endregion
 
     #region Character Formatting
-
+    /// <summary>Verifies String Char FormatsCorrectly.</summary>
     [Test]
     public async Task String_Char_FormatsCorrectly()
     {
@@ -190,7 +193,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("Letter: X");
     }
-
+    /// <summary>Verifies String MultipleChars FormatsCorrectly.</summary>
     [Test]
     public async Task String_MultipleChars_FormatsCorrectly()
     {
@@ -201,7 +204,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("ABC");
     }
-
+    /// <summary>Verifies String UnicodeChar FormatsCorrectly.</summary>
     [Test]
     public async Task String_UnicodeChar_FormatsCorrectly()
     {
@@ -216,7 +219,7 @@ public sealed class TempStringTests
     #endregion
 
     #region Numeric Types Formatting
-
+    /// <summary>Verifies String Int32 FormatsCorrectly.</summary>
     [Test]
     public async Task String_Int32_FormatsCorrectly()
     {
@@ -227,7 +230,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("Int: 42");
     }
-
+    /// <summary>Verifies String Int64 FormatsCorrectly.</summary>
     [Test]
     public async Task String_Int64_FormatsCorrectly()
     {
@@ -238,7 +241,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("ID: 9876543210");
     }
-
+    /// <summary>Verifies String Double FormatsCorrectly.</summary>
     [Test]
     public async Task String_Double_FormatsCorrectly()
     {
@@ -249,7 +252,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("Value: 3.14159");
     }
-
+    /// <summary>Verifies String Float FormatsCorrectly.</summary>
     [Test]
     public async Task String_Float_FormatsCorrectly()
     {
@@ -260,7 +263,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("Value: 1.5");
     }
-
+    /// <summary>Verifies String Decimal FormatsCorrectly.</summary>
     [Test]
     public async Task String_Decimal_FormatsCorrectly()
     {
@@ -271,7 +274,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("Price: 99.99");
     }
-
+    /// <summary>Verifies String Byte FormatsCorrectly.</summary>
     [Test]
     public async Task String_Byte_FormatsCorrectly()
     {
@@ -282,7 +285,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("Byte: 255");
     }
-
+    /// <summary>Verifies String SByte FormatsCorrectly.</summary>
     [Test]
     public async Task String_SByte_FormatsCorrectly()
     {
@@ -293,7 +296,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("SByte: -128");
     }
-
+    /// <summary>Verifies String Int16 FormatsCorrectly.</summary>
     [Test]
     public async Task String_Int16_FormatsCorrectly()
     {
@@ -304,7 +307,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("Short: -32768");
     }
-
+    /// <summary>Verifies String UInt16 FormatsCorrectly.</summary>
     [Test]
     public async Task String_UInt16_FormatsCorrectly()
     {
@@ -315,7 +318,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("UShort: 65535");
     }
-
+    /// <summary>Verifies String UInt32 FormatsCorrectly.</summary>
     [Test]
     public async Task String_UInt32_FormatsCorrectly()
     {
@@ -326,7 +329,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo($"UInt: {uint.MaxValue}");
     }
-
+    /// <summary>Verifies String UInt64 FormatsCorrectly.</summary>
     [Test]
     public async Task String_UInt64_FormatsCorrectly()
     {
@@ -341,7 +344,7 @@ public sealed class TempStringTests
     #endregion
 
     #region Guid and DateTime Formatting
-
+    /// <summary>Verifies String Guid FormatsCorrectly.</summary>
     [Test]
     public async Task String_Guid_FormatsCorrectly()
     {
@@ -353,7 +356,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("GUID: 12345678-1234-1234-1234-123456789012");
     }
-
+    /// <summary>Verifies String GuidEmpty FormatsCorrectly.</summary>
     [Test]
     public async Task String_GuidEmpty_FormatsCorrectly()
     {
@@ -364,7 +367,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("GUID: 00000000-0000-0000-0000-000000000000");
     }
-
+    /// <summary>Verifies String DateTime FormatsCorrectly.</summary>
     [Test]
     public async Task String_DateTime_FormatsCorrectly()
     {
@@ -376,7 +379,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).Contains("2025");
     }
-
+    /// <summary>Verifies String DateTimeOffset FormatsCorrectly.</summary>
     [Test]
     public async Task String_DateTimeOffset_FormatsCorrectly()
     {
@@ -388,7 +391,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).Contains("2025");
     }
-
+    /// <summary>Verifies String TimeSpan FormatsCorrectly.</summary>
     [Test]
     public async Task String_TimeSpan_FormatsCorrectly()
     {
@@ -408,8 +411,9 @@ public sealed class TempStringTests
     // Tests for locale-specific formatting
     // ========================================================================
 
-    #region CultureInfo Tests
 
+    #region CultureInfo Tests
+    /// <summary>Verifies String GermanCulture FormatsWithComma.</summary>
     [Test]
     public async Task String_GermanCulture_FormatsWithComma()
     {
@@ -422,7 +426,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("Preis: 1234,56");
     }
-
+    /// <summary>Verifies String USCulture FormatsWithDot.</summary>
     [Test]
     public async Task String_USCulture_FormatsWithDot()
     {
@@ -435,7 +439,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("Price: 1234.56");
     }
-
+    /// <summary>Verifies String FrenchCulture FormatsDecimalCorrectly.</summary>
     [Test]
     public async Task String_FrenchCulture_FormatsDecimalCorrectly()
     {
@@ -448,7 +452,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).Contains(",");
     }
-
+    /// <summary>Verifies String CultureWithMultipleArgs AllUseCorrectCulture.</summary>
     [Test]
     public async Task String_CultureWithMultipleArgs_AllUseCorrectCulture()
     {
@@ -470,8 +474,9 @@ public sealed class TempStringTests
     // Tests for graceful handling of recursive/nested ZeroAlloc calls
     // ========================================================================
 
-    #region Nested Call Tests
 
+    #region Nested Call Tests
+    /// <summary>Verifies String NestedCalls OuterUsesThreadStatic.</summary>
     [Test]
     public async Task String_NestedCalls_OuterUsesThreadStatic()
     {
@@ -482,7 +487,7 @@ public sealed class TempStringTests
         }
         await Assert.That(isHeapAllocated).IsFalse();
     }
-
+    /// <summary>Verifies String NestedCalls InnerUsesHeapFallback.</summary>
     [Test]
     public async Task String_NestedCalls_InnerUsesHeapFallback()
     {
@@ -497,7 +502,7 @@ public sealed class TempStringTests
         await Assert.That(outerIsHeapAllocated).IsFalse();
         await Assert.That(innerIsHeapAllocated).IsTrue();
     }
-
+    /// <summary>Verifies String NestedCalls BothReturnCorrectContent.</summary>
     [Test]
     public async Task String_NestedCalls_BothReturnCorrectContent()
     {
@@ -512,7 +517,7 @@ public sealed class TempStringTests
         await Assert.That(outerContent).IsEqualTo("Outer: 100");
         await Assert.That(innerContent).IsEqualTo("Inner: 200");
     }
-
+    /// <summary>Verifies String TripleNested AllReturnCorrectContent.</summary>
     [Test]
     public async Task String_TripleNested_AllReturnCorrectContent()
     {
@@ -540,7 +545,7 @@ public sealed class TempStringTests
         await Assert.That(secondIsHeapAllocated).IsTrue();
         await Assert.That(thirdIsHeapAllocated).IsTrue();
     }
-
+    /// <summary>Verifies String DeepNesting AllWork.</summary>
     [Test]
     public async Task String_DeepNesting_AllWork()
     {
@@ -573,7 +578,7 @@ public sealed class TempStringTests
         await Assert.That(aContent).IsEqualTo("A");
         await Assert.That(eContent).IsEqualTo("E");
     }
-
+    /// <summary>Verifies String AfterDispose ThreadStaticReusable.</summary>
     [Test]
     public async Task String_AfterDispose_ThreadStaticReusable()
     {
@@ -599,8 +604,9 @@ public sealed class TempStringTests
     // Tests for TryString methods
     // ========================================================================
 
-    #region TryString Tests
 
+    #region TryString Tests
+    /// <summary>Verifies TryString ValidInput ReturnsTrue.</summary>
     [Test]
     public async Task TryString_ValidInput_ReturnsTrue()
     {
@@ -613,7 +619,7 @@ public sealed class TempStringTests
         await Assert.That(success).IsTrue();
         await Assert.That(content).IsEqualTo("Test: 42");
     }
-
+    /// <summary>Verifies TryString NestedCalls GracefullyFallsBack.</summary>
     [Test]
     public async Task TryString_NestedCalls_GracefullyFallsBack()
     {
@@ -632,7 +638,7 @@ public sealed class TempStringTests
         await Assert.That(result1IsHeapAllocated).IsFalse();
         await Assert.That(result2IsHeapAllocated).IsTrue();
     }
-
+    /// <summary>Verifies TryString EmptyString ReturnsSuccess.</summary>
     [Test]
     public async Task TryString_EmptyString_ReturnsSuccess()
     {
@@ -653,8 +659,9 @@ public sealed class TempStringTests
     // Tests for Hex2, Hex4, Hex8, Hex16 formatters
     // ========================================================================
 
-    #region Hex Formatter Tests
 
+    #region Hex Formatter Tests
+    /// <summary>Verifies String Hex2 FormatsAsUppercaseHex.</summary>
     [Test]
     public async Task String_Hex2_FormatsAsUppercaseHex()
     {
@@ -665,7 +672,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("Byte: FF");
     }
-
+    /// <summary>Verifies String Hex2 LeadingZero.</summary>
     [Test]
     public async Task String_Hex2_LeadingZero()
     {
@@ -676,7 +683,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("Byte: 0A");
     }
-
+    /// <summary>Verifies String Hex2 Zero.</summary>
     [Test]
     public async Task String_Hex2_Zero()
     {
@@ -687,7 +694,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("00");
     }
-
+    /// <summary>Verifies String Hex4 FormatsCorrectly.</summary>
     [Test]
     public async Task String_Hex4_FormatsCorrectly()
     {
@@ -698,7 +705,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("Short: 1234");
     }
-
+    /// <summary>Verifies String Hex4 Zero.</summary>
     [Test]
     public async Task String_Hex4_Zero()
     {
@@ -709,7 +716,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("0000");
     }
-
+    /// <summary>Verifies String Hex8 FormatsCorrectly.</summary>
     [Test]
     public async Task String_Hex8_FormatsCorrectly()
     {
@@ -720,7 +727,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("Int: DEADBEEF");
     }
-
+    /// <summary>Verifies String Hex8 Zero.</summary>
     [Test]
     public async Task String_Hex8_Zero()
     {
@@ -731,7 +738,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("00000000");
     }
-
+    /// <summary>Verifies String Hex16 FormatsCorrectly.</summary>
     [Test]
     public async Task String_Hex16_FormatsCorrectly()
     {
@@ -742,7 +749,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("Long: 123456789ABCDEF0");
     }
-
+    /// <summary>Verifies String Hex16 Zero.</summary>
     [Test]
     public async Task String_Hex16_Zero()
     {
@@ -753,7 +760,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("0000000000000000");
     }
-
+    /// <summary>Verifies String MultipleHexValues FormatsCorrectly.</summary>
     [Test]
     public async Task String_MultipleHexValues_FormatsCorrectly()
     {
@@ -772,8 +779,9 @@ public sealed class TempStringTests
     // Tests for minimum and maximum values of numeric types
     // ========================================================================
 
-    #region Numeric Boundary Tests
 
+    #region Numeric Boundary Tests
+    /// <summary>Verifies String MaxInt FormatsCorrectly.</summary>
     [Test]
     public async Task String_MaxInt_FormatsCorrectly()
     {
@@ -784,7 +792,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("Max: 2147483647");
     }
-
+    /// <summary>Verifies String MinInt FormatsCorrectly.</summary>
     [Test]
     public async Task String_MinInt_FormatsCorrectly()
     {
@@ -795,7 +803,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("Min: -2147483648");
     }
-
+    /// <summary>Verifies String MaxLong FormatsCorrectly.</summary>
     [Test]
     public async Task String_MaxLong_FormatsCorrectly()
     {
@@ -806,7 +814,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("Max: 9223372036854775807");
     }
-
+    /// <summary>Verifies String MinLong FormatsCorrectly.</summary>
     [Test]
     public async Task String_MinLong_FormatsCorrectly()
     {
@@ -817,7 +825,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("Min: -9223372036854775808");
     }
-
+    /// <summary>Verifies String PositiveInfinity FormatsCorrectly.</summary>
     [Test]
     public async Task String_PositiveInfinity_FormatsCorrectly()
     {
@@ -828,7 +836,7 @@ public sealed class TempStringTests
         }
         await Assert.That(result).Contains("Infinity");
     }
-
+    /// <summary>Verifies String NegativeInfinity FormatsCorrectly.</summary>
     [Test]
     public async Task String_NegativeInfinity_FormatsCorrectly()
     {
@@ -839,7 +847,7 @@ public sealed class TempStringTests
         }
         await Assert.That(result).Contains("Infinity");
     }
-
+    /// <summary>Verifies String NaN FormatsCorrectly.</summary>
     [Test]
     public async Task String_NaN_FormatsCorrectly()
     {
@@ -850,7 +858,7 @@ public sealed class TempStringTests
         }
         await Assert.That(result).Contains("NaN");
     }
-
+    /// <summary>Verifies String Epsilon FormatsNonEmpty.</summary>
     [Test]
     public async Task String_Epsilon_FormatsNonEmpty()
     {
@@ -861,7 +869,7 @@ public sealed class TempStringTests
         }
         await Assert.That(lengthCheck).IsTrue(); // "Epsilon: " + some value
     }
-
+    /// <summary>Verifies String ZeroValues FormatsCorrectly.</summary>
     [Test]
     public async Task String_ZeroValues_FormatsCorrectly()
     {
@@ -872,7 +880,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("0000");
     }
-
+    /// <summary>Verifies String NegativeZero FormatsCorrectly.</summary>
     [Test]
     public async Task String_NegativeZero_FormatsCorrectly()
     {
@@ -892,8 +900,9 @@ public sealed class TempStringTests
     // Tests for Unicode handling and special characters
     // ========================================================================
 
-    #region Unicode Tests
 
+    #region Unicode Tests
+    /// <summary>Verifies String Emoji FormatsCorrectly.</summary>
     [Test]
     public async Task String_Emoji_FormatsCorrectly()
     {
@@ -904,7 +913,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("Emoji: 🎉🎊🎈");
     }
-
+    /// <summary>Verifies String SurrogatePair FormatsCorrectly.</summary>
     [Test]
     public async Task String_SurrogatePair_FormatsCorrectly()
     {
@@ -916,7 +925,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("Music: 𝄞");
     }
-
+    /// <summary>Verifies String GermanUmlauts FormatsCorrectly.</summary>
     [Test]
     public async Task String_GermanUmlauts_FormatsCorrectly()
     {
@@ -927,7 +936,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("German: äöüÄÖÜß");
     }
-
+    /// <summary>Verifies String ChineseCharacters FormatsCorrectly.</summary>
     [Test]
     public async Task String_ChineseCharacters_FormatsCorrectly()
     {
@@ -938,7 +947,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("Chinese: 你好世界");
     }
-
+    /// <summary>Verifies String ArabicCharacters FormatsCorrectly.</summary>
     [Test]
     public async Task String_ArabicCharacters_FormatsCorrectly()
     {
@@ -949,7 +958,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("Arabic: مرحبا");
     }
-
+    /// <summary>Verifies String MixedScripts FormatsCorrectly.</summary>
     [Test]
     public async Task String_MixedScripts_FormatsCorrectly()
     {
@@ -960,7 +969,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("Mixed: Hello 你好 مرحبا 🌍");
     }
-
+    /// <summary>Verifies String Newlines FormatsCorrectly.</summary>
     [Test]
     public async Task String_Newlines_FormatsCorrectly()
     {
@@ -971,7 +980,7 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("Line1\nLine2\r\nLine3");
     }
-
+    /// <summary>Verifies String Tabs FormatsCorrectly.</summary>
     [Test]
     public async Task String_Tabs_FormatsCorrectly()
     {
@@ -990,8 +999,9 @@ public sealed class TempStringTests
     // Tests for repeated sequential usage
     // ========================================================================
 
-    #region Sequential Call Tests
 
+    #region Sequential Call Tests
+    /// <summary>Verifies String SequentialCalls WorkCorrectly.</summary>
     [Test]
     public async Task String_SequentialCalls_WorkCorrectly()
     {
@@ -1005,7 +1015,7 @@ public sealed class TempStringTests
             await Assert.That(content).IsEqualTo($"Iteration: {i}");
         }
     }
-
+    /// <summary>Verifies String SequentialCalls AllUseThreadStatic.</summary>
     [Test]
     public async Task String_SequentialCalls_AllUseThreadStatic()
     {
@@ -1027,8 +1037,9 @@ public sealed class TempStringTests
     // Tests for DateTime min/max values
     // ========================================================================
 
-    #region DateTime Boundary Tests
 
+    #region DateTime Boundary Tests
+    /// <summary>Verifies String DateTimeMin FormatsCorrectly.</summary>
     [Test]
     public async Task String_DateTimeMin_FormatsCorrectly()
     {
@@ -1039,7 +1050,7 @@ public sealed class TempStringTests
         }
         await Assert.That(lengthCheck).IsTrue();
     }
-
+    /// <summary>Verifies String DateTimeMax FormatsCorrectly.</summary>
     [Test]
     public async Task String_DateTimeMax_FormatsCorrectly()
     {
@@ -1050,7 +1061,7 @@ public sealed class TempStringTests
         }
         await Assert.That(lengthCheck).IsTrue();
     }
-
+    /// <summary>Verifies String TimeSpanMax FormatsCorrectly.</summary>
     [Test]
     public async Task String_TimeSpanMax_FormatsCorrectly()
     {
@@ -1061,7 +1072,7 @@ public sealed class TempStringTests
         }
         await Assert.That(lengthCheck).IsTrue();
     }
-
+    /// <summary>Verifies String TimeSpanMin FormatsCorrectly.</summary>
     [Test]
     public async Task String_TimeSpanMin_FormatsCorrectly()
     {

@@ -31,6 +31,18 @@ internal static class BinaryGeneratorHelpers
         }
     }
 
+    /// <summary>
+    /// Escapes a C# type display name for use inside XML documentation <c> tags.
+    /// Constructed generic types cannot use <c>see cref</c> (compiler limitation).
+    /// </summary>
+    /// <param name="typeName">The C# display name (e.g. <c>ZeroAlloc.Formatted&lt;double&gt;</c>).</param>
+    /// <returns>XML-safe literal type text.</returns>
+    internal static string ToXmlDocCode(string typeName) =>
+        typeName
+            .Replace("&", "&amp;")
+            .Replace("<", "&lt;")
+            .Replace(">", "&gt;");
+
     #region Type Recognition
 
     /// <summary>

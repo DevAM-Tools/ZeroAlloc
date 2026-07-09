@@ -17,6 +17,7 @@ public sealed class ZeroAllocBaseTests
     // ZeroAllocBase — Protected Constructor
     // ========================================================================
 
+
     /// <summary>
     /// Verifies the protected constructor is reachable via a derived class so that
     /// all constructor statements are covered.
@@ -33,6 +34,7 @@ public sealed class ZeroAllocBaseTests
     // ZeroAllocBase — Fallback Method Contract
     // Each public static method must throw to indicate missing generator output.
     // ========================================================================
+
 
     /// <summary>
     /// Verifies the generic String fallback throws InvalidOperationException, signalling
@@ -163,9 +165,13 @@ public sealed class ZeroAllocBaseTests
 /// </summary>
 public sealed class AttributeTests
 {
+
     // ========================================================================
     // BinaryParsableAttribute
     // ========================================================================
+
+
+    /// <summary>Verifies BinaryParsableAttribute DefaultEndianness IsBigEndian.</summary>
     [Test]
     public async Task BinaryParsableAttribute_DefaultEndianness_IsBigEndian()
     {
@@ -173,6 +179,7 @@ public sealed class AttributeTests
         await Assert.That(attr.DefaultEndianness).IsEqualTo(Endianness.BigEndian);
     }
 
+    /// <summary>Verifies BinaryParsableAttribute DefaultEndianness CanBeSetToLittleEndian.</summary>
     [Test]
     public async Task BinaryParsableAttribute_DefaultEndianness_CanBeSetToLittleEndian()
     {
@@ -184,6 +191,8 @@ public sealed class AttributeTests
     // BinaryWritableAttribute
     // ========================================================================
 
+
+    /// <summary>Verifies BinaryWritableAttribute DefaultEndianness IsBigEndian.</summary>
     [Test]
     public async Task BinaryWritableAttribute_DefaultEndianness_IsBigEndian()
     {
@@ -191,6 +200,7 @@ public sealed class AttributeTests
         await Assert.That(attr.DefaultEndianness).IsEqualTo(Endianness.BigEndian);
     }
 
+    /// <summary>Verifies BinaryWritableAttribute DefaultEndianness CanBeSetToLittleEndian.</summary>
     [Test]
     public async Task BinaryWritableAttribute_DefaultEndianness_CanBeSetToLittleEndian()
     {
@@ -202,6 +212,8 @@ public sealed class AttributeTests
     // BinaryOrderAttribute
     // ========================================================================
 
+
+    /// <summary>Verifies BinaryOrderAttribute StoresOrder.</summary>
     [Test]
     public async Task BinaryOrderAttribute_StoresOrder()
     {
@@ -209,6 +221,7 @@ public sealed class AttributeTests
         await Assert.That(attr.Order).IsEqualTo(3);
     }
 
+    /// <summary>Verifies BinaryOrderAttribute ZeroOrder IsValid.</summary>
     [Test]
     public async Task BinaryOrderAttribute_ZeroOrder_IsValid()
     {
@@ -220,6 +233,8 @@ public sealed class AttributeTests
     // BinaryIgnoreAttribute
     // ========================================================================
 
+
+    /// <summary>Verifies BinaryIgnoreAttribute CanBeConstructed.</summary>
     [Test]
     public async Task BinaryIgnoreAttribute_CanBeConstructed()
     {
@@ -231,6 +246,8 @@ public sealed class AttributeTests
     // BinaryFixedLengthAttribute
     // ========================================================================
 
+
+    /// <summary>Verifies BinaryFixedLengthAttribute StoresLength.</summary>
     [Test]
     public async Task BinaryFixedLengthAttribute_StoresLength()
     {
@@ -242,6 +259,8 @@ public sealed class AttributeTests
     // BinaryFieldAttribute
     // ========================================================================
 
+
+    /// <summary>Verifies BinaryFieldAttribute Defaults AreCorrect.</summary>
     [Test]
     public async Task BinaryFieldAttribute_Defaults_AreCorrect()
     {
@@ -251,6 +270,7 @@ public sealed class AttributeTests
         await Assert.That(attr.PaddingBits).IsEqualTo(0);
     }
 
+    /// <summary>Verifies BinaryFieldAttribute Properties CanBeSet.</summary>
     [Test]
     public async Task BinaryFieldAttribute_Properties_CanBeSet()
     {
@@ -270,6 +290,8 @@ public sealed class AttributeTests
     // BinaryStringLengthAttribute
     // ========================================================================
 
+
+    /// <summary>Verifies BinaryStringLengthAttribute StoresEncoding.</summary>
     [Test]
     public async Task BinaryStringLengthAttribute_StoresEncoding()
     {
@@ -279,6 +301,7 @@ public sealed class AttributeTests
         await Assert.That(attr.FixedLength).IsEqualTo(-1);  // default
     }
 
+    /// <summary>Verifies BinaryStringLengthAttribute Properties CanBeSet.</summary>
     [Test]
     public async Task BinaryStringLengthAttribute_Properties_CanBeSet()
     {
@@ -297,6 +320,8 @@ public sealed class AttributeTests
     // StringLengthVarIntAttribute
     // ========================================================================
 
+
+    /// <summary>Verifies StringLengthVarIntAttribute CanBeConstructed.</summary>
     [Test]
     public async Task StringLengthVarIntAttribute_CanBeConstructed()
     {
@@ -308,6 +333,8 @@ public sealed class AttributeTests
     // StringLengthBEAttribute
     // ========================================================================
 
+
+    /// <summary>Verifies StringLengthBEAttribute DefaultLengthBytes IsFour.</summary>
     [Test]
     public async Task StringLengthBEAttribute_DefaultLengthBytes_IsFour()
     {
@@ -315,6 +342,7 @@ public sealed class AttributeTests
         await Assert.That(attr.LengthBytes).IsEqualTo(4);
     }
 
+    /// <summary>Verifies StringLengthBEAttribute StoresLengthBytes.</summary>
     [Test]
     public async Task StringLengthBEAttribute_StoresLengthBytes()
     {
@@ -326,6 +354,8 @@ public sealed class AttributeTests
     // StringLengthLEAttribute
     // ========================================================================
 
+
+    /// <summary>Verifies StringLengthLEAttribute DefaultLengthBytes IsFour.</summary>
     [Test]
     public async Task StringLengthLEAttribute_DefaultLengthBytes_IsFour()
     {
@@ -333,6 +363,7 @@ public sealed class AttributeTests
         await Assert.That(attr.LengthBytes).IsEqualTo(4);
     }
 
+    /// <summary>Verifies StringLengthLEAttribute StoresLengthBytes.</summary>
     [Test]
     public async Task StringLengthLEAttribute_StoresLengthBytes()
     {
@@ -344,6 +375,8 @@ public sealed class AttributeTests
     // StringNullTerminatedAttribute
     // ========================================================================
 
+
+    /// <summary>Verifies StringNullTerminatedAttribute CanBeConstructed.</summary>
     [Test]
     public async Task StringNullTerminatedAttribute_CanBeConstructed()
     {
@@ -355,6 +388,8 @@ public sealed class AttributeTests
     // StringFixedLengthAttribute
     // ========================================================================
 
+
+    /// <summary>Verifies StringFixedLengthAttribute StoresLength.</summary>
     [Test]
     public async Task StringFixedLengthAttribute_StoresLength()
     {
@@ -366,6 +401,8 @@ public sealed class AttributeTests
     // StringLengthFromFieldAttribute
     // ========================================================================
 
+
+    /// <summary>Verifies StringLengthFromFieldAttribute StoresFieldName.</summary>
     [Test]
     public async Task StringLengthFromFieldAttribute_StoresFieldName()
     {
@@ -377,6 +414,8 @@ public sealed class AttributeTests
     // BytesLengthVarIntAttribute
     // ========================================================================
 
+
+    /// <summary>Verifies BytesLengthVarIntAttribute CanBeConstructed.</summary>
     [Test]
     public async Task BytesLengthVarIntAttribute_CanBeConstructed()
     {
@@ -388,6 +427,8 @@ public sealed class AttributeTests
     // BytesLengthBEAttribute
     // ========================================================================
 
+
+    /// <summary>Verifies BytesLengthBEAttribute DefaultLengthBytes IsFour.</summary>
     [Test]
     public async Task BytesLengthBEAttribute_DefaultLengthBytes_IsFour()
     {
@@ -395,6 +436,7 @@ public sealed class AttributeTests
         await Assert.That(attr.LengthBytes).IsEqualTo(4);
     }
 
+    /// <summary>Verifies BytesLengthBEAttribute StoresLengthBytes.</summary>
     [Test]
     public async Task BytesLengthBEAttribute_StoresLengthBytes()
     {
@@ -406,6 +448,8 @@ public sealed class AttributeTests
     // BytesLengthLEAttribute
     // ========================================================================
 
+
+    /// <summary>Verifies BytesLengthLEAttribute DefaultLengthBytes IsFour.</summary>
     [Test]
     public async Task BytesLengthLEAttribute_DefaultLengthBytes_IsFour()
     {
@@ -413,6 +457,7 @@ public sealed class AttributeTests
         await Assert.That(attr.LengthBytes).IsEqualTo(4);
     }
 
+    /// <summary>Verifies BytesLengthLEAttribute StoresLengthBytes.</summary>
     [Test]
     public async Task BytesLengthLEAttribute_StoresLengthBytes()
     {
@@ -424,6 +469,8 @@ public sealed class AttributeTests
     // BytesLengthFromFieldAttribute
     // ========================================================================
 
+
+    /// <summary>Verifies BytesLengthFromFieldAttribute StoresFieldName.</summary>
     [Test]
     public async Task BytesLengthFromFieldAttribute_StoresFieldName()
     {

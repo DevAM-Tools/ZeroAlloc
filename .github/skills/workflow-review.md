@@ -28,7 +28,7 @@ Load on `/review`. Apply `copilot-instructions.md` Sections 2–4.
 - Build coverage checklist: file × criterion.
 - Build test-coverage matrix; list gaps explicitly.
 - Load `tech-tunit.md` when exit-point coverage verification is required.
-- Record exit-gap count from CoverageGap.Tool per `tech-tunit.md` when production code is in scope.
+- Record exit-gap count from ExitPointGaps per `tech-tunit.md` when production code is in scope.
 - C# in scope: run `dotnet build` on the solution.
 
 ## Stage 4 — Review

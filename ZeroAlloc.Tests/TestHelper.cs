@@ -10,4 +10,4 @@ namespace ZeroAlloc.Tests;
 /// Zero-allocation API for the tests assembly.
 /// The source generator will add String(), Utf8(), Bytes() methods.
 /// </summary>
-internal partial class ZA : ZeroAllocBase { }
+internal sealed partial class ZA : ZeroAllocBase { }

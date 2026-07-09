@@ -1,14 +1,5 @@
 // Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
-// ============================================================================
-// BitWriter Tests
-// ============================================================================
-// Tests for the BitWriter ref struct, covering:
-// - Aligned and unaligned writes
-// - Roundtrip with BitReader
-// - Various bit counts
-// ============================================================================
-
 namespace ZeroAlloc.Tests;
 
 /// <summary>
@@ -16,9 +7,12 @@ namespace ZeroAlloc.Tests;
 /// </summary>
 public sealed class BitWriterTests
 {
+
     // ========================================================================
     // BASIC WRITE TESTS
     // ========================================================================
+
+
     /// <summary>
     /// Tests writing a single aligned byte.
     /// </summary>
@@ -105,6 +99,7 @@ public sealed class BitWriterTests
     // ========================================================================
     // BIT-LEVEL WRITE TESTS
     // ========================================================================
+
 
     /// <summary>
     /// Tests writing individual bits.
@@ -200,6 +195,7 @@ public sealed class BitWriterTests
     // ROUNDTRIP WITH BitReader
     // ========================================================================
 
+
     /// <summary>
     /// Tests roundtrip: write then read produces same values.
     /// </summary>
@@ -284,6 +280,7 @@ public sealed class BitWriterTests
         await Assert.That(readInt64).IsEqualTo(-9876543210L);
     }
 
+    /// <summary>Verifies Roundtrip UInt128 PreservesAllBits.</summary>
     [Test]
     public async Task Roundtrip_UInt128_PreservesAllBits()
     {
@@ -302,6 +299,7 @@ public sealed class BitWriterTests
         await Assert.That(result).IsEqualTo(original);
     }
 
+    /// <summary>Verifies Roundtrip Int128 AllOnes PreservesMinusOne.</summary>
     [Test]
     public async Task Roundtrip_Int128_AllOnes_PreservesMinusOne()
     {
@@ -320,6 +318,7 @@ public sealed class BitWriterTests
         await Assert.That(result).IsEqualTo(original);
     }
 
+    /// <summary>Verifies Roundtrip Int128 MaxValue PreservesValue.</summary>
     [Test]
     public async Task Roundtrip_Int128_MaxValue_PreservesValue()
     {
@@ -337,6 +336,7 @@ public sealed class BitWriterTests
         await Assert.That(result).IsEqualTo(original);
     }
 
+    /// <summary>Verifies WriteUInt128 WritesCorrectBytes.</summary>
     [Test]
     public async Task WriteUInt128_WritesCorrectBytes()
     {
@@ -356,6 +356,7 @@ public sealed class BitWriterTests
     // ========================================================================
     // ALIGNMENT AND SKIP TESTS
     // ========================================================================
+
 
     /// <summary>
     /// Tests SkipBits advances position without writing.
@@ -426,6 +427,7 @@ public sealed class BitWriterTests
     // WriteBytes TESTS
     // ========================================================================
 
+
     /// <summary>
     /// Tests writing a byte array when aligned.
     /// </summary>
@@ -471,6 +473,7 @@ public sealed class BitWriterTests
     // ========================================================================
     // PROPERTY TESTS
     // ========================================================================
+
 
     /// <summary>
     /// Tests BytePosition property.
@@ -552,6 +555,7 @@ public sealed class BitWriterTests
     // ========================================================================
     // BOUNDARY VALIDATION — WriteBits / WriteByte / SkipBits / WriteBytes
     // ========================================================================
+
 
     /// <summary>Verifies WriteBits rejects bitCount below 1.</summary>
     [Test]
@@ -741,6 +745,8 @@ public sealed class BitWriterTests
     // TRY-WRITE — SUCCESS PATHS
     // ========================================================================
 
+
+    /// <summary>Verifies BitWriter TryWriteBits SufficientCapacity ReturnsTrueAndWrites.</summary>
     [Test]
     public async Task BitWriter_TryWriteBits_SufficientCapacity_ReturnsTrueAndWrites()
     {
@@ -758,6 +764,7 @@ public sealed class BitWriterTests
         await Assert.That((int)buffer[0]).IsEqualTo(0b10110000);
     }
 
+    /// <summary>Verifies BitWriter TryWriteByte SufficientCapacity ReturnsTrueAndWrites.</summary>
     [Test]
     public async Task BitWriter_TryWriteByte_SufficientCapacity_ReturnsTrueAndWrites()
     {
@@ -775,6 +782,7 @@ public sealed class BitWriterTests
         await Assert.That(bitOffset).IsEqualTo(8);
     }
 
+    /// <summary>Verifies BitWriter TryWriteUInt16 SufficientCapacity ReturnsTrueAndWrites.</summary>
     [Test]
     public async Task BitWriter_TryWriteUInt16_SufficientCapacity_ReturnsTrueAndWrites()
     {
@@ -790,6 +798,7 @@ public sealed class BitWriterTests
         await Assert.That((int)buffer[1]).IsEqualTo(0x34);
     }
 
+    /// <summary>Verifies BitWriter TryWriteUInt32 SufficientCapacity ReturnsTrueAndWrites.</summary>
     [Test]
     public async Task BitWriter_TryWriteUInt32_SufficientCapacity_ReturnsTrueAndWrites()
     {
@@ -807,6 +816,7 @@ public sealed class BitWriterTests
         await Assert.That((int)buffer[3]).IsEqualTo(0x78);
     }
 
+    /// <summary>Verifies BitWriter TryWriteUInt64 SufficientCapacity ReturnsTrueAndWrites.</summary>
     [Test]
     public async Task BitWriter_TryWriteUInt64_SufficientCapacity_ReturnsTrueAndWrites()
     {
@@ -822,6 +832,7 @@ public sealed class BitWriterTests
         await Assert.That((int)buffer[7]).IsEqualTo(0x08);
     }
 
+    /// <summary>Verifies BitWriter TryWriteInt16 SufficientCapacity ReturnsTrueAndWrites.</summary>
     [Test]
     public async Task BitWriter_TryWriteInt16_SufficientCapacity_ReturnsTrueAndWrites()
     {
@@ -837,6 +848,7 @@ public sealed class BitWriterTests
         await Assert.That((int)buffer[1]).IsEqualTo(0xFE);
     }
 
+    /// <summary>Verifies BitWriter TryWriteInt32 SufficientCapacity ReturnsTrueAndWrites.</summary>
     [Test]
     public async Task BitWriter_TryWriteInt32_SufficientCapacity_ReturnsTrueAndWrites()
     {
@@ -852,6 +864,7 @@ public sealed class BitWriterTests
         await Assert.That((int)buffer[3]).IsEqualTo(0xFF);
     }
 
+    /// <summary>Verifies BitWriter TryWriteInt64 SufficientCapacity ReturnsTrueAndWrites.</summary>
     [Test]
     public async Task BitWriter_TryWriteInt64_SufficientCapacity_ReturnsTrueAndWrites()
     {
@@ -869,6 +882,7 @@ public sealed class BitWriterTests
         }
     }
 
+    /// <summary>Verifies BitWriter TrySkipBits SufficientCapacity ReturnsTrueAndAdvances.</summary>
     [Test]
     public async Task BitWriter_TrySkipBits_SufficientCapacity_ReturnsTrueAndAdvances()
     {
@@ -885,6 +899,7 @@ public sealed class BitWriterTests
         await Assert.That(bitOffset).IsEqualTo(8);
     }
 
+    /// <summary>Verifies BitWriter TryWriteBytes AlignedSufficientCapacity ReturnsTrueAndWrites.</summary>
     [Test]
     public async Task BitWriter_TryWriteBytes_AlignedSufficientCapacity_ReturnsTrueAndWrites()
     {
@@ -907,6 +922,8 @@ public sealed class BitWriterTests
     // TRY-WRITE — FAILURE PATHS (insufficient capacity — returns false, no state change)
     // ========================================================================
 
+
+    /// <summary>Verifies BitWriter TryWriteBits InsufficientCapacity ReturnsFalseAndPreservesState.</summary>
     [Test]
     public async Task BitWriter_TryWriteBits_InsufficientCapacity_ReturnsFalseAndPreservesState()
     {
@@ -925,6 +942,7 @@ public sealed class BitWriterTests
         await Assert.That((int)buffer[0]).IsEqualTo(0b11111100); // already-written bits unchanged
     }
 
+    /// <summary>Verifies BitWriter TryWriteByte InsufficientCapacity ReturnsFalse.</summary>
     [Test]
     public async Task BitWriter_TryWriteByte_InsufficientCapacity_ReturnsFalse()
     {
@@ -942,6 +960,7 @@ public sealed class BitWriterTests
         await Assert.That(bitOffset).IsEqualTo(4);
     }
 
+    /// <summary>Verifies BitWriter TryWriteUInt16 InsufficientCapacity ReturnsFalse.</summary>
     [Test]
     public async Task BitWriter_TryWriteUInt16_InsufficientCapacity_ReturnsFalse()
     {
@@ -958,6 +977,7 @@ public sealed class BitWriterTests
         await Assert.That(bitOffset).IsEqualTo(0);
     }
 
+    /// <summary>Verifies BitWriter TryWriteUInt32 InsufficientCapacity ReturnsFalse.</summary>
     [Test]
     public async Task BitWriter_TryWriteUInt32_InsufficientCapacity_ReturnsFalse()
     {
@@ -974,6 +994,7 @@ public sealed class BitWriterTests
         await Assert.That(bitOffset).IsEqualTo(0);
     }
 
+    /// <summary>Verifies BitWriter TryWriteUInt64 InsufficientCapacity ReturnsFalse.</summary>
     [Test]
     public async Task BitWriter_TryWriteUInt64_InsufficientCapacity_ReturnsFalse()
     {
@@ -990,6 +1011,7 @@ public sealed class BitWriterTests
         await Assert.That(bitOffset).IsEqualTo(0);
     }
 
+    /// <summary>Verifies BitWriter TryWriteInt32 InsufficientCapacity ReturnsFalse.</summary>
     [Test]
     public async Task BitWriter_TryWriteInt32_InsufficientCapacity_ReturnsFalse()
     {
@@ -1006,6 +1028,7 @@ public sealed class BitWriterTests
         await Assert.That(bitOffset).IsEqualTo(0);
     }
 
+    /// <summary>Verifies BitWriter TrySkipBits InsufficientCapacity ReturnsFalseAndPreservesState.</summary>
     [Test]
     public async Task BitWriter_TrySkipBits_InsufficientCapacity_ReturnsFalseAndPreservesState()
     {
@@ -1022,6 +1045,7 @@ public sealed class BitWriterTests
         await Assert.That(bitOffset).IsEqualTo(0);
     }
 
+    /// <summary>Verifies BitWriter TrySkipBits Zero AlwaysReturnsTrue.</summary>
     [Test]
     public async Task BitWriter_TrySkipBits_Zero_AlwaysReturnsTrue()
     {
@@ -1037,6 +1061,7 @@ public sealed class BitWriterTests
         await Assert.That(bitOffset).IsEqualTo(0);
     }
 
+    /// <summary>Verifies BitWriter TryWriteBytes NotAligned ReturnsFalse.</summary>
     [Test]
     public async Task BitWriter_TryWriteBytes_NotAligned_ReturnsFalse()
     {
@@ -1054,6 +1079,7 @@ public sealed class BitWriterTests
         await Assert.That(bitOffset).IsEqualTo(3); // state must not advance
     }
 
+    /// <summary>Verifies BitWriter TryWriteBytes InsufficientCapacity ReturnsFalse.</summary>
     [Test]
     public async Task BitWriter_TryWriteBytes_InsufficientCapacity_ReturnsFalse()
     {
@@ -1074,6 +1100,8 @@ public sealed class BitWriterTests
     // TRY-WRITE — INVALID ARGUMENT PATHS (programming errors — still throw)
     // ========================================================================
 
+
+    /// <summary>Verifies BitWriter TryWriteBits BitCountZero ThrowsArgumentOutOfRangeException.</summary>
     [Test]
     public async Task BitWriter_TryWriteBits_BitCountZero_ThrowsArgumentOutOfRangeException()
     {
@@ -1085,6 +1113,7 @@ public sealed class BitWriterTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies BitWriter TryWriteBits BitCountOver64 ThrowsArgumentOutOfRangeException.</summary>
     [Test]
     public async Task BitWriter_TryWriteBits_BitCountOver64_ThrowsArgumentOutOfRangeException()
     {
@@ -1096,6 +1125,7 @@ public sealed class BitWriterTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies BitWriter TrySkipBits NegativeCount ThrowsArgumentOutOfRangeException.</summary>
     [Test]
     public async Task BitWriter_TrySkipBits_NegativeCount_ThrowsArgumentOutOfRangeException()
     {
@@ -1111,6 +1141,8 @@ public sealed class BitWriterTests
     // EXIT-POINT COVERAGE — BitPositionInByte / aligned 8-bit / unaligned WriteByte
     // ========================================================================
 
+
+    /// <summary>Verifies BitWriter BitPositionInByte ReturnsOffsetModuloEight.</summary>
     [Test]
     [Arguments(0, 0)]
     [Arguments(3, 3)]
@@ -1133,6 +1165,7 @@ public sealed class BitWriterTests
         await Assert.That(position).IsEqualTo(expectedPosition);
     }
 
+    /// <summary>Verifies BitWriter WriteBits EightBitsAligned UsesAlignedFastPath.</summary>
     [Test]
     public async Task BitWriter_WriteBits_EightBitsAligned_UsesAlignedFastPath()
     {
@@ -1145,6 +1178,7 @@ public sealed class BitWriterTests
         await Assert.That((int)buffer[0]).IsEqualTo(0xAB);
     }
 
+    /// <summary>Verifies BitWriter WriteByte WhenUnaligned DelegatesToWriteBits.</summary>
     [Test]
     public async Task BitWriter_WriteByte_WhenUnaligned_DelegatesToWriteBits()
     {
@@ -1162,6 +1196,7 @@ public sealed class BitWriterTests
         await Assert.That(bitOffset).IsEqualTo(12);
     }
 
+    /// <summary>Verifies BitWriter TryWriteInt16 InsufficientCapacity ReturnsFalse.</summary>
     [Test]
     public async Task BitWriter_TryWriteInt16_InsufficientCapacity_ReturnsFalse()
     {
@@ -1178,6 +1213,7 @@ public sealed class BitWriterTests
         await Assert.That(bitOffset).IsEqualTo(0);
     }
 
+    /// <summary>Verifies BitWriter TryWriteInt64 InsufficientCapacity ReturnsFalse.</summary>
     [Test]
     public async Task BitWriter_TryWriteInt64_InsufficientCapacity_ReturnsFalse()
     {

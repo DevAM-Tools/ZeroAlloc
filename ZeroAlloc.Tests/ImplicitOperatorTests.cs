@@ -8,10 +8,13 @@ namespace ZeroAlloc.Tests;
 /// </summary>
 public sealed class ImplicitOperatorTests
 {
+
     // ========================================================================
     // TEMPSTRING - IMPLICIT TO READONLYSPAN<CHAR>
     // ========================================================================
 
+
+    /// <summary>Verifies TempString ImplicitToReadOnlySpan ReturnsCorrectContent.</summary>
     [Test]
     [Arguments("hello", 5)]
     [Arguments("", 0)]
@@ -34,6 +37,8 @@ public sealed class ImplicitOperatorTests
     // TEMPBYTES - IMPLICIT TO READONLYSPAN<BYTE>
     // ========================================================================
 
+
+    /// <summary>Verifies TempBytes ImplicitToReadOnlySpan ReturnsCorrectContent.</summary>
     [Test]
     [Arguments("hello", 5)]
     [Arguments("", 0)]
@@ -55,6 +60,9 @@ public sealed class ImplicitOperatorTests
     // ========================================================================
     // TEMPSTRING - IMPLICIT TO STRING
     // ========================================================================
+
+
+    /// <summary>Verifies TempString ImplicitToString ReturnsCorrectValue.</summary>
     [Test]
     public async Task TempString_ImplicitToString_ReturnsCorrectValue()
     {
@@ -65,6 +73,7 @@ public sealed class ImplicitOperatorTests
         await Assert.That(result).IsEqualTo("Hello World");
     }
 
+    /// <summary>Verifies TempString ImplicitToString WithInterpolation ReturnsCorrectValue.</summary>
     [Test]
     public async Task TempString_ImplicitToString_WithInterpolation_ReturnsCorrectValue()
     {
@@ -79,6 +88,7 @@ public sealed class ImplicitOperatorTests
         await Assert.That(result).IsEqualTo("Name: Test, Value: 42");
     }
 
+    /// <summary>Verifies TempString ImplicitToString FormattedNumbers ReturnsCorrectValue.</summary>
     [Test]
     public async Task TempString_ImplicitToString_FormattedNumbers_ReturnsCorrectValue()
     {
@@ -93,6 +103,7 @@ public sealed class ImplicitOperatorTests
         await Assert.That(result).IsEqualTo("Price: 1234.56");
     }
 
+    /// <summary>Verifies TempString ImplicitToString EmptyInterpolation ReturnsEmpty.</summary>
     [Test]
     public async Task TempString_ImplicitToString_EmptyInterpolation_ReturnsEmpty()
     {
@@ -103,6 +114,7 @@ public sealed class ImplicitOperatorTests
         await Assert.That(result).IsEqualTo("");
     }
 
+    /// <summary>Verifies TempString ImplicitToString LargeContent works.</summary>
     [Test]
     public async Task TempString_ImplicitToString_LargeContent_Works()
     {
@@ -120,6 +132,8 @@ public sealed class ImplicitOperatorTests
     // TEMPSTRING - ASSIGNMENT TO STRING VARIABLE
     // ========================================================================
 
+
+    /// <summary>Verifies TempString AssignToVariable works.</summary>
     [Test]
     public async Task TempString_AssignToVariable_Works()
     {
@@ -133,6 +147,7 @@ public sealed class ImplicitOperatorTests
         await Assert.That(message).IsEqualTo("Count: 5");
     }
 
+    /// <summary>Verifies TempString PassToMethod works.</summary>
     [Test]
     public async Task TempString_PassToMethod_Works()
     {
@@ -147,6 +162,8 @@ public sealed class ImplicitOperatorTests
     // TEMPBYTES - IMPLICIT TO BYTE ARRAY
     // ========================================================================
 
+
+    /// <summary>Verifies TempBytes ImplicitToByteArray ReturnsCorrectValue.</summary>
     [Test]
     public async Task TempBytes_ImplicitToByteArray_ReturnsCorrectValue()
     {
@@ -157,6 +174,7 @@ public sealed class ImplicitOperatorTests
         await Assert.That(result).IsEquivalentTo("Hello"u8.ToArray());
     }
 
+    /// <summary>Verifies TempBytes ImplicitToByteArray WithInterpolation ReturnsCorrectValue.</summary>
     [Test]
     public async Task TempBytes_ImplicitToByteArray_WithInterpolation_ReturnsCorrectValue()
     {
@@ -170,6 +188,7 @@ public sealed class ImplicitOperatorTests
         await Assert.That(result).IsEquivalentTo(System.Text.Encoding.UTF8.GetBytes("Value: 42"));
     }
 
+    /// <summary>Verifies TempBytes ImplicitToByteArray Unicode ReturnsCorrectValue.</summary>
     [Test]
     public async Task TempBytes_ImplicitToByteArray_Unicode_ReturnsCorrectValue()
     {
@@ -180,6 +199,7 @@ public sealed class ImplicitOperatorTests
         await Assert.That(result).IsEquivalentTo(System.Text.Encoding.UTF8.GetBytes("Héllo €100"));
     }
 
+    /// <summary>Verifies TempBytes ImplicitToByteArray EmptyInterpolation ReturnsEmpty.</summary>
     [Test]
     public async Task TempBytes_ImplicitToByteArray_EmptyInterpolation_ReturnsEmpty()
     {
@@ -191,6 +211,7 @@ public sealed class ImplicitOperatorTests
         await Assert.That(result).IsSameReferenceAs(Array.Empty<byte>());
     }
 
+    /// <summary>Verifies LazyString ImplicitToString ReturnsEvaluatedValue.</summary>
     [Test]
     [Arguments("lazy")]
     public async Task LazyString_ImplicitToString_ReturnsEvaluatedValue(string expected)
@@ -204,6 +225,8 @@ public sealed class ImplicitOperatorTests
     // TEMPBYTES - ASSIGNMENT TO VARIABLE
     // ========================================================================
 
+
+    /// <summary>Verifies TempBytes AssignToVariable works.</summary>
     [Test]
     public async Task TempBytes_AssignToVariable_Works()
     {
@@ -217,6 +240,7 @@ public sealed class ImplicitOperatorTests
         await Assert.That(data).IsEquivalentTo("ID=123"u8.ToArray());
     }
 
+    /// <summary>Verifies TempBytes PassToMethod works.</summary>
     [Test]
     public async Task TempBytes_PassToMethod_Works()
     {
@@ -232,6 +256,8 @@ public sealed class ImplicitOperatorTests
     // Uses ZA.String(culture, ...) which doesn't require generator overloads
     // ========================================================================
 
+
+    /// <summary>Verifies TempString ImplicitToString German ReturnsCorrectValue.</summary>
     [Test]
     public async Task TempString_ImplicitToString_German_ReturnsCorrectValue()
     {
@@ -246,6 +272,7 @@ public sealed class ImplicitOperatorTests
         await Assert.That(result).IsEqualTo("Preis: 1234,56");
     }
 
+    /// <summary>Verifies TempString ImplicitToString English ReturnsCorrectValue.</summary>
     [Test]
     public async Task TempString_ImplicitToString_English_ReturnsCorrectValue()
     {
@@ -260,6 +287,7 @@ public sealed class ImplicitOperatorTests
         await Assert.That(result).IsEqualTo("Price: 1234.56");
     }
 
+    /// <summary>Verifies TempString WithCulture PassToMethod works.</summary>
     [Test]
     public async Task TempString_WithCulture_PassToMethod_Works()
     {
@@ -276,6 +304,8 @@ public sealed class ImplicitOperatorTests
     // Note: ZA.Utf8() does not have culture-aware overloads
     // ========================================================================
 
+
+    /// <summary>Verifies TempBytes ImplicitToByteArray SimpleValue ReturnsCorrectValue.</summary>
     [Test]
     public async Task TempBytes_ImplicitToByteArray_SimpleValue_ReturnsCorrectValue()
     {
@@ -289,6 +319,7 @@ public sealed class ImplicitOperatorTests
         await Assert.That(result).IsEquivalentTo(expected);
     }
 
+    /// <summary>Verifies TempBytes ImplicitToByteArray WithUnicode ReturnsCorrectValue.</summary>
     [Test]
     public async Task TempBytes_ImplicitToByteArray_WithUnicode_ReturnsCorrectValue()
     {
@@ -302,6 +333,7 @@ public sealed class ImplicitOperatorTests
         await Assert.That(result).IsEquivalentTo(expected);
     }
 
+    /// <summary>Verifies TempBytes PassToMethodWithNumber works.</summary>
     [Test]
     public async Task TempBytes_PassToMethodWithNumber_Works()
     {
@@ -316,6 +348,8 @@ public sealed class ImplicitOperatorTests
     // MULTIPLE CONVERSIONS IN SEQUENCE
     // ========================================================================
 
+
+    /// <summary>Verifies ImplicitOperators MultipleConversionsInSequence work.</summary>
     [Test]
     public async Task ImplicitOperators_MultipleConversionsInSequence_Work()
     {
@@ -330,6 +364,7 @@ public sealed class ImplicitOperatorTests
         await Assert.That(s3).IsEqualTo("Third");
     }
 
+    /// <summary>Verifies ImplicitOperators MixedTypes work.</summary>
     [Test]
     public async Task ImplicitOperators_MixedTypes_Work()
     {
@@ -350,6 +385,8 @@ public sealed class ImplicitOperatorTests
     // IMPLICIT IN COLLECTIONS/EXPRESSIONS
     // ========================================================================
 
+
+    /// <summary>Verifies TempString ImplicitInListInitializer works.</summary>
     [Test]
     public async Task TempString_ImplicitInListInitializer_Works()
     {
@@ -368,6 +405,7 @@ public sealed class ImplicitOperatorTests
         await Assert.That(messages[2]).IsEqualTo("Message 3");
     }
 
+    /// <summary>Verifies TempBytes ImplicitInArrayInitializer works.</summary>
     [Test]
     public async Task TempBytes_ImplicitInArrayInitializer_Works()
     {
@@ -390,6 +428,8 @@ public sealed class ImplicitOperatorTests
     // IMPLICIT IN STRING OPERATIONS
     // ========================================================================
 
+
+    /// <summary>Verifies TempString ImplicitInStringConcat works.</summary>
     [Test]
     public async Task TempString_ImplicitInStringConcat_Works()
     {
@@ -403,6 +443,7 @@ public sealed class ImplicitOperatorTests
         await Assert.That(result).IsEqualTo("Prefix: ID=123 :Suffix");
     }
 
+    /// <summary>Verifies TempString ImplicitInStringEquals works.</summary>
     [Test]
     public async Task TempString_ImplicitInStringEquals_Works()
     {
@@ -417,6 +458,8 @@ public sealed class ImplicitOperatorTests
     // EDGE CASES
     // ========================================================================
 
+
+    /// <summary>Verifies TempString ImplicitWithNullValue works.</summary>
     [Test]
     public async Task TempString_ImplicitWithNullValue_Works()
     {
@@ -430,6 +473,7 @@ public sealed class ImplicitOperatorTests
         await Assert.That(result).IsEqualTo("Value: ");
     }
 
+    /// <summary>Verifies TempBytes ImplicitWithSpecialChars works.</summary>
     [Test]
     public async Task TempBytes_ImplicitWithSpecialChars_Works()
     {
@@ -440,6 +484,7 @@ public sealed class ImplicitOperatorTests
         await Assert.That(result).IsEquivalentTo("Line1\r\nLine2\tTabbed"u8.ToArray());
     }
 
+    /// <summary>Verifies TempString ImplicitWithGuid works.</summary>
     [Test]
     public async Task TempString_ImplicitWithGuid_Works()
     {
@@ -453,6 +498,7 @@ public sealed class ImplicitOperatorTests
         await Assert.That(result).IsEqualTo("12345678-1234-1234-1234-123456789abc");
     }
 
+    /// <summary>Verifies TempBytes ImplicitWithDateTime works.</summary>
     [Test]
     public async Task TempBytes_ImplicitWithDateTime_Works()
     {

@@ -8,10 +8,13 @@ namespace ZeroAlloc.Tests;
 /// </summary>
 public sealed class SpanBytesBuilderTests
 {
+
     // ========================================================================
     // CREATION AND PROPERTIES
     // ========================================================================
 
+
+    /// <summary>Verifies Constructor SetsCapacityAndEmptyState.</summary>
     [Test]
     public async Task Constructor_SetsCapacityAndEmptyState()
     {
@@ -35,6 +38,8 @@ public sealed class SpanBytesBuilderTests
     // APPEND CHAIN — INTEGERS, FLOATS, ENDIAN WRAPPERS
     // ========================================================================
 
+
+    /// <summary>Verifies AppendChain IntegerTypes WritesBigAndLittleEndian.</summary>
     [Test]
     public async Task AppendChain_IntegerTypes_WritesBigAndLittleEndian()
     {
@@ -68,6 +73,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That((int)bytes[3]).IsEqualTo(0x12);
     }
 
+    /// <summary>Verifies AppendChain FloatTypes WritesCorrectEndianness.</summary>
     [Test]
     public async Task AppendChain_FloatTypes_WritesCorrectEndianness()
     {
@@ -87,6 +93,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(bytes.Length).IsEqualTo(2 + 2 + 4 + 4 + 8 + 8);
     }
 
+    /// <summary>Verifies Append EndianWrapperTypes DelegatesToPrimitiveMethods.</summary>
     [Test]
     public async Task Append_EndianWrapperTypes_DelegatesToPrimitiveMethods()
     {
@@ -118,6 +125,8 @@ public sealed class SpanBytesBuilderTests
     // VARINT, UTF-8, IBINARYSERIALIZABLE
     // ========================================================================
 
+
+    /// <summary>Verifies AppendVarInt EncodesCorrectly.</summary>
     [Test]
     [Arguments(0UL, new byte[] { 0x00 })]
     [Arguments(127UL, new byte[] { 0x7F })]
@@ -136,6 +145,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(bytes).IsEquivalentTo(expected);
     }
 
+    /// <summary>Verifies AppendVarIntZigZag EncodesCorrectly.</summary>
     [Test]
     [Arguments(0L, new byte[] { 0x00 })]
     [Arguments(-1L, new byte[] { 0x01 })]
@@ -153,6 +163,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(bytes).IsEquivalentTo(expected);
     }
 
+    /// <summary>Verifies Append VarIntWrapperTypes EncodeCorrectly.</summary>
     [Test]
     public async Task Append_VarIntWrapperTypes_EncodeCorrectly()
     {
@@ -168,6 +179,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(bytes).IsEquivalentTo((byte[])[0xAC, 0x02, 0x01]);
     }
 
+    /// <summary>Verifies AppendUtf8 EncodesString.</summary>
     [Test]
     public async Task AppendUtf8_EncodesString()
     {
@@ -182,6 +194,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(bytes).IsEquivalentTo("Hello"u8.ToArray());
     }
 
+    /// <summary>Verifies AppendUtf8NullTerminated IncludesZeroByte.</summary>
     [Test]
     public async Task AppendUtf8NullTerminated_IncludesZeroByte()
     {
@@ -196,6 +209,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(bytes).IsEquivalentTo((byte[])[0x48, 0x69, 0x00]);
     }
 
+    /// <summary>Verifies AppendUtf8WithVarIntPrefix EncodesLengthAndContent.</summary>
     [Test]
     public async Task AppendUtf8WithVarIntPrefix_EncodesLengthAndContent()
     {
@@ -212,6 +226,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That((int)bytes[2]).IsEqualTo(0x69);
     }
 
+    /// <summary>Verifies AppendUtf8WithLengthPrefixBE EncodesBigEndianLength.</summary>
     [Test]
     public async Task AppendUtf8WithLengthPrefixBE_EncodesBigEndianLength()
     {
@@ -230,6 +245,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That((int)bytes[4]).IsEqualTo(0x48);
     }
 
+    /// <summary>Verifies AppendUtf8WithLengthPrefixLE EncodesLittleEndianLength.</summary>
     [Test]
     public async Task AppendUtf8WithLengthPrefixLE_EncodesLittleEndianLength()
     {
@@ -248,6 +264,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That((int)bytes[4]).IsEqualTo(0x48);
     }
 
+    /// <summary>Verifies Append IBinarySerializable WritesStruct.</summary>
     [Test]
     public async Task Append_IBinarySerializable_WritesStruct()
     {
@@ -263,6 +280,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(bytes).IsEquivalentTo((byte[])[0x01, 0x02, 0x03]);
     }
 
+    /// <summary>Verifies AppendUtf8Formattable EncodesFormattedValue.</summary>
     [Test]
     public async Task AppendUtf8Formattable_EncodesFormattedValue()
     {
@@ -281,6 +299,8 @@ public sealed class SpanBytesBuilderTests
     // HEX/BINARY ASCII
     // ========================================================================
 
+
+    /// <summary>Verifies AppendHex AndBinary FormatsAsciiBytes.</summary>
     [Test]
     public async Task AppendHex_AndBinary_FormatsAsciiBytes()
     {
@@ -306,6 +326,8 @@ public sealed class SpanBytesBuilderTests
     // CLEAR, SEEKBACK, ADVANCE, REMAINING
     // ========================================================================
 
+
+    /// <summary>Verifies Clear ResetsLengthAndRemaining.</summary>
     [Test]
     public async Task Clear_ResetsLengthAndRemaining()
     {
@@ -324,6 +346,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(remaining).IsEqualTo(100);
     }
 
+    /// <summary>Verifies SeekBack DecreasesLength.</summary>
     [Test]
     public async Task SeekBack_DecreasesLength()
     {
@@ -342,6 +365,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(bytes).IsEquivalentTo((byte[])[0x01, 0x02]);
     }
 
+    /// <summary>Verifies SeekBack TooMuch ThrowsArgumentOutOfRangeException.</summary>
     [Test]
     public async Task SeekBack_TooMuch_ThrowsArgumentOutOfRangeException()
     {
@@ -357,6 +381,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies TrySeekBack Valid ReturnsTrue.</summary>
     [Test]
     public async Task TrySeekBack_Valid_ReturnsTrue()
     {
@@ -374,6 +399,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(length).IsEqualTo(2);
     }
 
+    /// <summary>Verifies TrySeekBack Invalid ReturnsFalse.</summary>
     [Test]
     public async Task TrySeekBack_Invalid_ReturnsFalse()
     {
@@ -391,6 +417,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(length).IsEqualTo(2);
     }
 
+    /// <summary>Verifies GetRemainingSpan ReturnsUnwrittenTail.</summary>
     [Test]
     public async Task GetRemainingSpan_ReturnsUnwrittenTail()
     {
@@ -406,6 +433,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(remainingLength).IsEqualTo(97);
     }
 
+    /// <summary>Verifies Advance IncreasesPositionAfterManualWrite.</summary>
     [Test]
     public async Task Advance_IncreasesPositionAfterManualWrite()
     {
@@ -426,6 +454,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(content).IsEquivalentTo((byte[])[0xAA, 0xBB]);
     }
 
+    /// <summary>Verifies Advance PastRemaining ThrowsArgumentOutOfRangeException.</summary>
     [Test]
     public async Task Advance_PastRemaining_ThrowsArgumentOutOfRangeException()
     {
@@ -447,6 +476,8 @@ public sealed class SpanBytesBuilderTests
     // OVERFLOW — APPEND THROWS
     // ========================================================================
 
+
+    /// <summary>Verifies Append SpanOverflow ThrowsInvalidOperationException.</summary>
     [Test]
     public async Task Append_SpanOverflow_ThrowsInvalidOperationException()
     {
@@ -461,6 +492,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies AppendInt32 Overflow ThrowsInvalidOperationException.</summary>
     [Test]
     public async Task AppendInt32_Overflow_ThrowsInvalidOperationException()
     {
@@ -475,6 +507,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies Append EmptyBuffer ThrowsOnAnyAppend.</summary>
     [Test]
     public async Task Append_EmptyBuffer_ThrowsOnAnyAppend()
     {
@@ -489,6 +522,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies AppendUtf8WithVarIntPrefix BufferTooSmall DoesNotAdvance.</summary>
     [Test]
     public async Task AppendUtf8WithVarIntPrefix_BufferTooSmall_DoesNotAdvance()
     {
@@ -506,6 +540,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(length).IsEqualTo(0);
     }
 
+    /// <summary>Verifies AppendUtf8WithLengthPrefixBE BufferTooSmall DoesNotAdvance.</summary>
     [Test]
     public async Task AppendUtf8WithLengthPrefixBE_BufferTooSmall_DoesNotAdvance()
     {
@@ -523,6 +558,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(length).IsEqualTo(0);
     }
 
+    /// <summary>Verifies Append NullArray DoesNothing.</summary>
     [Test]
     public async Task Append_NullArray_DoesNothing()
     {
@@ -537,6 +573,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(length).IsEqualTo(0);
     }
 
+    /// <summary>Verifies Append EmptySpan DoesNothing.</summary>
     [Test]
     public async Task Append_EmptySpan_DoesNothing()
     {
@@ -555,6 +592,8 @@ public sealed class SpanBytesBuilderTests
     // TRYAPPEND — SUCCESS AND FAILURE
     // ========================================================================
 
+
+    /// <summary>Verifies TryAppend Byte SucceedsUntilFull.</summary>
     [Test]
     public async Task TryAppend_Byte_SucceedsUntilFull()
     {
@@ -577,6 +616,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(length).IsEqualTo(2);
     }
 
+    /// <summary>Verifies TryAppendInt32BigEndian InsufficientSpace ReturnsFalse.</summary>
     [Test]
     public async Task TryAppendInt32BigEndian_InsufficientSpace_ReturnsFalse()
     {
@@ -590,6 +630,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(result).IsFalse();
     }
 
+    /// <summary>Verifies TryAppendVarInt InsufficientSpace ReturnsFalse.</summary>
     [Test]
     public async Task TryAppendVarInt_InsufficientSpace_ReturnsFalse()
     {
@@ -603,6 +644,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(result).IsFalse();
     }
 
+    /// <summary>Verifies TryAppendUtf8 InsufficientSpace ReturnsFalse.</summary>
     [Test]
     public async Task TryAppendUtf8_InsufficientSpace_ReturnsFalse()
     {
@@ -616,6 +658,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(result).IsFalse();
     }
 
+    /// <summary>Verifies TryAppend IBinarySerializable InsufficientSpace ReturnsFalse.</summary>
     [Test]
     public async Task TryAppend_IBinarySerializable_InsufficientSpace_ReturnsFalse()
     {
@@ -630,6 +673,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(result).IsFalse();
     }
 
+    /// <summary>Verifies TryAppendHex2 InsufficientSpace ReturnsFalse.</summary>
     [Test]
     public async Task TryAppendHex2_InsufficientSpace_ReturnsFalse()
     {
@@ -647,6 +691,8 @@ public sealed class SpanBytesBuilderTests
     // COMPLEX SCENARIOS
     // ========================================================================
 
+
+    /// <summary>Verifies BuildPacket ProducesCorrectBytes.</summary>
     [Test]
     public async Task BuildPacket_ProducesCorrectBytes()
     {
@@ -663,6 +709,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(packet).IsEquivalentTo((byte[])[0xCA, 0xFE, 0x01, 0x00, 0x10]);
     }
 
+    /// <summary>Verifies ClearAndReuse ClearAndReuse works.</summary>
     [Test]
     public async Task ClearAndReuse_Works()
     {
@@ -686,6 +733,8 @@ public sealed class SpanBytesBuilderTests
     // EXIT-POINT COVERAGE
     // ========================================================================
 
+
+    /// <summary>Verifies ExitCoverage AppendByteArray AndOutputs work.</summary>
     [Test]
     public async Task ExitCoverage_AppendByteArray_AndOutputs_Work()
     {
@@ -721,6 +770,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(emptyArray.Length).IsEqualTo(10);
     }
 
+    /// <summary>Verifies ExitCoverage TryAppendByteArray AndGeneric Succeed.</summary>
     [Test]
     public async Task ExitCoverage_TryAppendByteArray_AndGeneric_Succeed()
     {
@@ -741,6 +791,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(length).IsEqualTo(5);
     }
 
+    /// <summary>Verifies ExitCoverage TryAppend InsufficientSpace ReturnsFalse.</summary>
     [Test]
     [Arguments("TryAppendInt16BigEndian", 2)]
     [Arguments("TryAppendInt32LittleEndian", 4)]
@@ -777,6 +828,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(result).IsFalse();
     }
 
+    /// <summary>Verifies ExitCoverage TryAppend ExactSpace ReturnsTrue.</summary>
     [Test]
     [Arguments("TryAppendHex4", 4)]
     [Arguments("TryAppendHex8", 8)]
@@ -792,6 +844,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(result).IsTrue();
     }
 
+    /// <summary>Verifies ExitCoverage TryAppendUtf8 Null ReturnsTrue.</summary>
     [Test]
     public async Task ExitCoverage_TryAppendUtf8_Null_ReturnsTrue()
     {
@@ -805,6 +858,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(result).IsTrue();
     }
 
+    /// <summary>Verifies ExitCoverage TryAppendUtf8Formattable SuccessAndFailure.</summary>
     [Test]
     public async Task ExitCoverage_TryAppendUtf8Formattable_SuccessAndFailure()
     {
@@ -822,6 +876,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(failure).IsFalse();
     }
 
+    /// <summary>Verifies ExitCoverage TryAppendUtf8NullTerminated InsufficientSpace ReturnsFalse.</summary>
     [Test]
     public async Task ExitCoverage_TryAppendUtf8NullTerminated_InsufficientSpace_ReturnsFalse()
     {
@@ -835,6 +890,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(result).IsFalse();
     }
 
+    /// <summary>Verifies ExitCoverage TryAppendVarIntZigZag works.</summary>
     [Test]
     public async Task ExitCoverage_TryAppendVarIntZigZag_Works()
     {
@@ -851,6 +907,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(longOk).IsTrue();
     }
 
+    /// <summary>Verifies ExitCoverage AppendGeneric AndUtf8Formattable OverflowThrow.</summary>
     [Test]
     public async Task ExitCoverage_AppendGeneric_AndUtf8Formattable_OverflowThrow()
     {
@@ -872,6 +929,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(utf8Threw).IsTrue();
     }
 
+    /// <summary>Verifies ExitCoverage ToArray Empty ReturnsEmptyArray.</summary>
     [Test]
     public async Task ExitCoverage_ToArray_Empty_ReturnsEmptyArray()
     {
@@ -884,6 +942,7 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(array.Length).IsEqualTo(0);
     }
 
+    /// <summary>Verifies ExitCoverage TryAppendNullByteArray ReturnsTrue.</summary>
     [Test]
     public async Task ExitCoverage_TryAppendNullByteArray_ReturnsTrue()
     {

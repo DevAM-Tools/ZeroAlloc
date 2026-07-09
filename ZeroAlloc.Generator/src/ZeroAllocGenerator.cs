@@ -1,4 +1,4 @@
-﻿// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
+// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
 // ============================================================================
 // ZeroAlloc Source Generator
@@ -1091,16 +1091,14 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         foreach (ImmutableArray<ArgumentTypeInfo> args in stringSignatures)
         {
             string signatureKey = $"String({string.Join(",", args.Select(a => a.FullTypeName))})";
-            if (!generatedSignatures.Contains(signatureKey))
+            if (generatedSignatures.Add(signatureKey))
             {
-                generatedSignatures.Add(signatureKey);
                 _GenerateStringMethod(sb, args);
             }
 
             signatureKey = $"TryString({string.Join(",", args.Select(a => a.FullTypeName))})";
-            if (!generatedSignatures.Contains(signatureKey))
+            if (generatedSignatures.Add(signatureKey))
             {
-                generatedSignatures.Add(signatureKey);
                 _GenerateTryStringMethod(sb, args);
             }
         }
@@ -1109,16 +1107,14 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         foreach (ImmutableArray<ArgumentTypeInfo> args in utf8Signatures)
         {
             string signatureKey = $"Utf8({string.Join(",", args.Select(a => a.FullTypeName))})";
-            if (!generatedSignatures.Contains(signatureKey))
+            if (generatedSignatures.Add(signatureKey))
             {
-                generatedSignatures.Add(signatureKey);
                 _GenerateUtf8Method(sb, args);
             }
 
             signatureKey = $"TryUtf8({string.Join(",", args.Select(a => a.FullTypeName))})";
-            if (!generatedSignatures.Contains(signatureKey))
+            if (generatedSignatures.Add(signatureKey))
             {
-                generatedSignatures.Add(signatureKey);
                 _GenerateTryUtf8Method(sb, args);
             }
         }
@@ -1127,16 +1123,14 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         foreach (ImmutableArray<ArgumentTypeInfo> args in bytesSignatures)
         {
             string signatureKey = $"Bytes({string.Join(",", args.Select(a => a.FullTypeName))})";
-            if (!generatedSignatures.Contains(signatureKey))
+            if (generatedSignatures.Add(signatureKey))
             {
-                generatedSignatures.Add(signatureKey);
                 _GenerateBytesMethod(sb, args);
             }
 
             signatureKey = $"TryBytes({string.Join(",", args.Select(a => a.FullTypeName))})";
-            if (!generatedSignatures.Contains(signatureKey))
+            if (generatedSignatures.Add(signatureKey))
             {
-                generatedSignatures.Add(signatureKey);
                 _GenerateTryBytesMethod(sb, args);
             }
         }
@@ -1145,16 +1139,14 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         foreach (ImmutableArray<ArgumentTypeInfo> args in localizedStringSignatures)
         {
             string signatureKey = $"LocalizedString({string.Join(",", args.Select(a => a.FullTypeName))})";
-            if (!generatedSignatures.Contains(signatureKey))
+            if (generatedSignatures.Add(signatureKey))
             {
-                generatedSignatures.Add(signatureKey);
                 _GenerateLocalizedStringMethod(sb, args);
             }
 
             signatureKey = $"TryLocalizedString({string.Join(",", args.Select(a => a.FullTypeName))})";
-            if (!generatedSignatures.Contains(signatureKey))
+            if (generatedSignatures.Add(signatureKey))
             {
-                generatedSignatures.Add(signatureKey);
                 _GenerateTryLocalizedStringMethod(sb, args);
             }
         }
@@ -1163,16 +1155,14 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         foreach (ImmutableArray<ArgumentTypeInfo> args in localizedUtf8Signatures)
         {
             string signatureKey = $"LocalizedUtf8({string.Join(",", args.Select(a => a.FullTypeName))})";
-            if (!generatedSignatures.Contains(signatureKey))
+            if (generatedSignatures.Add(signatureKey))
             {
-                generatedSignatures.Add(signatureKey);
                 _GenerateLocalizedUtf8Method(sb, args);
             }
 
             signatureKey = $"TryLocalizedUtf8({string.Join(",", args.Select(a => a.FullTypeName))})";
-            if (!generatedSignatures.Contains(signatureKey))
+            if (generatedSignatures.Add(signatureKey))
             {
-                generatedSignatures.Add(signatureKey);
                 _GenerateTryLocalizedUtf8Method(sb, args);
             }
         }
@@ -1181,9 +1171,8 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         foreach (ImmutableArray<ArgumentTypeInfo> args in lazySignatures)
         {
             string signatureKey = $"Lazy({string.Join(",", args.Select(a => a.FullTypeName))})";
-            if (!generatedSignatures.Contains(signatureKey))
+            if (generatedSignatures.Add(signatureKey))
             {
-                generatedSignatures.Add(signatureKey);
                 _GenerateLazyMethod(sb, args);
             }
         }
@@ -1192,9 +1181,8 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         foreach (ImmutableArray<ArgumentTypeInfo> args in lazyInterpolatedSignatures)
         {
             string signatureKey = $"LazyInterpolated({string.Join(",", args.Select(a => a.FullTypeName))})";
-            if (!generatedSignatures.Contains(signatureKey))
+            if (generatedSignatures.Add(signatureKey))
             {
-                generatedSignatures.Add(signatureKey);
                 _GenerateLazyInterpolatedMethod(sb, args);
             }
         }
@@ -1257,7 +1245,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         string paramDocs = string.Join(
             "\n",
             Enumerable.Range(0, args.Length)
-                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <see cref=\"{args[i].FullTypeName}\"/>.</param>"));
+                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <c>{BinaryGeneratorHelpers.ToXmlDocCode(args[i].FullTypeName)}</c>.</param>"));
         string usageExample = hasCultureInfo
             ? "    /// using TempString temp = ZA.String(CultureInfo.GetCultureInfo(\"de-DE\"), ...);"
             : "    /// using TempString temp = ZA.String(...);";
@@ -1562,7 +1550,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         string paramDocs = string.Join(
             "\n",
             Enumerable.Range(0, args.Length)
-                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <see cref=\"{args[i].FullTypeName}\"/>.</param>"));
+                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <c>{BinaryGeneratorHelpers.ToXmlDocCode(args[i].FullTypeName)}</c>.</param>"));
         string parameterList = string.Join(", ", parameters);
 
         BinaryGeneratorHelpers.AppendCode(sb,$$"""
@@ -1802,7 +1790,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         string paramDocs = string.Join(
             "\n",
             Enumerable.Range(0, args.Length)
-                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <see cref=\"{args[i].FullTypeName}\"/>.</param>"));
+                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <c>{BinaryGeneratorHelpers.ToXmlDocCode(args[i].FullTypeName)}</c>.</param>"));
         string parameterList = string.Join(", ", parameters);
 
         BinaryGeneratorHelpers.AppendCode(sb,$$"""
@@ -2254,7 +2242,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         string paramDocs = string.Join(
             "\n",
             Enumerable.Range(0, args.Length)
-                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <see cref=\"{args[i].FullTypeName}\"/>.</param>"));
+                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <c>{BinaryGeneratorHelpers.ToXmlDocCode(args[i].FullTypeName)}</c>.</param>"));
         string parameterList = string.Join(", ", parameters);
 
         BinaryGeneratorHelpers.AppendCode(sb,$$"""
@@ -2476,7 +2464,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         string paramDocs = string.Join(
             "\n",
             Enumerable.Range(0, args.Length)
-                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <see cref=\"{args[i].FullTypeName}\"/>.</param>"));
+                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <c>{BinaryGeneratorHelpers.ToXmlDocCode(args[i].FullTypeName)}</c>.</param>"));
         string parameterList = string.Join(", ", parameters);
 
         BinaryGeneratorHelpers.AppendCode(sb,$$"""
@@ -2540,7 +2528,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         string paramDocs = string.Join(
             "\n",
             Enumerable.Range(0, args.Length)
-                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <see cref=\"{args[i].FullTypeName}\"/>.</param>"));
+                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <c>{BinaryGeneratorHelpers.ToXmlDocCode(args[i].FullTypeName)}</c>.</param>"));
         string parameterList = string.Join(", ", parameters);
 
         BinaryGeneratorHelpers.AppendCode(sb,$$"""
@@ -2625,7 +2613,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         string paramDocs = string.Join(
             "\n",
             Enumerable.Range(0, args.Length)
-                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <see cref=\"{args[i].FullTypeName}\"/>.</param>"));
+                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <c>{BinaryGeneratorHelpers.ToXmlDocCode(args[i].FullTypeName)}</c>.</param>"));
         string parameterList = string.Join(", ", parameters);
 
         BinaryGeneratorHelpers.AppendCode(sb,$$"""
@@ -2694,7 +2682,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         string paramDocs = string.Join(
             "\n",
             Enumerable.Range(0, args.Length)
-                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <see cref=\"{args[i].FullTypeName}\"/>.</param>"));
+                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <c>{BinaryGeneratorHelpers.ToXmlDocCode(args[i].FullTypeName)}</c>.</param>"));
         string parameterList = string.Join(", ", parameters);
 
         BinaryGeneratorHelpers.AppendCode(sb,$$"""
@@ -2776,7 +2764,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         string paramDocs = string.Join(
             "\n",
             Enumerable.Range(0, args.Length)
-                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <see cref=\"{args[i].FullTypeName}\"/>.</param>"));
+                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <c>{BinaryGeneratorHelpers.ToXmlDocCode(args[i].FullTypeName)}</c>.</param>"));
         string parameterList = string.Join(", ", parameters);
 
         BinaryGeneratorHelpers.AppendCode(sb,$$"""
@@ -2845,7 +2833,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         string paramDocs = string.Join(
             "\n",
             Enumerable.Range(0, args.Length)
-                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <see cref=\"{args[i].FullTypeName}\"/>.</param>"));
+                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <c>{BinaryGeneratorHelpers.ToXmlDocCode(args[i].FullTypeName)}</c>.</param>"));
         string parameterList = string.Join(", ", parameters);
 
         BinaryGeneratorHelpers.AppendCode(sb,$$"""
@@ -2926,7 +2914,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         string paramDocs = string.Join(
             "\n",
             Enumerable.Range(0, args.Length)
-                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <see cref=\"{args[i].FullTypeName}\"/>.</param>"));
+                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <c>{BinaryGeneratorHelpers.ToXmlDocCode(args[i].FullTypeName)}</c>.</param>"));
         string parameterList = string.Join(", ", parameters);
 
         BinaryGeneratorHelpers.AppendCode(sb,$$"""
@@ -3011,7 +2999,7 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
         string paramDocs = string.Join(
             "\n",
             Enumerable.Range(0, args.Length)
-                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <see cref=\"{args[i].FullTypeName}\"/>.</param>"));
+                .Select(i => $"    /// <param name=\"{paramNames[i]}\">Value of type <c>{BinaryGeneratorHelpers.ToXmlDocCode(args[i].FullTypeName)}</c>.</param>"));
         string parameterList = string.Join(", ", parameters);
 
         BinaryGeneratorHelpers.AppendCode(sb,$$"""

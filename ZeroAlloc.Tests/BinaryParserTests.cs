@@ -17,9 +17,13 @@ public struct UnsupportedValueType;
 /// </summary>
 public sealed class BinaryParserTests
 {
+
     // ========================================================================
     // PRIMITIVE READS - BIG ENDIAN
     // ========================================================================
+
+
+    /// <summary>Verifies BinaryParser ReadByte ReturnsCorrectValue.</summary>
     [Test]
     public async Task BinaryParser_ReadByte_ReturnsCorrectValue()
     {
@@ -40,6 +44,7 @@ public sealed class BinaryParserTests
         await Assert.That(position).IsEqualTo(1);
     }
 
+    /// <summary>Verifies BinaryParser ReadSByte ReturnsCorrectValue.</summary>
     [Test]
     public async Task BinaryParser_ReadSByte_ReturnsCorrectValue()
     {
@@ -57,6 +62,7 @@ public sealed class BinaryParserTests
         await Assert.That((int)result).IsEqualTo(-1);
     }
 
+    /// <summary>Verifies BinaryParser ReadUInt16BE ReturnsCorrectValue.</summary>
     [Test]
     public async Task BinaryParser_ReadUInt16BE_ReturnsCorrectValue()
     {
@@ -77,6 +83,7 @@ public sealed class BinaryParserTests
         await Assert.That(position).IsEqualTo(2);
     }
 
+    /// <summary>Verifies BinaryParser ReadInt16BE ReturnsCorrectValue.</summary>
     [Test]
     public async Task BinaryParser_ReadInt16BE_ReturnsCorrectValue()
     {
@@ -94,6 +101,7 @@ public sealed class BinaryParserTests
         await Assert.That((int)result).IsEqualTo(-2);
     }
 
+    /// <summary>Verifies BinaryParser ReadUInt32BE ReturnsCorrectValue.</summary>
     [Test]
     public async Task BinaryParser_ReadUInt32BE_ReturnsCorrectValue()
     {
@@ -114,6 +122,7 @@ public sealed class BinaryParserTests
         await Assert.That(position).IsEqualTo(4);
     }
 
+    /// <summary>Verifies BinaryParser ReadInt32BE ReturnsCorrectValue.</summary>
     [Test]
     public async Task BinaryParser_ReadInt32BE_ReturnsCorrectValue()
     {
@@ -131,6 +140,7 @@ public sealed class BinaryParserTests
         await Assert.That(result).IsEqualTo(-1);
     }
 
+    /// <summary>Verifies BinaryParser ReadUInt64BE ReturnsCorrectValue.</summary>
     [Test]
     public async Task BinaryParser_ReadUInt64BE_ReturnsCorrectValue()
     {
@@ -151,6 +161,7 @@ public sealed class BinaryParserTests
         await Assert.That(position).IsEqualTo(8);
     }
 
+    /// <summary>Verifies BinaryParser ReadInt64BE ReturnsCorrectValue.</summary>
     [Test]
     public async Task BinaryParser_ReadInt64BE_ReturnsCorrectValue()
     {
@@ -172,6 +183,8 @@ public sealed class BinaryParserTests
     // PRIMITIVE READS - LITTLE ENDIAN
     // ========================================================================
 
+
+    /// <summary>Verifies BinaryParser ReadUInt16LE ReturnsCorrectValue.</summary>
     [Test]
     public async Task BinaryParser_ReadUInt16LE_ReturnsCorrectValue()
     {
@@ -189,6 +202,7 @@ public sealed class BinaryParserTests
         await Assert.That((int)result).IsEqualTo(0x1234);
     }
 
+    /// <summary>Verifies BinaryParser ReadInt16LE ReturnsCorrectValue.</summary>
     [Test]
     public async Task BinaryParser_ReadInt16LE_ReturnsCorrectValue()
     {
@@ -206,6 +220,7 @@ public sealed class BinaryParserTests
         await Assert.That((int)result).IsEqualTo(-2);
     }
 
+    /// <summary>Verifies BinaryParser ReadUInt32LE ReturnsCorrectValue.</summary>
     [Test]
     public async Task BinaryParser_ReadUInt32LE_ReturnsCorrectValue()
     {
@@ -223,6 +238,7 @@ public sealed class BinaryParserTests
         await Assert.That(result).IsEqualTo(0x12345678U);
     }
 
+    /// <summary>Verifies BinaryParser ReadInt32LE ReturnsCorrectValue.</summary>
     [Test]
     public async Task BinaryParser_ReadInt32LE_ReturnsCorrectValue()
     {
@@ -240,6 +256,7 @@ public sealed class BinaryParserTests
         await Assert.That(result).IsEqualTo(-1);
     }
 
+    /// <summary>Verifies BinaryParser ReadUInt64LE ReturnsCorrectValue.</summary>
     [Test]
     public async Task BinaryParser_ReadUInt64LE_ReturnsCorrectValue()
     {
@@ -257,6 +274,7 @@ public sealed class BinaryParserTests
         await Assert.That(result).IsEqualTo(0x123456789ABCDEF0UL);
     }
 
+    /// <summary>Verifies BinaryParser ReadInt64LE ReturnsCorrectValue.</summary>
     [Test]
     public async Task BinaryParser_ReadInt64LE_ReturnsCorrectValue()
     {
@@ -275,6 +293,8 @@ public sealed class BinaryParserTests
     // FLOATING POINT
     // ========================================================================
 
+
+    /// <summary>Verifies BinaryParser ReadF32BE ReturnsCorrectValue.</summary>
     [Test]
     public async Task BinaryParser_ReadF32BE_ReturnsCorrectValue()
     {
@@ -292,6 +312,7 @@ public sealed class BinaryParserTests
         await Assert.That(result).IsEqualTo(1.0f);
     }
 
+    /// <summary>Verifies BinaryParser ReadF32LE ReturnsCorrectValue.</summary>
     [Test]
     public async Task BinaryParser_ReadF32LE_ReturnsCorrectValue()
     {
@@ -309,6 +330,7 @@ public sealed class BinaryParserTests
         await Assert.That(result).IsEqualTo(1.0f);
     }
 
+    /// <summary>Verifies BinaryParser ReadF64BE ReturnsCorrectValue.</summary>
     [Test]
     public async Task BinaryParser_ReadF64BE_ReturnsCorrectValue()
     {
@@ -326,6 +348,7 @@ public sealed class BinaryParserTests
         await Assert.That(result).IsEqualTo(1.0);
     }
 
+    /// <summary>Verifies BinaryParser ReadF64LE ReturnsCorrectValue.</summary>
     [Test]
     public async Task BinaryParser_ReadF64LE_ReturnsCorrectValue()
     {
@@ -347,6 +370,8 @@ public sealed class BinaryParserTests
     // VARINT
     // ========================================================================
 
+
+    /// <summary>Verifies BinaryParser ReadVarInt SingleByte ReturnsCorrectValue.</summary>
     [Test]
     public async Task BinaryParser_ReadVarInt_SingleByte_ReturnsCorrectValue()
     {
@@ -367,6 +392,7 @@ public sealed class BinaryParserTests
         await Assert.That(position).IsEqualTo(1);
     }
 
+    /// <summary>Verifies BinaryParser ReadVarInt TwoBytes ReturnsCorrectValue.</summary>
     [Test]
     public async Task BinaryParser_ReadVarInt_TwoBytes_ReturnsCorrectValue()
     {
@@ -387,6 +413,7 @@ public sealed class BinaryParserTests
         await Assert.That(position).IsEqualTo(2);
     }
 
+    /// <summary>Verifies BinaryParser ReadVarInt MultipleBytes ReturnsCorrectValue.</summary>
     [Test]
     public async Task BinaryParser_ReadVarInt_MultipleBytes_ReturnsCorrectValue()
     {
@@ -404,6 +431,7 @@ public sealed class BinaryParserTests
         await Assert.That(result).IsEqualTo(300UL);
     }
 
+    /// <summary>Verifies BinaryParser ReadVarIntZigZag PositiveValue ReturnsCorrectValue.</summary>
     [Test]
     public async Task BinaryParser_ReadVarIntZigZag_PositiveValue_ReturnsCorrectValue()
     {
@@ -421,6 +449,7 @@ public sealed class BinaryParserTests
         await Assert.That(result).IsEqualTo(1L);
     }
 
+    /// <summary>Verifies BinaryParser ReadVarIntZigZag NegativeValue ReturnsCorrectValue.</summary>
     [Test]
     public async Task BinaryParser_ReadVarIntZigZag_NegativeValue_ReturnsCorrectValue()
     {
@@ -438,6 +467,7 @@ public sealed class BinaryParserTests
         await Assert.That(result).IsEqualTo(-1L);
     }
 
+    /// <summary>Verifies BinaryParser ReadVarIntZigZag Zero ReturnsCorrectValue.</summary>
     [Test]
     public async Task BinaryParser_ReadVarIntZigZag_Zero_ReturnsCorrectValue()
     {
@@ -459,6 +489,8 @@ public sealed class BinaryParserTests
     // RAW BYTES AND SKIP
     // ========================================================================
 
+
+    /// <summary>Verifies BinaryParser ReadBytes ReturnsCorrectSpan.</summary>
     [Test]
     public async Task BinaryParser_ReadBytes_ReturnsCorrectSpan()
     {
@@ -479,6 +511,7 @@ public sealed class BinaryParserTests
         await Assert.That(position).IsEqualTo(3);
     }
 
+    /// <summary>Verifies BinaryParser Skip AdvancesPosition.</summary>
     [Test]
     public async Task BinaryParser_Skip_AdvancesPosition()
     {
@@ -504,6 +537,8 @@ public sealed class BinaryParserTests
     // STRING PARSING
     // ========================================================================
 
+
+    /// <summary>Verifies BinaryParser ReadUtf8Bytes ReturnsCorrectSpan.</summary>
     [Test]
     public async Task BinaryParser_ReadUtf8Bytes_ReturnsCorrectSpan()
     {
@@ -521,6 +556,7 @@ public sealed class BinaryParserTests
         await Assert.That(result).IsEquivalentTo("Hello"u8.ToArray());
     }
 
+    /// <summary>Verifies BinaryParser ReadUtf8Var ReturnsCorrectSpan.</summary>
     [Test]
     public async Task BinaryParser_ReadUtf8Var_ReturnsCorrectSpan()
     {
@@ -538,6 +574,7 @@ public sealed class BinaryParserTests
         await Assert.That(result).IsEquivalentTo("Hello"u8.ToArray());
     }
 
+    /// <summary>Verifies BinaryParser ReadUtf8FixedBE16 ReturnsCorrectSpan.</summary>
     [Test]
     public async Task BinaryParser_ReadUtf8FixedBE16_ReturnsCorrectSpan()
     {
@@ -555,6 +592,7 @@ public sealed class BinaryParserTests
         await Assert.That(result).IsEquivalentTo("Hello"u8.ToArray());
     }
 
+    /// <summary>Verifies BinaryParser ReadUtf8FixedBE32 ReturnsCorrectSpan.</summary>
     [Test]
     public async Task BinaryParser_ReadUtf8FixedBE32_ReturnsCorrectSpan()
     {
@@ -572,6 +610,7 @@ public sealed class BinaryParserTests
         await Assert.That(result).IsEquivalentTo("Hello"u8.ToArray());
     }
 
+    /// <summary>Verifies BinaryParser ReadUtf8Null ReturnsCorrectSpan.</summary>
     [Test]
     public async Task BinaryParser_ReadUtf8Null_ReturnsCorrectSpan()
     {
@@ -592,6 +631,7 @@ public sealed class BinaryParserTests
         await Assert.That(position).IsEqualTo(6); // Position after null terminator
     }
 
+    /// <summary>Verifies BinaryParser ReadUtf8Null NoTerminator ReadsToEnd.</summary>
     [Test]
     public async Task BinaryParser_ReadUtf8Null_NoTerminator_ReadsToEnd()
     {
@@ -612,6 +652,7 @@ public sealed class BinaryParserTests
         await Assert.That(isAtEnd).IsTrue();
     }
 
+    /// <summary>Verifies BinaryParser ReadAsciiBytes ReturnsCorrectSpan.</summary>
     [Test]
     public async Task BinaryParser_ReadAsciiBytes_ReturnsCorrectSpan()
     {
@@ -633,6 +674,8 @@ public sealed class BinaryParserTests
     // PROPERTIES
     // ========================================================================
 
+
+    /// <summary>Verifies BinaryParser Position ReturnsCorrectValue.</summary>
     [Test]
     public async Task BinaryParser_Position_ReturnsCorrectValue()
     {
@@ -654,6 +697,7 @@ public sealed class BinaryParserTests
         await Assert.That(pos2).IsEqualTo(2);
     }
 
+    /// <summary>Verifies BinaryParser Remaining ReturnsCorrectValue.</summary>
     [Test]
     public async Task BinaryParser_Remaining_ReturnsCorrectValue()
     {
@@ -672,6 +716,7 @@ public sealed class BinaryParserTests
         await Assert.That(rem1).IsEqualTo(3);
     }
 
+    /// <summary>Verifies BinaryParser Length ReturnsBufferLength.</summary>
     [Test]
     public async Task BinaryParser_Length_ReturnsBufferLength()
     {
@@ -690,6 +735,7 @@ public sealed class BinaryParserTests
         await Assert.That(len1).IsEqualTo(4); // Length doesn't change
     }
 
+    /// <summary>Verifies BinaryParser IsAtEnd ReturnsTrueWhenExhausted.</summary>
     [Test]
     public async Task BinaryParser_IsAtEnd_ReturnsTrueWhenExhausted()
     {
@@ -708,6 +754,7 @@ public sealed class BinaryParserTests
         await Assert.That(atEnd1).IsTrue();
     }
 
+    /// <summary>Verifies BinaryParser RemainingSpan ReturnsCorrectSlice.</summary>
     [Test]
     public async Task BinaryParser_RemainingSpan_ReturnsCorrectSlice()
     {
@@ -731,6 +778,8 @@ public sealed class BinaryParserTests
     // Note: Using try-catch instead of Assert.Throws because BinaryParser is a ref struct
     // ========================================================================
 
+
+    /// <summary>Verifies BinaryParser ReadByte InsufficientData ThrowsException.</summary>
     [Test]
     public async Task BinaryParser_ReadByte_InsufficientData_ThrowsException()
     {
@@ -742,6 +791,7 @@ public sealed class BinaryParserTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies BinaryParser ReadUInt16BE InsufficientData ThrowsException.</summary>
     [Test]
     public async Task BinaryParser_ReadUInt16BE_InsufficientData_ThrowsException()
     {
@@ -753,6 +803,7 @@ public sealed class BinaryParserTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies BinaryParser ReadUInt32BE InsufficientData ThrowsException.</summary>
     [Test]
     public async Task BinaryParser_ReadUInt32BE_InsufficientData_ThrowsException()
     {
@@ -764,6 +815,7 @@ public sealed class BinaryParserTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies BinaryParser ReadUInt64BE InsufficientData ThrowsException.</summary>
     [Test]
     public async Task BinaryParser_ReadUInt64BE_InsufficientData_ThrowsException()
     {
@@ -775,6 +827,7 @@ public sealed class BinaryParserTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies BinaryParser ReadBytes InsufficientData ThrowsException.</summary>
     [Test]
     public async Task BinaryParser_ReadBytes_InsufficientData_ThrowsException()
     {
@@ -786,6 +839,7 @@ public sealed class BinaryParserTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies BinaryParser Skip InsufficientData ThrowsException.</summary>
     [Test]
     public async Task BinaryParser_Skip_InsufficientData_ThrowsException()
     {
@@ -797,6 +851,7 @@ public sealed class BinaryParserTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies BinaryParser ReadVarInt MalformedInput ThrowsException.</summary>
     [Test]
     public async Task BinaryParser_ReadVarInt_MalformedInput_ThrowsException()
     {
@@ -809,6 +864,7 @@ public sealed class BinaryParserTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies BinaryParser ReadVarInt TruncatedData ThrowsException.</summary>
     [Test]
     public async Task BinaryParser_ReadVarInt_TruncatedData_ThrowsException()
     {
@@ -824,6 +880,8 @@ public sealed class BinaryParserTests
     // SEQUENTIAL READS
     // ========================================================================
 
+
+    /// <summary>Verifies BinaryParser SequentialReads WorkCorrectly.</summary>
     [Test]
     public async Task BinaryParser_SequentialReads_WorkCorrectly()
     {
@@ -850,6 +908,7 @@ public sealed class BinaryParserTests
         await Assert.That(isAtEnd).IsTrue();
     }
 
+    /// <summary>Verifies BinaryParser MixedEndianReads WorkCorrectly.</summary>
     [Test]
     public async Task BinaryParser_MixedEndianReads_WorkCorrectly()
     {
@@ -874,6 +933,8 @@ public sealed class BinaryParserTests
     // TRY DECODE UTF8
     // ========================================================================
 
+
+    /// <summary>Verifies BinaryParser TryDecodeUtf8 ValidInput ReturnsTrue.</summary>
     [Test]
     public async Task BinaryParser_TryDecodeUtf8_ValidInput_ReturnsTrue()
     {
@@ -896,6 +957,7 @@ public sealed class BinaryParserTests
         await Assert.That(decoded).IsEqualTo("Hello");
     }
 
+    /// <summary>Verifies BinaryParser TryDecodeUtf8 DestinationTooSmall ReturnsFalse.</summary>
     [Test]
     public async Task BinaryParser_TryDecodeUtf8_DestinationTooSmall_ReturnsFalse()
     {
@@ -913,6 +975,7 @@ public sealed class BinaryParserTests
         await Assert.That(result).IsFalse();
     }
 
+    /// <summary>Verifies BinaryParser TryDecodeUtf8 Unicode ReturnsCorrectChars.</summary>
     [Test]
     public async Task BinaryParser_TryDecodeUtf8_Unicode_ReturnsCorrectChars()
     {
@@ -937,6 +1000,8 @@ public sealed class BinaryParserTests
     // EMPTY BUFFER
     // ========================================================================
 
+
+    /// <summary>Verifies BinaryParser EmptyBuffer PropertiesCorrect.</summary>
     [Test]
     public async Task BinaryParser_EmptyBuffer_PropertiesCorrect()
     {
@@ -965,6 +1030,7 @@ public sealed class BinaryParserTests
     // ========================================================================
     // BOUNDARY VALIDATION — ReadBytes / Skip / ReadUtf8Var / ReadArray / ReadArrayBE32
     // ========================================================================
+
 
     /// <summary>Verifies ReadBytes rejects a negative length.</summary>
     [Test]
@@ -1115,6 +1181,8 @@ public sealed class BinaryParserTests
     // EXIT-POINT COVERAGE — TryReadUtf8Var / generic reads / arrays / validation
     // ========================================================================
 
+
+    /// <summary>Verifies BinaryParser TryReadUtf8Var NegativeMaxLength ThrowsArgumentOutOfRangeException.</summary>
     [Test]
     public async Task BinaryParser_TryReadUtf8Var_NegativeMaxLength_ThrowsArgumentOutOfRangeException()
     {
@@ -1126,6 +1194,7 @@ public sealed class BinaryParserTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies BinaryParser TryReadUtf8Var IncompleteVarInt ReturnsFalse.</summary>
     [Test]
     public async Task BinaryParser_TryReadUtf8Var_IncompleteVarInt_ReturnsFalse()
     {
@@ -1144,6 +1213,7 @@ public sealed class BinaryParserTests
         await Assert.That(position).IsEqualTo(0);
     }
 
+    /// <summary>Verifies BinaryParser TryReadUtf8Var LengthExceedsMaxLength ReturnsFalse.</summary>
     [Test]
     public async Task BinaryParser_TryReadUtf8Var_LengthExceedsMaxLength_ReturnsFalse()
     {
@@ -1162,6 +1232,7 @@ public sealed class BinaryParserTests
         await Assert.That(position).IsEqualTo(0);
     }
 
+    /// <summary>Verifies BinaryParser TryReadUtf8Var PayloadTruncated ReturnsFalse.</summary>
     [Test]
     public async Task BinaryParser_TryReadUtf8Var_PayloadTruncated_ReturnsFalse()
     {
@@ -1180,6 +1251,7 @@ public sealed class BinaryParserTests
         await Assert.That(position).IsEqualTo(0);
     }
 
+    /// <summary>Verifies BinaryParser TryReadUtf8Var ValidPayload ReturnsTrue.</summary>
     [Test]
     public async Task BinaryParser_TryReadUtf8Var_ValidPayload_ReturnsTrue()
     {
@@ -1199,6 +1271,7 @@ public sealed class BinaryParserTests
         await Assert.That(position).IsEqualTo(4);
     }
 
+    /// <summary>Verifies BinaryParser TryReadUtf8Var MalformedVarInt ReturnsFalse.</summary>
     [Test]
     public async Task BinaryParser_TryReadUtf8Var_MalformedVarInt_ReturnsFalse()
     {
@@ -1219,6 +1292,7 @@ public sealed class BinaryParserTests
         await Assert.That(position).IsEqualTo(0);
     }
 
+    /// <summary>Verifies BinaryParser Read U16BE ReturnsParsedValue.</summary>
     [Test]
     public async Task BinaryParser_Read_U16BE_ReturnsParsedValue()
     {
@@ -1235,6 +1309,7 @@ public sealed class BinaryParserTests
         await Assert.That(position).IsEqualTo(2);
     }
 
+    /// <summary>Verifies BinaryParser Read U16BE InsufficientData ThrowsInvalidOperationException.</summary>
     [Test]
     public async Task BinaryParser_Read_U16BE_InsufficientData_ThrowsInvalidOperationException()
     {
@@ -1246,6 +1321,7 @@ public sealed class BinaryParserTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies BinaryParser TryRead U16BE SufficientData ReturnsTrue.</summary>
     [Test]
     public async Task BinaryParser_TryRead_U16BE_SufficientData_ReturnsTrue()
     {
@@ -1258,6 +1334,7 @@ public sealed class BinaryParserTests
         await Assert.That(position).IsEqualTo(2);
     }
 
+    /// <summary>Verifies BinaryParser TryRead U16BE InsufficientData ReturnsFalse.</summary>
     [Test]
     public async Task BinaryParser_TryRead_U16BE_InsufficientData_ReturnsFalse()
     {
@@ -1270,6 +1347,7 @@ public sealed class BinaryParserTests
         await Assert.That(position).IsEqualTo(0);
     }
 
+    /// <summary>Verifies BinaryParser ReadArray VarIntElementType ThrowsArgumentException.</summary>
     [Test]
     public async Task BinaryParser_ReadArray_VarIntElementType_ThrowsArgumentException()
     {
@@ -1284,6 +1362,7 @@ public sealed class BinaryParserTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies BinaryParser ReadArray U16BE ReturnsElementsRead.</summary>
     [Test]
     public async Task BinaryParser_ReadArray_U16BE_ReturnsElementsRead()
     {
@@ -1300,6 +1379,7 @@ public sealed class BinaryParserTests
         await Assert.That(destination[1].Value).IsEqualTo((ushort)0x5678);
     }
 
+    /// <summary>Verifies BinaryParser ReadArrayVarInt U16BE ReturnsElementsRead.</summary>
     [Test]
     public async Task BinaryParser_ReadArrayVarInt_U16BE_ReturnsElementsRead()
     {
@@ -1316,6 +1396,7 @@ public sealed class BinaryParserTests
         await Assert.That(destination[1].Value).IsEqualTo((ushort)20);
     }
 
+    /// <summary>Verifies BinaryParser ReadArrayVarInt OversizedCount ThrowsInvalidOperationException.</summary>
     [Test]
     public async Task BinaryParser_ReadArrayVarInt_OversizedCount_ThrowsInvalidOperationException()
     {
@@ -1328,6 +1409,7 @@ public sealed class BinaryParserTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies BinaryParser ReadArrayBE16 U16BE ReturnsElementsRead.</summary>
     [Test]
     public async Task BinaryParser_ReadArrayBE16_U16BE_ReturnsElementsRead()
     {
@@ -1344,6 +1426,7 @@ public sealed class BinaryParserTests
         await Assert.That(destination[1].Value).IsEqualTo((ushort)4);
     }
 
+    /// <summary>Verifies BinaryParser ReadArrayBE32 U16BE ReturnsElementsRead.</summary>
     [Test]
     public async Task BinaryParser_ReadArrayBE32_U16BE_ReturnsElementsRead()
     {
@@ -1359,6 +1442,7 @@ public sealed class BinaryParserTests
         await Assert.That(destination[0].Value).IsEqualTo((ushort)5);
     }
 
+    /// <summary>Verifies BinaryParseValidator ValidateType Primitive DoesNotThrow.</summary>
     [Test]
     public async Task BinaryParseValidator_ValidateType_Primitive_DoesNotThrow()
     {
@@ -1369,6 +1453,7 @@ public sealed class BinaryParserTests
         await Assert.That(threw).IsFalse();
     }
 
+    /// <summary>Verifies BinaryParseValidator ValidateType KnownWrapperName DoesNotThrow.</summary>
     [Test]
     public async Task BinaryParseValidator_ValidateType_KnownWrapperName_DoesNotThrow()
     {
@@ -1379,6 +1464,7 @@ public sealed class BinaryParserTests
         await Assert.That(threw).IsFalse();
     }
 
+    /// <summary>Verifies BinaryParseValidator ValidateType Array ThrowsNotSupportedException.</summary>
     [Test]
     public async Task BinaryParseValidator_ValidateType_Array_ThrowsNotSupportedException()
     {
@@ -1389,6 +1475,7 @@ public sealed class BinaryParserTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies BinaryParseValidator ValidateType UnsupportedType ThrowsNotSupportedException.</summary>
     [Test]
     [Arguments(typeof(object))]
     [Arguments(typeof(string))]
@@ -1413,6 +1500,7 @@ public sealed class BinaryParserTests
         await Assert.That(threw).IsTrue();
     }
 
+    /// <summary>Verifies BinaryParseValidator GetTypeErrorMessage ReturnsGuidance.</summary>
     [Test]
     [Arguments(typeof(string), "ReadUtf8Bytes(length)")]
     [Arguments(typeof(byte[]), "ReadArray<T>(count, destination)")]

@@ -17,14 +17,17 @@ public readonly record struct EthernetHeader : IBinarySerializable
     /// <summary>EtherType (2 bytes, big-endian). 0x0800 = IPv4, 0x86DD = IPv6, 0x8100 = VLAN.</summary>
     public required U16BE EtherType { get; init; }
 
+    /// <summary>On-wire size in bytes: 6 + 6 + 2.</summary>
     public const int Size = 14;
 
+    /// <inheritdoc />
     public bool TryGetWrittenSize(out int size)
     {
         size = Size;
         return true;
     }
 
+    /// <inheritdoc />
     public bool TryWrite(Span<byte> destination, out int bytesWritten)
     {
         if (destination.Length < Size) { bytesWritten = 0; return false; }
@@ -35,6 +38,9 @@ public readonly record struct EthernetHeader : IBinarySerializable
         return true;
     }
 
+    /// <summary>Parses an Ethernet header from the first <see cref="Size"/> bytes of <paramref name="data"/>.</summary>
+    /// <param name="data">Source bytes containing at least <see cref="Size"/> bytes.</param>
+    /// <returns>The parsed header.</returns>
     public static EthernetHeader Parse(ReadOnlySpan<byte> data)
     {
         return new EthernetHeader
@@ -58,6 +64,7 @@ public readonly record struct VlanHeader : IBinarySerializable
     /// <summary>Priority Code Point (3 bits), Drop Eligible Indicator (1 bit), VLAN ID (12 bits).</summary>
     public required U16BE Tci { get; init; }
 
+    /// <summary>On-wire size in bytes.</summary>
     public const int Size = 4;
 
     /// <summary>Priority Code Point (0-7).</summary>
@@ -69,12 +76,14 @@ public readonly record struct VlanHeader : IBinarySerializable
     /// <summary>VLAN Identifier (0-4095).</summary>
     public ushort VlanId => (ushort)(Tci.Value & 0x0FFF);
 
+    /// <inheritdoc />
     public bool TryGetWrittenSize(out int size)
     {
         size = Size;
         return true;
     }
 
+    /// <inheritdoc />
     public bool TryWrite(Span<byte> destination, out int bytesWritten)
     {
         if (destination.Length < Size) { bytesWritten = 0; return false; }
@@ -84,6 +93,11 @@ public readonly record struct VlanHeader : IBinarySerializable
         return true;
     }
 
+    /// <summary>Creates a VLAN tag from PCP, DEI, and VLAN ID fields.</summary>
+    /// <param name="pcp">Priority Code Point (0-7).</param>
+    /// <param name="dei">Drop Eligible Indicator.</param>
+    /// <param name="vlanId">VLAN Identifier (0-4095).</param>
+    /// <returns>A VLAN header with TPID 0x8100.</returns>
     public static VlanHeader Create(byte pcp, bool dei, ushort vlanId)
     {
         ushort tci = (ushort)(((pcp & 0x07) << 13) | ((dei ? 1 : 0) << 12) | (vlanId & 0x0FFF));
@@ -94,6 +108,9 @@ public readonly record struct VlanHeader : IBinarySerializable
         };
     }
 
+    /// <summary>Parses a VLAN tag from the first <see cref="Size"/> bytes of <paramref name="data"/>.</summary>
+    /// <param name="data">Source bytes containing at least <see cref="Size"/> bytes.</param>
+    /// <returns>The parsed VLAN header.</returns>
     public static VlanHeader Parse(ReadOnlySpan<byte> data)
     {
         return new VlanHeader
@@ -128,6 +145,7 @@ public readonly record struct IPv6Header : IBinarySerializable
     /// <summary>Destination address (16 bytes).</summary>
     public required U128BE DestinationAddress { get; init; }
 
+    /// <summary>On-wire size in bytes.</summary>
     public const int Size = 40;
 
     /// <summary>IP version (should always be 6).</summary>
@@ -139,12 +157,14 @@ public readonly record struct IPv6Header : IBinarySerializable
     /// <summary>Flow label.</summary>
     public uint FlowLabel => VersionTrafficFlow.Value & 0x000FFFFF;
 
+    /// <inheritdoc />
     public bool TryGetWrittenSize(out int size)
     {
         size = Size;
         return true;
     }
 
+    /// <inheritdoc />
     public bool TryWrite(Span<byte> destination, out int bytesWritten)
     {
         if (destination.Length < Size) { bytesWritten = 0; return false; }
@@ -158,6 +178,15 @@ public readonly record struct IPv6Header : IBinarySerializable
         return true;
     }
 
+    /// <summary>Creates an IPv6 header from logical field values.</summary>
+    /// <param name="trafficClass">Traffic class (8 bits).</param>
+    /// <param name="flowLabel">Flow label (20 bits).</param>
+    /// <param name="payloadLength">Payload length in bytes.</param>
+    /// <param name="nextHeader">Next header protocol number.</param>
+    /// <param name="hopLimit">Hop limit.</param>
+    /// <param name="sourceAddress">Source IPv6 address.</param>
+    /// <param name="destAddress">Destination IPv6 address.</param>
+    /// <returns>A serialized IPv6 header with version 6.</returns>
     public static IPv6Header Create(byte trafficClass, uint flowLabel, ushort payloadLength,
         byte nextHeader, byte hopLimit, UInt128 sourceAddress, UInt128 destAddress)
     {
@@ -173,6 +202,9 @@ public readonly record struct IPv6Header : IBinarySerializable
         };
     }
 
+    /// <summary>Parses an IPv6 header from the first <see cref="Size"/> bytes of <paramref name="data"/>.</summary>
+    /// <param name="data">Source bytes containing at least <see cref="Size"/> bytes.</param>
+    /// <returns>The parsed IPv6 header.</returns>
     public static IPv6Header Parse(ReadOnlySpan<byte> data)
     {
         return new IPv6Header
@@ -205,14 +237,17 @@ public readonly record struct UdpHeader : IBinarySerializable
     /// <summary>Checksum (2 bytes).</summary>
     public required U16BE Checksum { get; init; }
 
+    /// <summary>On-wire size in bytes.</summary>
     public const int Size = 8;
 
+    /// <inheritdoc />
     public bool TryGetWrittenSize(out int size)
     {
         size = Size;
         return true;
     }
 
+    /// <inheritdoc />
     public bool TryWrite(Span<byte> destination, out int bytesWritten)
     {
         if (destination.Length < Size) { bytesWritten = 0; return false; }
@@ -224,6 +259,9 @@ public readonly record struct UdpHeader : IBinarySerializable
         return true;
     }
 
+    /// <summary>Parses a UDP header from the first <see cref="Size"/> bytes of <paramref name="data"/>.</summary>
+    /// <param name="data">Source bytes containing at least <see cref="Size"/> bytes.</param>
+    /// <returns>The parsed UDP header.</returns>
     public static UdpHeader Parse(ReadOnlySpan<byte> data)
     {
         return new UdpHeader
@@ -241,17 +279,26 @@ public readonly record struct UdpHeader : IBinarySerializable
 /// </summary>
 public readonly record struct UdpIPv6Packet : IBinarySerializable
 {
+    /// <summary>Gets the Ethernet frame header.</summary>
     public required EthernetHeader Ethernet { get; init; }
+
+    /// <summary>Gets the IPv6 network-layer header.</summary>
     public required IPv6Header IPv6 { get; init; }
+
+    /// <summary>Gets the UDP transport-layer header.</summary>
     public required UdpHeader Udp { get; init; }
+
+    /// <summary>Gets the UDP payload bytes following the headers.</summary>
     public required byte[] Payload { get; init; }
 
+    /// <inheritdoc />
     public bool TryGetWrittenSize(out int size)
     {
         size = EthernetHeader.Size + IPv6Header.Size + UdpHeader.Size + Payload.Length;
         return true;
     }
 
+    /// <inheritdoc />
     public bool TryWrite(Span<byte> destination, out int bytesWritten)
     {
         int totalSize = EthernetHeader.Size + IPv6Header.Size + UdpHeader.Size + Payload.Length;
@@ -271,6 +318,9 @@ public readonly record struct UdpIPv6Packet : IBinarySerializable
         return true;
     }
 
+    /// <summary>Parses a full Ethernet/IPv6/UDP packet from <paramref name="data"/>.</summary>
+    /// <param name="data">Complete on-wire packet bytes.</param>
+    /// <returns>The parsed packet; remaining bytes become <see cref="Payload"/>.</returns>
     public static UdpIPv6Packet Parse(ReadOnlySpan<byte> data)
     {
         int offset = 0;
@@ -294,4 +344,3 @@ public readonly record struct UdpIPv6Packet : IBinarySerializable
         };
     }
 }
-

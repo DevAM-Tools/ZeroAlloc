@@ -7,10 +7,13 @@ namespace ZeroAlloc.Tests;
 /// </summary>
 public sealed class BitTypesTests
 {
+
     // ========================================================================
     // SUB-BYTE TYPES
     // ========================================================================
 
+
+    /// <summary>Verifies Bit1 ImplicitConversions work.</summary>
     [Test]
     [Arguments(true, (byte)1)]
     [Arguments(false, (byte)0)]
@@ -23,7 +26,7 @@ public sealed class BitTypesTests
         await Assert.That(roundTrip).IsEqualTo(value);
         await Assert.That(asByte).IsEqualTo(expectedByte);
     }
-
+    /// <summary>Verifies Bit2 MasksToTwoBits.</summary>
     [Test]
     [Arguments((byte)0b11111111, (byte)0b11)]
     [Arguments((byte)0b00000010, (byte)0b10)]
@@ -34,7 +37,7 @@ public sealed class BitTypesTests
 
         await Assert.That(asByte).IsEqualTo(expected);
     }
-
+    /// <summary>Verifies Bit3 MasksToThreeBits.</summary>
     [Test]
     [Arguments((byte)0b11111111, (byte)0b111)]
     [Arguments((byte)0b00000101, (byte)0b101)]
@@ -43,7 +46,7 @@ public sealed class BitTypesTests
         Bit3 bits = input;
         await Assert.That((byte)bits).IsEqualTo(expected);
     }
-
+    /// <summary>Verifies Nibble MasksToFourBits.</summary>
     [Test]
     [Arguments((byte)0xFF, (byte)0x0F)]
     [Arguments((byte)0x1A, (byte)0x0A)]
@@ -52,7 +55,7 @@ public sealed class BitTypesTests
         Nibble nibble = input;
         await Assert.That((byte)nibble).IsEqualTo(expected);
     }
-
+    /// <summary>Verifies Bit5 MasksToFiveBits.</summary>
     [Test]
     [Arguments((byte)0xFF, (byte)0x1F)]
     public async Task Bit5_MasksToFiveBits(byte input, byte expected)
@@ -60,7 +63,7 @@ public sealed class BitTypesTests
         Bit5 bits = input;
         await Assert.That((byte)bits).IsEqualTo(expected);
     }
-
+    /// <summary>Verifies Bit6 MasksToSixBits.</summary>
     [Test]
     [Arguments((byte)0xFF, (byte)0x3F)]
     public async Task Bit6_MasksToSixBits(byte input, byte expected)
@@ -68,7 +71,7 @@ public sealed class BitTypesTests
         Bit6 bits = input;
         await Assert.That((byte)bits).IsEqualTo(expected);
     }
-
+    /// <summary>Verifies Bit7 MasksToSevenBits.</summary>
     [Test]
     [Arguments((byte)0xFF, (byte)0x7F)]
     public async Task Bit7_MasksToSevenBits(byte input, byte expected)
@@ -81,6 +84,8 @@ public sealed class BitTypesTests
     // UINTBITS
     // ========================================================================
 
+
+    /// <summary>Verifies UIntBits ValidConstruction MasksValue.</summary>
     [Test]
     public async Task UIntBits_ValidConstruction_MasksValue()
     {
@@ -90,14 +95,14 @@ public sealed class BitTypesTests
         await Assert.That((int)bits.BitCount).IsEqualTo(12);
         await Assert.That(value).IsEqualTo(0x0FFFUL);
     }
-
+    /// <summary>Verifies UIntBits SixtyFourBits PreservesFullValue.</summary>
     [Test]
     public async Task UIntBits_SixtyFourBits_PreservesFullValue()
     {
         UIntBits bits = new(ulong.MaxValue, 64);
         await Assert.That((ulong)bits).IsEqualTo(ulong.MaxValue);
     }
-
+    /// <summary>Verifies UIntBits InvalidBitCount ThrowsArgumentOutOfRangeException.</summary>
     [Test]
     [Arguments((byte)0)]
     [Arguments((byte)65)]
@@ -114,6 +119,8 @@ public sealed class BitTypesTests
     // INTBITS
     // ========================================================================
 
+
+    /// <summary>Verifies IntBits PositiveValue SignExtendsCorrectly.</summary>
     [Test]
     public async Task IntBits_PositiveValue_SignExtendsCorrectly()
     {
@@ -121,21 +128,21 @@ public sealed class BitTypesTests
         await Assert.That((long)bits).IsEqualTo(7);
         await Assert.That((int)bits.BitCount).IsEqualTo(4);
     }
-
+    /// <summary>Verifies IntBits NegativeValue SignExtendsCorrectly.</summary>
     [Test]
     public async Task IntBits_NegativeValue_SignExtendsCorrectly()
     {
         IntBits bits = new(0b1000, 4);
         await Assert.That((long)bits).IsEqualTo(-8);
     }
-
+    /// <summary>Verifies IntBits SixtyFourBits PreservesFullValue.</summary>
     [Test]
     public async Task IntBits_SixtyFourBits_PreservesFullValue()
     {
         IntBits bits = new(long.MinValue, 64);
         await Assert.That((long)bits).IsEqualTo(long.MinValue);
     }
-
+    /// <summary>Verifies IntBits InvalidBitCount ThrowsArgumentOutOfRangeException.</summary>
     [Test]
     [Arguments((byte)0)]
     [Arguments((byte)65)]
