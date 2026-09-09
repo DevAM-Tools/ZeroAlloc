@@ -45,3 +45,11 @@ ZA3012  | ZeroAlloc.Writing | Error | Fixed length must be greater than zero
 ZA3013  | ZeroAlloc.Writing | Error | Conflicting length/encoding attributes
 ZA2014  | ZeroAlloc.Parsing | Error | Fixed length must be greater than zero
 ZA2015  | ZeroAlloc.Parsing | Error | Conflicting length/encoding attributes
+
+## Release 0.6.0
+
+### New Rules
+
+Rule ID | Category | Severity | Notes
+--------|----------|----------|------
+ZA2016  | ZeroAlloc.Parsing | Info | String member without [StringMaxLength] uses the 1 MiB default cap

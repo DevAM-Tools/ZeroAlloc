@@ -53,7 +53,7 @@ public readonly struct U16BE : IUtf8SpanFormattable, IBinaryParsable<U16BE>
     }
 
     /// <inheritdoc/>
-        public static bool TryGetSerializedSize(out int size)
+    public static bool TryGetSerializedSize(out int size)
     {
         size = Size;
         return true;
@@ -131,7 +131,7 @@ public readonly struct U32BE : IUtf8SpanFormattable, IBinaryParsable<U32BE>
     }
 
     /// <inheritdoc/>
-        public static bool TryGetSerializedSize(out int size)
+    public static bool TryGetSerializedSize(out int size)
     {
         size = Size;
         return true;
@@ -209,7 +209,7 @@ public readonly struct U64BE : IUtf8SpanFormattable, IBinaryParsable<U64BE>
     }
 
     /// <inheritdoc/>
-        public static bool TryGetSerializedSize(out int size)
+    public static bool TryGetSerializedSize(out int size)
     {
         size = Size;
         return true;
@@ -279,7 +279,7 @@ public readonly struct U128BE : IUtf8SpanFormattable, IBinaryParsable<U128BE>
     }
 
     /// <inheritdoc/>
-        public static bool TryGetSerializedSize(out int size)
+    public static bool TryGetSerializedSize(out int size)
     {
         size = Size;
         return true;
@@ -354,7 +354,7 @@ public readonly struct I16BE : IUtf8SpanFormattable, IBinaryParsable<I16BE>
     }
 
     /// <inheritdoc/>
-        public static bool TryGetSerializedSize(out int size)
+    public static bool TryGetSerializedSize(out int size)
     {
         size = Size;
         return true;
@@ -412,7 +412,7 @@ public readonly struct I32BE : IUtf8SpanFormattable, IBinaryParsable<I32BE>
     }
 
     /// <inheritdoc/>
-        public static bool TryGetSerializedSize(out int size)
+    public static bool TryGetSerializedSize(out int size)
     {
         size = Size;
         return true;
@@ -528,7 +528,7 @@ public readonly struct I128BE : IUtf8SpanFormattable, IBinaryParsable<I128BE>
     }
 
     /// <inheritdoc/>
-        public static bool TryGetSerializedSize(out int size)
+    public static bool TryGetSerializedSize(out int size)
     {
         size = Size;
         return true;
@@ -598,7 +598,7 @@ public readonly struct U16LE : IUtf8SpanFormattable, IBinaryParsable<U16LE>
     }
 
     /// <inheritdoc/>
-        public static bool TryGetSerializedSize(out int size)
+    public static bool TryGetSerializedSize(out int size)
     {
         size = Size;
         return true;
@@ -676,7 +676,7 @@ public readonly struct U32LE : IUtf8SpanFormattable, IBinaryParsable<U32LE>
     }
 
     /// <inheritdoc/>
-        public static bool TryGetSerializedSize(out int size)
+    public static bool TryGetSerializedSize(out int size)
     {
         size = Size;
         return true;
@@ -754,7 +754,7 @@ public readonly struct U64LE : IUtf8SpanFormattable, IBinaryParsable<U64LE>
     }
 
     /// <inheritdoc/>
-        public static bool TryGetSerializedSize(out int size)
+    public static bool TryGetSerializedSize(out int size)
     {
         size = Size;
         return true;
@@ -824,7 +824,7 @@ public readonly struct U128LE : IUtf8SpanFormattable, IBinaryParsable<U128LE>
     }
 
     /// <inheritdoc/>
-        public static bool TryGetSerializedSize(out int size)
+    public static bool TryGetSerializedSize(out int size)
     {
         size = Size;
         return true;
@@ -899,7 +899,7 @@ public readonly struct I16LE : IUtf8SpanFormattable, IBinaryParsable<I16LE>
     }
 
     /// <inheritdoc/>
-        public static bool TryGetSerializedSize(out int size)
+    public static bool TryGetSerializedSize(out int size)
     {
         size = Size;
         return true;
@@ -957,7 +957,7 @@ public readonly struct I32LE : IUtf8SpanFormattable, IBinaryParsable<I32LE>
     }
 
     /// <inheritdoc/>
-        public static bool TryGetSerializedSize(out int size)
+    public static bool TryGetSerializedSize(out int size)
     {
         size = Size;
         return true;
@@ -1015,7 +1015,7 @@ public readonly struct I64LE : IUtf8SpanFormattable, IBinaryParsable<I64LE>
     }
 
     /// <inheritdoc/>
-        public static bool TryGetSerializedSize(out int size)
+    public static bool TryGetSerializedSize(out int size)
     {
         size = Size;
         return true;
@@ -1073,7 +1073,7 @@ public readonly struct I128LE : IUtf8SpanFormattable, IBinaryParsable<I128LE>
     }
 
     /// <inheritdoc/>
-        public static bool TryGetSerializedSize(out int size)
+    public static bool TryGetSerializedSize(out int size)
     {
         size = Size;
         return true;
@@ -1135,7 +1135,7 @@ public readonly struct F32BE : IUtf8SpanFormattable, IBinaryParsable<F32BE>
     }
 
     /// <inheritdoc/>
-        public static bool TryGetSerializedSize(out int size)
+    public static bool TryGetSerializedSize(out int size)
     {
         size = Size;
         return true;
@@ -1193,7 +1193,7 @@ public readonly struct F32LE : IUtf8SpanFormattable, IBinaryParsable<F32LE>
     }
 
     /// <inheritdoc/>
-        public static bool TryGetSerializedSize(out int size)
+    public static bool TryGetSerializedSize(out int size)
     {
         size = Size;
         return true;
@@ -1251,7 +1251,7 @@ public readonly struct F64BE : IUtf8SpanFormattable, IBinaryParsable<F64BE>
     }
 
     /// <inheritdoc/>
-        public static bool TryGetSerializedSize(out int size)
+    public static bool TryGetSerializedSize(out int size)
     {
         size = Size;
         return true;
@@ -1309,7 +1309,7 @@ public readonly struct F64LE : IUtf8SpanFormattable, IBinaryParsable<F64LE>
     }
 
     /// <inheritdoc/>
-        public static bool TryGetSerializedSize(out int size)
+    public static bool TryGetSerializedSize(out int size)
     {
         size = Size;
         return true;
@@ -1517,7 +1517,10 @@ public readonly struct VarInt : IUtf8SpanFormattable, IBinarySerializable, IBina
     /// <param name="source">The source bytes to parse from.</param>
     /// <param name="value">The parsed value if successful.</param>
     /// <param name="bytesConsumed">The number of bytes consumed during parsing.</param>
-    /// <returns><c>true</c> if parsing succeeded; <c>false</c> if there was insufficient data or invalid encoding.</returns>
+    /// <returns>
+    /// <c>true</c> if parsing succeeded; <c>false</c> if there was insufficient data, a continuation past 10 bytes,
+    /// or leftover payload bits above bit 63 in the final byte.
+    /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryParse(ReadOnlySpan<byte> source, out VarInt value, out int bytesConsumed)
     {
@@ -1525,17 +1528,31 @@ public readonly struct VarInt : IUtf8SpanFormattable, IBinarySerializable, IBina
         int shift = 0;
         int pos = 0;
 
-        while (pos < source.Length && shift < 64)
+        // Protobuf VarInt: 10 bytes max; the 10th byte (shift 63) may only set the least payload bit.
+        while (pos < source.Length && shift <= 63)
         {
             byte b = source[pos++];
-            result |= (ulong)(b & 0x7F) << shift;
+            ulong payload = (ulong)(b & 0x7F);
+            if (shift == 63 && payload > 1UL)
+            {
+                value = default;
+                bytesConsumed = 0;
+                return false;
+            }
+
+            result |= payload << shift;
             if ((b & 0x80) == 0)
             {
                 value = new VarInt(result);
                 bytesConsumed = pos;
                 return true;
             }
+
             shift += 7;
+            if (shift > 63)
+            {
+                break;
+            }
         }
 
         value = default;

@@ -248,6 +248,72 @@ public sealed class StringWrappersTests
         await Assert.That(value.Value).IsEqualTo("");
     }
 
+    /// <summary>Verifies Utf8Var.TryParse fails when the VarInt length does not fit in int.</summary>
+    [Test]
+    [Arguments(0x80000000UL)]
+    [Arguments(0xFFFFFFFFUL)]
+    public async Task Utf8Var_TryParse_LengthPrefixExceedsInt_ReturnsFalse(ulong prefix)
+    {
+        byte[] source = new byte[16];
+        VarInt length = prefix;
+        bool formatted = length.TryFormat(source, out _, default, null);
+
+        bool parsed = Utf8Var.TryParse(source, out Utf8Var value, out int consumed);
+
+        await Assert.That(formatted).IsTrue();
+        await Assert.That(parsed).IsFalse();
+        await Assert.That(consumed).IsEqualTo(0);
+        await Assert.That(value.Value).IsEqualTo("");
+    }
+
+    /// <summary>Verifies Utf8Var.TryParse fails when length is int.MaxValue so prefix-plus-payload addition would wrap.</summary>
+    [Test]
+    public async Task Utf8Var_TryParse_IntMaxLengthPrefixOnShortBuffer_ReturnsFalse()
+    {
+        byte[] source = new byte[16];
+        VarInt length = (ulong)int.MaxValue;
+        bool formatted = length.TryFormat(source, out _, default, null);
+
+        bool parsed = Utf8Var.TryParse(source, out Utf8Var value, out int consumed);
+
+        await Assert.That(formatted).IsTrue();
+        await Assert.That(parsed).IsFalse();
+        await Assert.That(consumed).IsEqualTo(0);
+        await Assert.That(value.Value).IsEqualTo("");
+    }
+
+    /// <summary>Verifies Utf8FixBE.TryParse fails on uint prefixes that exceed remaining bytes.</summary>
+    [Test]
+    [Arguments(0x80000000u)]
+    [Arguments(0xFFFFFFFFu)]
+    public async Task Utf8FixBE_TryParse_OversizedLengthPrefix_ReturnsFalse(uint prefix)
+    {
+        byte[] source = new byte[16];
+        BinaryPrimitives.WriteUInt32BigEndian(source, prefix);
+
+        bool parsed = Utf8FixBE.TryParse(source, out Utf8FixBE value, out int consumed);
+
+        await Assert.That(parsed).IsFalse();
+        await Assert.That(consumed).IsEqualTo(0);
+        await Assert.That(value.Value).IsEqualTo("");
+    }
+
+    /// <summary>Verifies Utf8FixLE.TryParse fails on uint prefixes that exceed remaining bytes.</summary>
+    [Test]
+    [Arguments(0x80000000u)]
+    [Arguments(0xFFFFFFFFu)]
+    public async Task Utf8FixLE_TryParse_OversizedLengthPrefix_ReturnsFalse(uint prefix)
+    {
+        byte[] source = new byte[16];
+        BinaryPrimitives.WriteUInt32LittleEndian(source, prefix);
+
+        bool parsed = Utf8FixLE.TryParse(source, out Utf8FixLE value, out int consumed);
+
+        await Assert.That(parsed).IsFalse();
+        await Assert.That(consumed).IsEqualTo(0);
+        await Assert.That(value.Value).IsEqualTo("");
+    }
+
     /// <summary>Verifies fixed-length UTF-8 wrappers fail TryParse when the header is incomplete.</summary>
     [Test]
     [Arguments(nameof(Utf8FixBE), new byte[] { 0x00, 0x00, 0x01 })]

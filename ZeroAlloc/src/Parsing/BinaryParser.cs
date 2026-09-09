@@ -90,7 +90,7 @@ public ref struct BinaryParser
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ushort ReadUInt16BE()
     {
-        if (_Position + 2 > _Buffer.Length)
+        if ((uint)Remaining < 2)
         {
             _ThrowInsufficientData(2);
         }
@@ -104,7 +104,7 @@ public ref struct BinaryParser
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public uint ReadUInt32BE()
     {
-        if (_Position + 4 > _Buffer.Length)
+        if ((uint)Remaining < 4)
         {
             _ThrowInsufficientData(4);
         }
@@ -118,7 +118,7 @@ public ref struct BinaryParser
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ulong ReadUInt64BE()
     {
-        if (_Position + 8 > _Buffer.Length)
+        if ((uint)Remaining < 8)
         {
             _ThrowInsufficientData(8);
         }
@@ -148,7 +148,7 @@ public ref struct BinaryParser
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ushort ReadUInt16LE()
     {
-        if (_Position + 2 > _Buffer.Length)
+        if ((uint)Remaining < 2)
         {
             _ThrowInsufficientData(2);
         }
@@ -162,7 +162,7 @@ public ref struct BinaryParser
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public uint ReadUInt32LE()
     {
-        if (_Position + 4 > _Buffer.Length)
+        if ((uint)Remaining < 4)
         {
             _ThrowInsufficientData(4);
         }
@@ -176,7 +176,7 @@ public ref struct BinaryParser
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ulong ReadUInt64LE()
     {
-        if (_Position + 8 > _Buffer.Length)
+        if ((uint)Remaining < 8)
         {
             _ThrowInsufficientData(8);
         }
@@ -255,7 +255,14 @@ public ref struct BinaryParser
             }
 
             byte b = _Buffer[_Position++];
-            result |= (ulong)(b & 0x7F) << shift;
+            ulong payload = (ulong)(b & 0x7F);
+            // Protobuf VarInt: the 10th byte (shift 63) may only contribute the least payload bit.
+            if (shift == 63 && payload > 1UL)
+            {
+                throw new InvalidOperationException("VarInt is too long (exceeds 64 bits)");
+            }
+
+            result |= payload << shift;
 
             if ((b & 0x80) == 0)
             {
@@ -263,7 +270,7 @@ public ref struct BinaryParser
             }
 
             shift += 7;
-            if (shift >= 70) // Overflow protection (10 bytes max)
+            if (shift > 63)
             {
                 throw new InvalidOperationException("VarInt is too long (exceeds 64 bits)");
             }
@@ -298,7 +305,7 @@ public ref struct BinaryParser
             throw new ArgumentOutOfRangeException(nameof(length), "Length must be non-negative");
         }
 
-        if (_Position + length > _Buffer.Length)
+        if ((uint)length > (uint)Remaining)
         {
             _ThrowInsufficientData(length);
         }
@@ -319,7 +326,7 @@ public ref struct BinaryParser
             throw new ArgumentOutOfRangeException(nameof(count), "Count must be non-negative");
         }
 
-        if (_Position + count > _Buffer.Length)
+        if ((uint)count > (uint)Remaining)
         {
             _ThrowInsufficientData(count);
         }
@@ -355,7 +362,7 @@ public ref struct BinaryParser
         if (rawLength > int.MaxValue)
         {
             throw new InvalidOperationException(
-                $"VarInt length prefix {rawLength} exceeds the maximum allowed value of {int.MaxValue}");
+                string.Create(CultureInfo.InvariantCulture, $"VarInt length prefix {rawLength} exceeds the maximum allowed value of {int.MaxValue}"));
         }
 
         int length = (int)rawLength;
@@ -396,7 +403,7 @@ public ref struct BinaryParser
         }
 
         int length = (int)rawLength;
-        if (_Position + length > _Buffer.Length)
+        if ((uint)length > (uint)Remaining)
         {
             _Position = startPosition;
             span = default;
@@ -430,7 +437,7 @@ public ref struct BinaryParser
         if (rawLength > int.MaxValue)
         {
             throw new InvalidOperationException(
-                $"BE32 length prefix {rawLength} exceeds the maximum allowed value of {int.MaxValue}");
+                string.Create(CultureInfo.InvariantCulture, $"BE32 length prefix {rawLength} exceeds the maximum allowed value of {int.MaxValue}"));
         }
 
         int length = (int)rawLength;
@@ -546,7 +553,7 @@ public ref struct BinaryParser
 
         if (!T.TryGetSerializedSize(out int size) || size < 0)
         {
-            throw new ArgumentException($"Type {typeof(T).Name} has variable size and cannot be read as a fixed-size array. Use ReadList<T> instead.");
+            throw new ArgumentException(string.Create(CultureInfo.InvariantCulture, $"Type {typeof(T).Name} has variable size and cannot be read as a fixed-size array. Use ReadList<T> instead."));
         }
 
         int elementsToRead = Math.Min(count, destination.Length);
@@ -578,7 +585,7 @@ public ref struct BinaryParser
         if (rawCount > int.MaxValue)
         {
             throw new InvalidOperationException(
-                $"VarInt count prefix {rawCount} exceeds the maximum allowed value of {int.MaxValue}");
+                string.Create(CultureInfo.InvariantCulture, $"VarInt count prefix {rawCount} exceeds the maximum allowed value of {int.MaxValue}"));
         }
 
         int count = (int)rawCount;
@@ -609,7 +616,7 @@ public ref struct BinaryParser
         if (rawCount > int.MaxValue)
         {
             throw new InvalidOperationException(
-                $"BE32 count prefix {rawCount} exceeds the maximum allowed value of {int.MaxValue}");
+                string.Create(CultureInfo.InvariantCulture, $"BE32 count prefix {rawCount} exceeds the maximum allowed value of {int.MaxValue}"));
         }
 
         int count = (int)rawCount;
@@ -624,8 +631,7 @@ public ref struct BinaryParser
     private readonly void _ThrowInsufficientData(int bytesNeeded)
     {
         throw new InvalidOperationException(
-            $"Insufficient data: need {bytesNeeded} bytes at position {_Position}, " +
-            $"but only {Remaining} bytes remaining (buffer length: {_Buffer.Length}).");
+            string.Create(CultureInfo.InvariantCulture, $"Insufficient data: need {bytesNeeded} bytes at position {_Position}, but only {Remaining} bytes remaining (buffer length: {_Buffer.Length})."));
     }
 
     /// <summary>
@@ -646,7 +652,14 @@ public ref struct BinaryParser
             }
 
             byte b = _Buffer[position++];
-            result |= (ulong)(b & 0x7F) << shift;
+            ulong payload = (ulong)(b & 0x7F);
+            if (shift == 63 && payload > 1UL)
+            {
+                value = 0;
+                return false;
+            }
+
+            result |= payload << shift;
 
             if ((b & 0x80) == 0)
             {
@@ -656,7 +669,7 @@ public ref struct BinaryParser
             }
 
             shift += 7;
-            if (shift >= 70)
+            if (shift > 63)
             {
                 value = 0;
                 return false;
@@ -699,13 +712,13 @@ public static class BinaryParseValidator
         if (type.IsArray)
         {
             throw new NotSupportedException(
-                $"Array type '{type.Name}' is not directly supported. Use ReadArray<T>() or ReadArrayVarInt<T>() methods.");
+                string.Create(CultureInfo.InvariantCulture, $"Array type '{type.Name}' is not directly supported. Use ReadArray<T>() or ReadArrayVarInt<T>() methods."));
         }
 
         if (type.IsClass && !type.IsValueType)
         {
             throw new NotSupportedException(
-                $"Reference type '{type.Name}' is not supported. Binary parsing requires value types (struct/record struct).");
+                string.Create(CultureInfo.InvariantCulture, $"Reference type '{type.Name}' is not supported. Binary parsing requires value types (struct/record struct)."));
         }
 
         // Check if type implements IBinaryParsable
@@ -723,8 +736,8 @@ public static class BinaryParseValidator
         if (!implementsParsable && !_IsPrimitiveOrKnownType(type))
         {
             throw new NotSupportedException(
-                $"Type '{type.Name}' does not implement IBinaryParsable<{type.Name}>. " +
-                $"Implement this interface to enable parsing, or use a built-in wrapper type.");
+                string.Create(CultureInfo.InvariantCulture, $"Type '{type.Name}' does not implement IBinaryParsable<{type.Name}>. ") +
+                string.Create(CultureInfo.InvariantCulture, $"Implement this interface to enable parsing, or use a built-in wrapper type."));
         }
     }
 
@@ -766,14 +779,14 @@ public static class BinaryParseValidator
 
         if (type.IsArray)
         {
-            return $"To parse arrays, use one of these methods:\n" +
-                   $"  - ReadArray<T>(count, destination) for fixed count\n" +
-                   $"  - ReadArrayVarInt<T>(destination) for VarInt count prefix\n" +
-                   $"  - ReadArrayBE16<T>(destination) for 16-bit count prefix";
+            return string.Create(CultureInfo.InvariantCulture, $"To parse arrays, use one of these methods:\n") +
+                   string.Create(CultureInfo.InvariantCulture, $"  - ReadArray<T>(count, destination) for fixed count\n") +
+                   string.Create(CultureInfo.InvariantCulture, $"  - ReadArrayVarInt<T>(destination) for VarInt count prefix\n") +
+                   string.Create(CultureInfo.InvariantCulture, $"  - ReadArrayBE16<T>(destination) for 16-bit count prefix");
         }
 
-        return $"Type '{type.Name}' is not supported. " +
-               $"Implement IBinaryParsable<{type.Name}> to enable parsing.";
+        return string.Create(CultureInfo.InvariantCulture, $"Type '{type.Name}' is not supported. ") +
+               string.Create(CultureInfo.InvariantCulture, $"Implement IBinaryParsable<{type.Name}> to enable parsing.");
     }
 }
 

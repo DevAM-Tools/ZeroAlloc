@@ -4,6 +4,7 @@
     <ZeroAlloc_DefaultBufferSize Condition="'$(ZeroAlloc_DefaultBufferSize)' == ''">2097152</ZeroAlloc_DefaultBufferSize>
     <ZeroAlloc_RecursiveHeapFallback Condition="'$(ZeroAlloc_RecursiveHeapFallback)' == ''">true</ZeroAlloc_RecursiveHeapFallback>
     <ZeroAlloc_BufferOverflowBehavior Condition="'$(ZeroAlloc_BufferOverflowBehavior)' == ''">Grow</ZeroAlloc_BufferOverflowBehavior>
+    <ZeroAlloc_GenerateDefaultClass Condition="'$(ZeroAlloc_GenerateDefaultClass)' == ''">true</ZeroAlloc_GenerateDefaultClass>
   </PropertyGroup>
   <ItemGroup>
     <CompilerVisibleProperty Include="ZeroAlloc_DefaultBufferSize" />

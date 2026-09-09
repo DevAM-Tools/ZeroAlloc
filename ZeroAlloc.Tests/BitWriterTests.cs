@@ -20,7 +20,7 @@ public sealed class BitWriterTests
     public async Task WriteByte_AlignedWrite()
     {
         byte[] buffer = new byte[1];
-        int bitOffset;
+        long bitOffset;
         {
             BitWriter writer = new(buffer);
             writer.WriteByte(0xAB);
@@ -38,7 +38,7 @@ public sealed class BitWriterTests
     public async Task WriteMultipleBytes_Sequential()
     {
         byte[] buffer = new byte[3];
-        int bitOffset;
+        long bitOffset;
         {
             BitWriter writer = new(buffer);
             writer.WriteByte(0x12);
@@ -384,7 +384,7 @@ public sealed class BitWriterTests
     {
         byte[] buffer = new byte[2];
         bool isByteAlignedBefore, isByteAlignedAfter;
-        int bitOffset;
+        long bitOffset;
         {
             BitWriter writer = new(buffer);
             writer.WriteBits(5, 3); // 3 bits
@@ -410,7 +410,7 @@ public sealed class BitWriterTests
     {
         byte[] buffer = new byte[2];
         bool isByteAligned;
-        int bitOffset;
+        long bitOffset;
         {
             BitWriter writer = new(buffer);
             writer.WriteByte(0xAA);
@@ -435,7 +435,7 @@ public sealed class BitWriterTests
     public async Task WriteBytes_Aligned()
     {
         byte[] buffer = new byte[4];
-        int bitOffset;
+        long bitOffset;
         {
             BitWriter writer = new(buffer);
             writer.WriteBytes([0xDE, 0xAD, 0xBE, 0xEF]);
@@ -562,11 +562,11 @@ public sealed class BitWriterTests
     public async Task BitWriter_WriteBits_ZeroBitCount_ThrowsArgumentOutOfRangeException()
     {
         byte[] buffer = new byte[4];
-        BitWriter writer = new(buffer);
-        bool threw = false;
-        try { writer.WriteBits(0, 0); }
-        catch (ArgumentOutOfRangeException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BitWriter writer = new(buffer);
+            writer.WriteBits(0, 0);
+        }).Throws<ArgumentOutOfRangeException>();
     }
 
     /// <summary>Verifies WriteBits rejects bitCount above 64.</summary>
@@ -574,11 +574,11 @@ public sealed class BitWriterTests
     public async Task BitWriter_WriteBits_TooLargeBitCount_ThrowsArgumentOutOfRangeException()
     {
         byte[] buffer = new byte[16];
-        BitWriter writer = new(buffer);
-        bool threw = false;
-        try { writer.WriteBits(0, 65); }
-        catch (ArgumentOutOfRangeException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BitWriter writer = new(buffer);
+            writer.WriteBits(0, 65);
+        }).Throws<ArgumentOutOfRangeException>();
     }
 
     /// <summary>Verifies WriteBits throws when the requested bit count exceeds remaining capacity.</summary>
@@ -587,11 +587,11 @@ public sealed class BitWriterTests
     {
         // 1-byte buffer = 8 bits available
         byte[] buffer = new byte[1];
-        BitWriter writer = new(buffer);
-        bool threw = false;
-        try { writer.WriteBits(0, 9); }
-        catch (InvalidOperationException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BitWriter writer = new(buffer);
+            writer.WriteBits(0, 9);
+        }).Throws<InvalidOperationException>();
     }
 
     /// <summary>Verifies WriteBits does not mutate the offset when it fails capacity check.</summary>
@@ -599,11 +599,14 @@ public sealed class BitWriterTests
     public async Task BitWriter_WriteBits_ExceedsCapacity_DoesNotMutateOffset()
     {
         byte[] buffer = new byte[1];
-        int bitOffset;
+        long bitOffset;
         {
             BitWriter writer = new(buffer);
-            try { writer.WriteBits(0, 9); } catch (InvalidOperationException) { /* expected */ }
+            bool threw = false;
+            try { writer.WriteBits(0, 9); }
+            catch (InvalidOperationException) { threw = true; }
             bitOffset = writer.BitOffset;
+            await Assert.That(threw).IsTrue();
         }
 
         await Assert.That(bitOffset).IsEqualTo(0);
@@ -614,11 +617,11 @@ public sealed class BitWriterTests
     public async Task BitWriter_WriteByte_NoCapacity_ThrowsInvalidOperationException()
     {
         byte[] buffer = Array.Empty<byte>();
-        BitWriter writer = new(buffer);
-        bool threw = false;
-        try { writer.WriteByte(0xFF); }
-        catch (InvalidOperationException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BitWriter writer = new(buffer);
+            writer.WriteByte(0xFF);
+        }).Throws<InvalidOperationException>();
     }
 
     /// <summary>Verifies WriteByte aligned fast-path does not mutate offset when it fails.</summary>
@@ -626,11 +629,14 @@ public sealed class BitWriterTests
     public async Task BitWriter_WriteByte_NoCapacity_DoesNotMutateOffset()
     {
         byte[] buffer = Array.Empty<byte>();
-        int bitOffset;
+        long bitOffset;
         {
             BitWriter writer = new(buffer);
-            try { writer.WriteByte(0xFF); } catch (InvalidOperationException) { /* expected */ }
+            bool threw = false;
+            try { writer.WriteByte(0xFF); }
+            catch (InvalidOperationException) { threw = true; }
             bitOffset = writer.BitOffset;
+            await Assert.That(threw).IsTrue();
         }
 
         await Assert.That(bitOffset).IsEqualTo(0);
@@ -641,11 +647,11 @@ public sealed class BitWriterTests
     public async Task BitWriter_SkipBits_NegativeCount_ThrowsArgumentOutOfRangeException()
     {
         byte[] buffer = new byte[4];
-        BitWriter writer = new(buffer);
-        bool threw = false;
-        try { writer.SkipBits(-1); }
-        catch (ArgumentOutOfRangeException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BitWriter writer = new(buffer);
+            writer.SkipBits(-1);
+        }).Throws<ArgumentOutOfRangeException>();
     }
 
     /// <summary>Verifies SkipBits throws when the skip would exceed remaining capacity.</summary>
@@ -653,11 +659,11 @@ public sealed class BitWriterTests
     public async Task BitWriter_SkipBits_ExceedsCapacity_ThrowsInvalidOperationException()
     {
         byte[] buffer = new byte[1];
-        BitWriter writer = new(buffer);
-        bool threw = false;
-        try { writer.SkipBits(9); }
-        catch (InvalidOperationException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BitWriter writer = new(buffer);
+            writer.SkipBits(9);
+        }).Throws<InvalidOperationException>();
     }
 
     /// <summary>Verifies SkipBits does not mutate the offset on failure.</summary>
@@ -665,11 +671,14 @@ public sealed class BitWriterTests
     public async Task BitWriter_SkipBits_ExceedsCapacity_DoesNotMutateOffset()
     {
         byte[] buffer = new byte[1];
-        int bitOffset;
+        long bitOffset;
         {
             BitWriter writer = new(buffer);
-            try { writer.SkipBits(9); } catch (InvalidOperationException) { /* expected */ }
+            bool threw = false;
+            try { writer.SkipBits(9); }
+            catch (InvalidOperationException) { threw = true; }
             bitOffset = writer.BitOffset;
+            await Assert.That(threw).IsTrue();
         }
 
         await Assert.That(bitOffset).IsEqualTo(0);
@@ -680,7 +689,7 @@ public sealed class BitWriterTests
     public async Task BitWriter_SkipBits_ExactCapacity_DoesNotThrow()
     {
         byte[] buffer = new byte[1];
-        int bitOffset;
+        long bitOffset;
         {
             BitWriter writer = new(buffer);
             writer.SkipBits(8);
@@ -695,11 +704,11 @@ public sealed class BitWriterTests
     public async Task BitWriter_WriteBytes_ExceedsCapacity_ThrowsInvalidOperationException()
     {
         byte[] buffer = new byte[2];
-        BitWriter writer = new(buffer);
-        bool threw = false;
-        try { writer.WriteBytes([0x01, 0x02, 0x03]); }
-        catch (InvalidOperationException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BitWriter writer = new(buffer);
+            writer.WriteBytes([0x01, 0x02, 0x03]);
+        }).Throws<InvalidOperationException>();
     }
 
     /// <summary>Verifies WriteBytes does not mutate the offset on capacity failure.</summary>
@@ -707,11 +716,14 @@ public sealed class BitWriterTests
     public async Task BitWriter_WriteBytes_ExceedsCapacity_DoesNotMutateOffset()
     {
         byte[] buffer = new byte[2];
-        int bitOffset;
+        long bitOffset;
         {
             BitWriter writer = new(buffer);
-            try { writer.WriteBytes([0x01, 0x02, 0x03]); } catch (InvalidOperationException) { /* expected */ }
+            bool threw = false;
+            try { writer.WriteBytes([0x01, 0x02, 0x03]); }
+            catch (InvalidOperationException) { threw = true; }
             bitOffset = writer.BitOffset;
+            await Assert.That(threw).IsTrue();
         }
 
         await Assert.That(bitOffset).IsEqualTo(0);
@@ -752,7 +764,7 @@ public sealed class BitWriterTests
     {
         byte[] buffer = new byte[1];
         bool ok;
-        int bitOffset;
+        long bitOffset;
         {
             BitWriter writer = new(buffer);
             ok = writer.TryWriteBits(0b1011, 4);
@@ -770,7 +782,7 @@ public sealed class BitWriterTests
     {
         byte[] buffer = new byte[1];
         bool ok;
-        int bitOffset;
+        long bitOffset;
         {
             BitWriter writer = new(buffer);
             ok = writer.TryWriteByte(0xAB);
@@ -888,7 +900,7 @@ public sealed class BitWriterTests
     {
         byte[] buffer = new byte[2];
         bool ok;
-        int bitOffset;
+        long bitOffset;
         {
             BitWriter writer = new(buffer);
             ok = writer.TrySkipBits(8);
@@ -905,7 +917,7 @@ public sealed class BitWriterTests
     {
         byte[] buffer = new byte[4];
         bool ok;
-        int bitOffset;
+        long bitOffset;
         {
             BitWriter writer = new(buffer);
             ok = writer.TryWriteBytes([0xDE, 0xAD]);
@@ -929,7 +941,7 @@ public sealed class BitWriterTests
     {
         byte[] buffer = new byte[1];
         bool ok;
-        int bitOffset;
+        long bitOffset;
         {
             BitWriter writer = new(buffer);
             writer.TryWriteBits(0b111111, 6); // 6 written, 2 remain
@@ -948,7 +960,7 @@ public sealed class BitWriterTests
     {
         byte[] buffer = new byte[1];
         bool ok;
-        int bitOffset;
+        long bitOffset;
         {
             BitWriter writer = new(buffer);
             writer.TryWriteBits(0, 4); // 4 bits written, 4 remain
@@ -966,7 +978,7 @@ public sealed class BitWriterTests
     {
         byte[] buffer = new byte[1]; // only 8 bits
         bool ok;
-        int bitOffset;
+        long bitOffset;
         {
             BitWriter writer = new(buffer);
             ok = writer.TryWriteUInt16(0x1234);
@@ -983,7 +995,7 @@ public sealed class BitWriterTests
     {
         byte[] buffer = new byte[2]; // only 16 bits
         bool ok;
-        int bitOffset;
+        long bitOffset;
         {
             BitWriter writer = new(buffer);
             ok = writer.TryWriteUInt32(0x12345678u);
@@ -1000,7 +1012,7 @@ public sealed class BitWriterTests
     {
         byte[] buffer = new byte[4]; // only 32 bits
         bool ok;
-        int bitOffset;
+        long bitOffset;
         {
             BitWriter writer = new(buffer);
             ok = writer.TryWriteUInt64(0x0102030405060708UL);
@@ -1017,7 +1029,7 @@ public sealed class BitWriterTests
     {
         byte[] buffer = new byte[2]; // only 16 bits
         bool ok;
-        int bitOffset;
+        long bitOffset;
         {
             BitWriter writer = new(buffer);
             ok = writer.TryWriteInt32(-1);
@@ -1034,7 +1046,7 @@ public sealed class BitWriterTests
     {
         byte[] buffer = new byte[1];
         bool ok;
-        int bitOffset;
+        long bitOffset;
         {
             BitWriter writer = new(buffer);
             ok = writer.TrySkipBits(9);
@@ -1050,7 +1062,7 @@ public sealed class BitWriterTests
     public async Task BitWriter_TrySkipBits_Zero_AlwaysReturnsTrue()
     {
         bool ok;
-        int bitOffset;
+        long bitOffset;
         {
             BitWriter writer = new([]);
             ok = writer.TrySkipBits(0);
@@ -1067,7 +1079,7 @@ public sealed class BitWriterTests
     {
         byte[] buffer = new byte[4];
         bool ok;
-        int bitOffset;
+        long bitOffset;
         {
             BitWriter writer = new(buffer);
             writer.TryWriteBits(0b1, 3); // misalign
@@ -1085,7 +1097,7 @@ public sealed class BitWriterTests
     {
         byte[] buffer = new byte[1];
         bool ok;
-        int bitOffset;
+        long bitOffset;
         {
             BitWriter writer = new(buffer);
             ok = writer.TryWriteBytes([0x01, 0x02]);
@@ -1106,11 +1118,11 @@ public sealed class BitWriterTests
     public async Task BitWriter_TryWriteBits_BitCountZero_ThrowsArgumentOutOfRangeException()
     {
         byte[] buffer = new byte[4];
-        BitWriter writer = new(buffer);
-        bool threw = false;
-        try { writer.TryWriteBits(0, 0); }
-        catch (ArgumentOutOfRangeException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BitWriter writer = new(buffer);
+            writer.TryWriteBits(0, 0);
+        }).Throws<ArgumentOutOfRangeException>();
     }
 
     /// <summary>Verifies BitWriter TryWriteBits BitCountOver64 ThrowsArgumentOutOfRangeException.</summary>
@@ -1118,11 +1130,11 @@ public sealed class BitWriterTests
     public async Task BitWriter_TryWriteBits_BitCountOver64_ThrowsArgumentOutOfRangeException()
     {
         byte[] buffer = new byte[16];
-        BitWriter writer = new(buffer);
-        bool threw = false;
-        try { writer.TryWriteBits(0, 65); }
-        catch (ArgumentOutOfRangeException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BitWriter writer = new(buffer);
+            writer.TryWriteBits(0, 65);
+        }).Throws<ArgumentOutOfRangeException>();
     }
 
     /// <summary>Verifies BitWriter TrySkipBits NegativeCount ThrowsArgumentOutOfRangeException.</summary>
@@ -1130,11 +1142,11 @@ public sealed class BitWriterTests
     public async Task BitWriter_TrySkipBits_NegativeCount_ThrowsArgumentOutOfRangeException()
     {
         byte[] buffer = new byte[4];
-        BitWriter writer = new(buffer);
-        bool threw = false;
-        try { writer.TrySkipBits(-1); }
-        catch (ArgumentOutOfRangeException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BitWriter writer = new(buffer);
+            writer.TrySkipBits(-1);
+        }).Throws<ArgumentOutOfRangeException>();
     }
 
     // ========================================================================
@@ -1183,7 +1195,7 @@ public sealed class BitWriterTests
     public async Task BitWriter_WriteByte_WhenUnaligned_DelegatesToWriteBits()
     {
         byte[] buffer = new byte[2];
-        int bitOffset;
+        long bitOffset;
         {
             BitWriter writer = new(buffer);
             writer.WriteBits(0xF, 4);
@@ -1202,7 +1214,7 @@ public sealed class BitWriterTests
     {
         byte[] buffer = new byte[1];
         bool ok;
-        int bitOffset;
+        long bitOffset;
         {
             BitWriter writer = new(buffer);
             ok = writer.TryWriteInt16(0x1234);
@@ -1219,7 +1231,7 @@ public sealed class BitWriterTests
     {
         byte[] buffer = new byte[4];
         bool ok;
-        int bitOffset;
+        long bitOffset;
         {
             BitWriter writer = new(buffer);
             ok = writer.TryWriteInt64(0x123456789ABCDEF0L);

@@ -6,10 +6,9 @@
 // A disposable ref struct that builds strings without heap allocation.
 // Uses ThreadStatic buffer with configurable overflow behavior.
 //
-// OVERFLOW BEHAVIOR (configured via ZeroAllocHelper):
-//   - AutoGrow: Buffer grows automatically when capacity is exceeded (default)
-//   - ThrowOnOverflow: Throws InvalidOperationException when buffer is full
-//   - HeapFallback: Allocates heap buffer on overflow for nested calls
+// OVERFLOW: always grows (ThreadStatic via GrowCharBuffer, or private heap array when nested).
+// Nested Create() uses AcquireCharBuffer heap fallback; it does not throw.
+// There is no ThrowOnOverflow mode for this type.
 //
 // IMPORTANT: Always use with 'using' statement to ensure buffer release:
 //   using var builder = TempStringBuilder.Create();
@@ -32,9 +31,10 @@ namespace ZeroAlloc;
 /// across threads.
 /// </para>
 /// <para>
-/// <see cref="TempStringBuilder"/> uses the thread-local buffer from 
-/// <see cref="ZeroAllocHelper"/>. Overflow behavior depends on configuration:
-/// AutoGrow (default), ThrowOnOverflow, or HeapFallback for nested calls.
+/// <see cref="TempStringBuilder"/> uses the thread-local buffer from
+/// <see cref="ZeroAllocHelper"/>. Overflow always grows (ThreadStatic via
+/// <see cref="ZeroAllocHelper.GrowCharBuffer(int, int)"/>, or a private heap array when nested).
+/// There is no ThrowOnOverflow mode for this type.
 /// </para>
 /// <para><b>Example:</b></para>
 /// <code>
@@ -73,6 +73,7 @@ public ref struct TempStringBuilder : IDisposable
     /// True if using the ThreadStatic buffer (needs release on Dispose).
     /// </summary>
     private readonly bool _IsThreadStatic;
+    private readonly int _Epoch;
 
     // ========================================================================
     // CONSTRUCTORS
@@ -82,12 +83,13 @@ public ref struct TempStringBuilder : IDisposable
     /// Private constructor for ThreadStatic mode.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private TempStringBuilder(char[] array, bool isThreadStatic)
+    private TempStringBuilder(char[] array, bool isThreadStatic, int epoch)
     {
         _Array = array;
         _Span = array.AsSpan();
         _Position = 0;
         _IsThreadStatic = isThreadStatic;
+        _Epoch = epoch;
     }
 
     // ========================================================================
@@ -101,7 +103,7 @@ public ref struct TempStringBuilder : IDisposable
     /// <remarks>
     /// <para>
     /// This method acquires the thread-local char buffer from <see cref="ZeroAllocHelper"/>.
-    /// Overflow behavior depends on project configuration (see <see cref="ZeroAllocHelper"/>).
+    /// Overflow always grows; there is no ThrowOnOverflow mode.
     /// </para>
     /// <para>
     /// <b>Important:</b> Always use with a <c>using</c> statement to ensure proper disposal.
@@ -118,8 +120,9 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TempStringBuilder Create()
     {
-        char[] buffer = ZeroAllocHelper.AcquireCharBuffer(ZeroAllocHelper.DefaultBufferSize, out bool isThreadStatic);
-        return new TempStringBuilder(buffer, isThreadStatic);
+        char[] buffer = ZeroAllocHelper.AcquireCharBuffer(
+            ZeroAllocHelper.DefaultBufferSize, recursiveHeapFallback: true, out bool isThreadStatic, out int epoch);
+        return new TempStringBuilder(buffer, isThreadStatic, epoch);
     }
 
     // ========================================================================
@@ -186,7 +189,8 @@ public ref struct TempStringBuilder : IDisposable
         if ((uint)count > (uint)_Position)
         {
             throw new ArgumentOutOfRangeException(nameof(count),
-                $"Cannot seek back {count} characters when only {_Position} characters have been written.");
+                string.Create(CultureInfo.InvariantCulture,
+                    $"Cannot seek back {count} characters when only {_Position} characters have been written."));
         }
 
         _Position -= count;
@@ -215,7 +219,7 @@ public ref struct TempStringBuilder : IDisposable
 
     /// <summary>
     /// Ensures the buffer has at least the specified capacity.
-    /// When using the ThreadStatic buffer, delegates growth to <see cref="ZeroAllocHelper.GrowCharBuffer"/>.
+    /// When using the ThreadStatic buffer, delegates growth to <see cref="ZeroAllocHelper.GrowCharBuffer(int, int)"/>.
     /// When using a heap-fallback buffer (nested call), grows the private array without touching the ThreadStatic field.
     /// </summary>
     /// <param name="requiredCapacity">The minimum required capacity.</param>
@@ -230,7 +234,7 @@ public ref struct TempStringBuilder : IDisposable
         if (_IsThreadStatic)
         {
             // We own the ThreadStatic buffer — grow it through the helper.
-            _Array = ZeroAllocHelper.GrowCharBuffer(requiredCapacity);
+            _Array = ZeroAllocHelper.GrowCharBuffer(requiredCapacity, _Position);
         }
         else
         {
@@ -246,7 +250,7 @@ public ref struct TempStringBuilder : IDisposable
 
     /// <summary>
     /// Tries to ensure the buffer has at least the specified capacity without throwing.
-    /// When using the ThreadStatic buffer, delegates growth to <see cref="ZeroAllocHelper.TryGrowCharBuffer"/>.
+    /// When using the ThreadStatic buffer, delegates growth to <see cref="ZeroAllocHelper.TryGrowCharBuffer(int, int)"/>.
     /// When using a heap-fallback buffer (nested call), grows the private array without touching the ThreadStatic field.
     /// </summary>
     /// <param name="requiredCapacity">The minimum required capacity.</param>
@@ -261,8 +265,8 @@ public ref struct TempStringBuilder : IDisposable
 
         if (_IsThreadStatic)
         {
-            // Try to grow the ThreadStatic buffer — may return null in ThrowOnOverflow mode.
-            char[]? newBuffer = ZeroAllocHelper.TryGrowCharBuffer(requiredCapacity);
+            // Grow the ThreadStatic buffer. TryGrow returns null if the buffer is not acquired.
+            char[]? newBuffer = ZeroAllocHelper.TryGrowCharBuffer(requiredCapacity, _Position);
             if (newBuffer is null)
             {
                 return false;
@@ -521,7 +525,7 @@ public ref struct TempStringBuilder : IDisposable
             if (_IsThreadStatic)
             {
                 // We own the ThreadStatic buffer — grow it through the helper.
-                _Array = ZeroAllocHelper.GrowCharBuffer(_Position + 64);
+                _Array = ZeroAllocHelper.GrowCharBuffer(_Position + 64, _Position);
             }
             else
             {
@@ -561,8 +565,8 @@ public ref struct TempStringBuilder : IDisposable
 
             if (_IsThreadStatic)
             {
-                // Try to grow the ThreadStatic buffer — may return null in ThrowOnOverflow mode.
-                char[]? newBuffer = ZeroAllocHelper.TryGrowCharBuffer(_Position + 64);
+                // Grow the ThreadStatic buffer. TryGrow returns null if the buffer is not acquired.
+                char[]? newBuffer = ZeroAllocHelper.TryGrowCharBuffer(_Position + 64, _Position);
                 if (newBuffer is null)
                 {
                     return false;
@@ -1058,7 +1062,7 @@ public ref struct TempStringBuilder : IDisposable
     {
         if (_IsThreadStatic)
         {
-            ZeroAllocHelper.ReleaseCharBuffer();
+            ZeroAllocHelper.ReleaseCharBuffer(_Epoch);
         }
     }
 

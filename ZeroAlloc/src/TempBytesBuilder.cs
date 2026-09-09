@@ -6,10 +6,9 @@
 // A disposable ref struct that builds binary data without heap allocation.
 // Uses ThreadStatic buffer with configurable overflow behavior.
 //
-// OVERFLOW BEHAVIOR (configured via ZeroAllocHelper):
-//   - AutoGrow: Buffer grows automatically when capacity is exceeded (default)
-//   - ThrowOnOverflow: Throws InvalidOperationException when buffer is full
-//   - HeapFallback: Allocates heap buffer on overflow for nested calls
+// OVERFLOW: always grows (ThreadStatic via GrowByteBuffer, or private heap array when nested).
+// Nested Create() uses AcquireByteBuffer heap fallback; it does not throw.
+// There is no ThrowOnOverflow mode for this type.
 //
 // IMPORTANT: Always use with 'using' statement to ensure buffer release:
 //   using var builder = TempBytesBuilder.Create();
@@ -32,9 +31,10 @@ namespace ZeroAlloc;
 /// across threads.
 /// </para>
 /// <para>
-/// <see cref="TempBytesBuilder"/> uses the thread-local buffer from 
-/// <see cref="ZeroAllocHelper"/>. Overflow behavior depends on configuration:
-/// AutoGrow (default), ThrowOnOverflow, or HeapFallback for nested calls.
+/// <see cref="TempBytesBuilder"/> uses the thread-local buffer from
+/// <see cref="ZeroAllocHelper"/>. Overflow always grows (ThreadStatic via
+/// <see cref="ZeroAllocHelper.GrowByteBuffer(int, int)"/>, or a private heap array when nested).
+/// There is no ThrowOnOverflow mode for this type.
 /// </para>
 /// <para><b>Example:</b></para>
 /// <code>
@@ -72,6 +72,7 @@ public ref struct TempBytesBuilder : IDisposable
     /// True if using the ThreadStatic buffer (needs release on Dispose).
     /// </summary>
     private readonly bool _IsThreadStatic;
+    private readonly int _Epoch;
 
     // ========================================================================
     // CONSTRUCTORS
@@ -81,12 +82,13 @@ public ref struct TempBytesBuilder : IDisposable
     /// Private constructor.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private TempBytesBuilder(byte[] array, bool isThreadStatic)
+    private TempBytesBuilder(byte[] array, bool isThreadStatic, int epoch)
     {
         _Array = array;
         _Span = array.AsSpan();
         _Position = 0;
         _IsThreadStatic = isThreadStatic;
+        _Epoch = epoch;
     }
 
     // ========================================================================
@@ -100,7 +102,7 @@ public ref struct TempBytesBuilder : IDisposable
     /// <remarks>
     /// <para>
     /// This method acquires the thread-local byte buffer from <see cref="ZeroAllocHelper"/>.
-    /// Overflow behavior depends on project configuration (see <see cref="ZeroAllocHelper"/>).
+    /// Overflow always grows; there is no ThrowOnOverflow mode.
     /// </para>
     /// <para>
     /// <b>Important:</b> Always use with a <c>using</c> statement to ensure proper disposal.
@@ -109,8 +111,9 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TempBytesBuilder Create()
     {
-        byte[] buffer = ZeroAllocHelper.AcquireByteBuffer(ZeroAllocHelper.DefaultBufferSize, out bool isThreadStatic);
-        return new TempBytesBuilder(buffer, isThreadStatic);
+        byte[] buffer = ZeroAllocHelper.AcquireByteBuffer(
+            ZeroAllocHelper.DefaultBufferSize, recursiveHeapFallback: true, out bool isThreadStatic, out int epoch);
+        return new TempBytesBuilder(buffer, isThreadStatic, epoch);
     }
 
     // ========================================================================
@@ -180,7 +183,8 @@ public ref struct TempBytesBuilder : IDisposable
         if ((uint)count > (uint)_Position)
         {
             throw new ArgumentOutOfRangeException(nameof(count),
-                $"Cannot seek back {count} bytes when only {_Position} bytes have been written.");
+                string.Create(CultureInfo.InvariantCulture,
+                    $"Cannot seek back {count} bytes when only {_Position} bytes have been written."));
         }
 
         _Position -= count;
@@ -209,7 +213,7 @@ public ref struct TempBytesBuilder : IDisposable
 
     /// <summary>
     /// Ensures the buffer has at least the specified capacity.
-    /// When using the ThreadStatic buffer, delegates growth to <see cref="ZeroAllocHelper.GrowByteBuffer"/>.
+    /// When using the ThreadStatic buffer, delegates growth to <see cref="ZeroAllocHelper.GrowByteBuffer(int, int)"/>.
     /// When using a heap-fallback buffer (nested call), grows the private array without touching the ThreadStatic field.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -223,7 +227,7 @@ public ref struct TempBytesBuilder : IDisposable
         if (_IsThreadStatic)
         {
             // We own the ThreadStatic buffer — grow it through the helper.
-            _Array = ZeroAllocHelper.GrowByteBuffer(requiredCapacity);
+            _Array = ZeroAllocHelper.GrowByteBuffer(requiredCapacity, _Position);
         }
         else
         {
@@ -239,7 +243,7 @@ public ref struct TempBytesBuilder : IDisposable
 
     /// <summary>
     /// Tries to ensure the buffer has at least the specified capacity without throwing.
-    /// When using the ThreadStatic buffer, delegates growth to <see cref="ZeroAllocHelper.TryGrowByteBuffer"/>.
+    /// When using the ThreadStatic buffer, delegates growth to <see cref="ZeroAllocHelper.TryGrowByteBuffer(int, int)"/>.
     /// When using a heap-fallback buffer (nested call), grows the private array without touching the ThreadStatic field.
     /// </summary>
     /// <param name="requiredCapacity">The minimum required capacity.</param>
@@ -254,8 +258,8 @@ public ref struct TempBytesBuilder : IDisposable
 
         if (_IsThreadStatic)
         {
-            // Try to grow the ThreadStatic buffer — may return null in ThrowOnOverflow mode.
-            byte[]? newBuffer = ZeroAllocHelper.TryGrowByteBuffer(requiredCapacity);
+            // Grow the ThreadStatic buffer. TryGrow returns null if the buffer is not acquired.
+            byte[]? newBuffer = ZeroAllocHelper.TryGrowByteBuffer(requiredCapacity, _Position);
             if (newBuffer is null)
             {
                 return false;
@@ -787,7 +791,7 @@ public ref struct TempBytesBuilder : IDisposable
             // Need more space - grow via ZeroAllocHelper (may throw depending on configuration)
             int previousLength = _Span.Length;
             int newSize = ZeroAllocHelper.CalculateGrowth(_Span.Length, _Span.Length + 64);
-            _Array = ZeroAllocHelper.GrowByteBuffer(newSize);
+            _Array = ZeroAllocHelper.GrowByteBuffer(newSize, _Position);
             _Span = _Array.AsSpan();
 
             // Safety guard: if the buffer didn't actually grow, TryWrite will never succeed
@@ -820,7 +824,7 @@ public ref struct TempBytesBuilder : IDisposable
         {
             int previousLength = _Span.Length;
             int newSize = ZeroAllocHelper.CalculateGrowth(_Span.Length, _Span.Length + 64);
-            byte[]? newBuffer = ZeroAllocHelper.TryGrowByteBuffer(newSize);
+            byte[]? newBuffer = ZeroAllocHelper.TryGrowByteBuffer(newSize, _Position);
             if (newBuffer is null)
             {
                 return false;
@@ -855,7 +859,7 @@ public ref struct TempBytesBuilder : IDisposable
             // Need more space - grow via ZeroAllocHelper (may throw depending on configuration)
             int previousLength = _Span.Length;
             int newSize = ZeroAllocHelper.CalculateGrowth(_Span.Length, _Span.Length + 64);
-            _Array = ZeroAllocHelper.GrowByteBuffer(newSize);
+            _Array = ZeroAllocHelper.GrowByteBuffer(newSize, _Position);
             _Span = _Array.AsSpan();
 
             // Safety guard: if the buffer didn't actually grow, TryFormat will never succeed
@@ -879,7 +883,7 @@ public ref struct TempBytesBuilder : IDisposable
         {
             int previousLength = _Span.Length;
             int newSize = ZeroAllocHelper.CalculateGrowth(_Span.Length, _Span.Length + 64);
-            byte[]? newBuffer = ZeroAllocHelper.TryGrowByteBuffer(newSize);
+            byte[]? newBuffer = ZeroAllocHelper.TryGrowByteBuffer(newSize, _Position);
             if (newBuffer is null)
             {
                 return false;
@@ -1146,7 +1150,8 @@ public ref struct TempBytesBuilder : IDisposable
     /// <summary>
     /// Returns a string representation of the builder state.
     /// </summary>
-    public readonly override string ToString() => $"TempBytesBuilder[{_Position} bytes]";
+    public readonly override string ToString() =>
+        string.Create(CultureInfo.InvariantCulture, $"TempBytesBuilder[{_Position} bytes]");
 
     // ========================================================================
     // IDISPOSABLE IMPLEMENTATION
@@ -1160,7 +1165,7 @@ public ref struct TempBytesBuilder : IDisposable
     {
         if (_IsThreadStatic)
         {
-            ZeroAllocHelper.ReleaseByteBuffer();
+            ZeroAllocHelper.ReleaseByteBuffer(_Epoch);
         }
     }
 

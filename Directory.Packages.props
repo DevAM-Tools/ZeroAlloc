@@ -1,9 +1,9 @@
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
     <CentralPackageFloatingVersionsEnabled>true</CentralPackageFloatingVersionsEnabled>
   </PropertyGroup>
-
   <ItemGroup>
     <PackageVersion Include="BenchmarkDotNet" Version="0.*" />
     <PackageVersion Include="CSharpStyleChecker" Version="1.*" />

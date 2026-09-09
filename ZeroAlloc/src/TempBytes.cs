@@ -33,12 +33,17 @@ namespace ZeroAlloc;
 /// <code>
 /// using TempBytes temp = ZA.Utf8("User ", userId, " logged in");
 /// ReadOnlySpan&lt;byte&gt; span = temp.AsSpan();
-/// 
+///
 /// // Write directly to stream without allocation
 /// stream.Write(span);
 /// </code>
 /// </remarks>
-public readonly ref struct TempBytes : IDisposable
+/// <param name="buffer">The buffer containing the formatted content.</param>
+/// <param name="length">The number of valid bytes written to the buffer.</param>
+/// <param name="isThreadStatic">True if using ThreadStatic buffer, false if heap-allocated fallback.</param>
+/// <param name="epoch">Generation returned by the matching acquire; ignored when <paramref name="isThreadStatic"/> is false.</param>
+[method: MethodImpl(MethodImplOptions.AggressiveInlining)]
+public readonly ref struct TempBytes(byte[] buffer, int length, bool isThreadStatic, int epoch) : IDisposable
 {
     // ========================================================================
     // PRIVATE FIELDS
@@ -48,18 +53,24 @@ public readonly ref struct TempBytes : IDisposable
     /// The buffer containing the formatted bytes.
     /// Either ThreadStatic or heap-allocated depending on context.
     /// </summary>
-    private readonly byte[] _Buffer;
+    private readonly byte[] _Buffer = buffer;
 
     /// <summary>
     /// The number of valid bytes in the buffer.
     /// </summary>
-    private readonly int _Length;
+    private readonly int _Length = length;
 
     /// <summary>
     /// True if using the ThreadStatic buffer (needs release on Dispose).
     /// False if using a heap-allocated fallback buffer (no release needed).
     /// </summary>
-    private readonly bool _IsThreadStatic;
+    private readonly bool _IsThreadStatic = isThreadStatic;
+
+    /// <summary>
+    /// Acquire generation from <see cref="ZeroAllocHelper.AcquireByteBuffer(int, bool, out bool, out int)"/>.
+    /// Stale Dispose after implicit conversion cannot unlock a later owner's buffer.
+    /// </summary>
+    private readonly int _Epoch = epoch;
 
     // ========================================================================
     // CONSTRUCTOR
@@ -73,10 +84,8 @@ public readonly ref struct TempBytes : IDisposable
     /// <param name="isThreadStatic">True if using ThreadStatic buffer, false if heap-allocated fallback.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TempBytes(byte[] buffer, int length, bool isThreadStatic)
+        : this(buffer, length, isThreadStatic, epoch: 0)
     {
-        _Buffer = buffer;
-        _Length = length;
-        _IsThreadStatic = isThreadStatic;
     }
 
     // ========================================================================
@@ -151,7 +160,8 @@ public readonly ref struct TempBytes : IDisposable
     /// Returns a string representation for debugging purposes.
     /// </summary>
     /// <returns>A string showing the byte count.</returns>
-    public override string ToString() => $"TempBytes[{_Length} bytes]";
+    public override string ToString() =>
+        string.Create(CultureInfo.InvariantCulture, $"TempBytes[{_Length} bytes]");
 
     // ========================================================================
     // IDISPOSABLE IMPLEMENTATION
@@ -170,12 +180,12 @@ public readonly ref struct TempBytes : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
-        // Only release if we're using the ThreadStatic buffer
-        if (_IsThreadStatic)
+        if (!_IsThreadStatic)
         {
-            ZeroAllocHelper.ReleaseByteBuffer();
+            return;
         }
-        // Heap-allocated buffers are simply garbage collected
+
+        ZeroAllocHelper.ReleaseByteBuffer(_Epoch);
     }
 
     // ========================================================================

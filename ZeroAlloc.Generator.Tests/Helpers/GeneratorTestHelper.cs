@@ -6,9 +6,12 @@ namespace ZeroAlloc.Generator.Tests.Helpers;
 internal static class GeneratorTestHelper
 {
     /// <summary>Creates a C# compilation with ZeroAlloc reference assemblies.</summary>
-    public static CSharpCompilation CreateCompilation(string source, string assemblyName = "GeneratorTests")
+    public static CSharpCompilation CreateCompilation(
+        string source,
+        string assemblyName = "GeneratorTests",
+        CSharpParseOptions? parseOptions = null)
     {
-        SyntaxTree tree = CSharpSyntaxTree.ParseText(source, path: "Test.cs");
+        SyntaxTree tree = CSharpSyntaxTree.ParseText(source, parseOptions, path: "Test.cs");
         MetadataReference[] references = _GetReferences();
         return CSharpCompilation.Create(
             assemblyName,
@@ -21,8 +24,58 @@ internal static class GeneratorTestHelper
     public static (Compilation Output, ImmutableArray<Diagnostic> Diagnostics) RunGenerator(
         CSharpCompilation compilation,
         params IIncrementalGenerator[] generators)
+        => _RunGenerator(compilation, parseOptions: null, generators);
+
+    /// <summary>Runs generators with parse options so post-init source sees the same preprocessor symbols.</summary>
+    public static (Compilation Output, ImmutableArray<Diagnostic> Diagnostics) RunGenerator(
+        CSharpCompilation compilation,
+        CSharpParseOptions parseOptions,
+        params IIncrementalGenerator[] generators)
+        => _RunGenerator(compilation, parseOptions, generators);
+
+    /// <summary>Runs generators with MSBuild-visible analyzer options (buffer size, overflow behavior).</summary>
+    public static (Compilation Output, ImmutableArray<Diagnostic> Diagnostics) RunGenerator(
+        CSharpCompilation compilation,
+        AnalyzerConfigOptionsProvider optionsProvider,
+        params IIncrementalGenerator[] generators)
+        => _RunGenerator(compilation, parseOptions: null, generators, optionsProvider);
+
+    /// <summary>Emits a compilation to a loadable assembly.</summary>
+    public static System.Reflection.Assembly EmitToAssembly(Compilation compilation)
     {
-        GeneratorDriver driver = CSharpGeneratorDriver.Create(generators);
+        using MemoryStream peStream = new();
+        EmitResult result = compilation.Emit(peStream);
+        if (!result.Success)
+        {
+            string errors = string.Join(
+                Environment.NewLine,
+                result.Diagnostics
+                    .Where(static d => d.Severity == DiagnosticSeverity.Error)
+                    .Select(static d => d.ToString()));
+            throw new InvalidOperationException(errors);
+        }
+
+        return System.Reflection.Assembly.Load(peStream.ToArray());
+    }
+
+    private static (Compilation Output, ImmutableArray<Diagnostic> Diagnostics) _RunGenerator(
+        CSharpCompilation compilation,
+        CSharpParseOptions? parseOptions,
+        IIncrementalGenerator[] generators,
+        AnalyzerConfigOptionsProvider? optionsProvider = null)
+    {
+        ISourceGenerator[] sourceGenerators = new ISourceGenerator[generators.Length];
+        for (int i = 0; i < generators.Length; i++)
+        {
+            sourceGenerators[i] = generators[i].AsSourceGenerator();
+        }
+
+        GeneratorDriver driver = CSharpGeneratorDriver.Create(
+            sourceGenerators,
+            additionalTexts: null,
+            parseOptions,
+            optionsProvider,
+            driverOptions: default);
         driver = driver.RunGeneratorsAndUpdateCompilation(
             compilation,
             out Compilation output,
@@ -86,6 +139,20 @@ internal static class GeneratorTestHelper
                 || text.Contains($"partial struct {typeName}", StringComparison.Ordinal)
                 || text.Contains($"partial record struct {typeName}", StringComparison.Ordinal)
                 || text.Contains($"partial class {typeName}", StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>Returns true when a generated syntax tree path contains the hint fragment.</summary>
+    public static bool HasGeneratedHint(Compilation compilation, string hintNameContains)
+    {
+        foreach (SyntaxTree tree in compilation.SyntaxTrees.Where(static t => !_IsUserSourceTree(t)))
+        {
+            if (tree.FilePath.Contains(hintNameContains, StringComparison.Ordinal))
             {
                 return true;
             }

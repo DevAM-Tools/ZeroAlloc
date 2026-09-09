@@ -39,9 +39,10 @@
 // - [BinaryOrder(n)]: Explicit member parsing order
 // - [BinaryIgnore]: Exclude member from parsing
 // - [BinaryFixedLength(n)]: Fixed-length for byte[] or string
-// - [BinaryRemaining]: Use remaining bytes (last member only)
-// - [BinaryStringEncoding(...)]: String encoding configuration
-// - [BinaryBytesEncoding(...)]: Byte array length encoding
+// - [StringLengthVarInt] / [StringLengthBE] / [StringLengthLE] / [StringNullTerminated] / [StringFixedLength] / [StringLengthFromField]
+// - [BytesLengthVarInt] / [BytesLengthBE] / [BytesLengthLE] / [BytesLengthFromField] / [BinaryFixedLength]
+// - [BinaryField(BitCount, Endianness, PaddingBits)]
+// - [StringMaxLength(n)]: Cap generated UTF-8 string payload (default 1 MiB)
 //
 // DIAGNOSTICS:
 // - ZA2001: Member type not parsable
@@ -253,6 +254,17 @@ internal static partial class ParseDiagnostics
         category: "ZeroAlloc.Parsing",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
+
+    /// <summary>
+    /// ZA2016: string member has no [StringMaxLength]; generated parser uses the 1 MiB default cap.
+    /// </summary>
+    public static readonly DiagnosticDescriptor StringWithoutMaxLength = new(
+        id: "ZA2016",
+        title: "String member has no [StringMaxLength]",
+        messageFormat: "Member '{0}' is a string without [StringMaxLength]. Generated TryParse will reject payloads larger than 1048576 UTF-8 bytes. Add [StringMaxLength(n)] to document the intended cap.",
+        category: "ZeroAlloc.Parsing",
+        defaultSeverity: DiagnosticSeverity.Info,
+        isEnabledByDefault: true);
 }
 
 // ============================================================================
@@ -329,6 +341,12 @@ internal record struct ParsableMemberInfo(
     /// True if this member has both <c>[BinaryIgnore]</c> and <c>[BinaryOrder]</c> (conflict).
     /// </summary>
     public bool IsIgnoredWithOrder { get; init; } = false;
+
+    /// <summary>UTF-8 payload cap for generated string members (default 1 MiB).</summary>
+    public int MaxStringBytes { get; init; } = 1_048_576;
+
+    /// <summary>True when <c>[StringMaxLength]</c> is present.</summary>
+    public bool HasStringMaxLength { get; init; }
 }
 
 /// <summary>
@@ -788,6 +806,18 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
             // Combine lengthFromField - prefer string, then bytes
             string? combinedLengthFromField = lengthFromField ?? bytesLengthFromField;
 
+            int maxStringBytes = 1_048_576;
+            bool hasStringMaxLength = false;
+            AttributeData? stringMaxAttr = member.GetAttributes().FirstOrDefault(a =>
+                a.AttributeClass?.Name == "StringMaxLengthAttribute" ||
+                a.AttributeClass?.ToDisplayString() == "ZeroAlloc.StringMaxLengthAttribute");
+            if (stringMaxAttr is not null && stringMaxAttr.ConstructorArguments.Length > 0 &&
+                stringMaxAttr.ConstructorArguments[0].Value is int maxBytes && maxBytes > 0)
+            {
+                maxStringBytes = maxBytes;
+                hasStringMaxLength = true;
+            }
+
             // Determine member kind
             // If BitCount is specified, it's a bit field regardless of the underlying type
             ParsableMemberKind kind = bitCount.HasValue && bitCount.Value > 0
@@ -811,7 +841,11 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
                 combinedLengthFromField,
                 memberLocation,
                 stringEncodingCount,
-                bytesEncodingCount));
+                bytesEncodingCount)
+            {
+                MaxStringBytes = maxStringBytes,
+                HasStringMaxLength = hasStringMaxLength
+            });
         }
 
         return new ParsableTypeInfo(
@@ -1132,7 +1166,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
         {
             // Calculate bytes consumed: (totalBitsRead + 7) / 8
             BinaryGeneratorHelpers.AppendCode(sb,"""
-                    bytesConsumed = (reader.BitOffset + 7) / 8;
+                    bytesConsumed = (int)((reader.BitOffset + 7) / 8);
                     return true;
                 }
             """);
@@ -1360,6 +1394,14 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
                     member.Location,
                     member.Name));
                 return [];
+            }
+
+            if (member.Kind == ParsableMemberKind.String && !member.HasStringMaxLength)
+            {
+                ctx.ReportDiagnostic(Diagnostic.Create(
+                    ParseDiagnostics.StringWithoutMaxLength,
+                    member.Location,
+                    member.Name));
             }
         }
 
@@ -1720,6 +1762,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
     private static void _GenerateStringParsing(StringBuilder sb, ParsableMemberInfo member, string varName)
     {
         StringLengthEncodingInfo encoding = member.StringEncoding!.Value;
+        string maxBytes = member.MaxStringBytes.ToString(CultureInfo.InvariantCulture);
 
         switch (encoding.Encoding)
         {
@@ -1733,7 +1776,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
                         }
                         offset += {{varName}}LengthBytes;
                         int {{varName}}ByteLen = (int){{varName}}Length.Value;
-                        if (source.Length - offset < {{varName}}ByteLen)
+                        if ({{varName}}ByteLen < 0 || {{varName}}ByteLen > source.Length - offset || {{varName}}ByteLen > {{maxBytes}})
                         {
                             value = default;
                             bytesConsumed = 0;
@@ -1772,7 +1815,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
                                 return false;
                             }
                     {{lengthReadCode}}
-                            if (source.Length - offset < {{varName}}ByteLen)
+                            if ({{varName}}ByteLen < 0 || {{varName}}ByteLen > source.Length - offset || {{varName}}ByteLen > {{maxBytes}})
                             {
                                 value = default;
                                 bytesConsumed = 0;
@@ -1787,7 +1830,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
             case StringLengthEncodingKind.NullTerminated:
                 BinaryGeneratorHelpers.AppendCode(sb,$$"""
                         int {{varName}}End = source.Slice(offset).IndexOf((byte)0);
-                        if ({{varName}}End < 0)
+                        if ({{varName}}End < 0 || {{varName}}End > {{maxBytes}})
                         {
                             value = default;
                             bytesConsumed = 0;
@@ -1801,7 +1844,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
             case StringLengthEncodingKind.Fixed:
                 int fixedLen = encoding.FixedLength > 0 ? encoding.FixedLength : 0;
                 BinaryGeneratorHelpers.AppendCode(sb,$$"""
-                        if (source.Length - offset < {{fixedLen}})
+                        if (source.Length - offset < {{fixedLen}} || {{fixedLen}} > {{maxBytes}})
                         {
                             value = default;
                             bytesConsumed = 0;
@@ -1820,7 +1863,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
                 // Handle endian wrapper types (.Value) and primitive types
                 BinaryGeneratorHelpers.AppendCode(sb,$$"""
                         int {{varName}}ByteLen = _GetLengthFromField(_{{lengthField}});
-                        if (source.Length - offset < {{varName}}ByteLen)
+                        if ({{varName}}ByteLen < 0 || {{varName}}ByteLen > source.Length - offset || {{varName}}ByteLen > {{maxBytes}})
                         {
                             value = default;
                             bytesConsumed = 0;

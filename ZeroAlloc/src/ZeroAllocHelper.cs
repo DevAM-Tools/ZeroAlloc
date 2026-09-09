@@ -1,29 +1,9 @@
 // Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
-// ============================================================================
-// ZeroAlloc - ThreadStatic Buffer Management
-// ============================================================================
-// This file provides ThreadStatic buffer access for zero-allocation string
-// and byte serialization. Buffers are thread-local.
-//
-// Two separate concerns are configured via MSBuild properties:
-//
-// 1. RECURSIVE/NESTED CALLS (buffer already in use):
-//    ZeroAlloc_RecursiveHeapFallback = true  (default): Fall back to heap
-//    ZeroAlloc_RecursiveHeapFallback = false (strict):  Throw exception
-//
-// 2. BUFFER OVERFLOW (content exceeds buffer size):
-//    ZeroAlloc_BufferOverflowBehavior = Grow        (default): Grow ThreadStatic buffer
-//    ZeroAlloc_BufferOverflowBehavior = HeapFallback:          Allocate heap buffer
-//    ZeroAlloc_BufferOverflowBehavior = Throw:                 Throw exception
-//
-// Configuration via MSBuild properties:
-//   <ZeroAlloc_DefaultBufferSize>4194304</ZeroAlloc_DefaultBufferSize>
-//   <ZeroAlloc_RecursiveHeapFallback>false</ZeroAlloc_RecursiveHeapFallback>
-//   <ZeroAlloc_BufferOverflowBehavior>HeapFallback</ZeroAlloc_BufferOverflowBehavior>
-//
-// Default buffer size is 2 MiB (2,097,152 bytes/chars).
-// ============================================================================
+// ThreadStatic buffers for zero-allocation string and byte serialization.
+// Nested calls: ZeroAlloc_RecursiveHeapFallback (heap vs throw).
+// Generated ZA.* overflow: ZeroAlloc_BufferOverflowBehavior (Grow / HeapFallback / Throw) in generated code.
+// Builders always grow; they do not read BufferOverflowBehavior.
 
 namespace ZeroAlloc;
 
@@ -49,13 +29,10 @@ namespace ZeroAlloc;
 /// </list>
 /// </para>
 /// <para>
-/// When content exceeds the buffer size, behavior depends on the 
-/// <c>ZeroAlloc_BufferOverflowBehavior</c> MSBuild property:
-/// <list type="bullet">
-///   <item><term>Grow (default)</term><description>Dynamically grows the ThreadStatic buffer.</description></item>
-///   <item><term>HeapFallback</term><description>Allocates a new heap buffer for this call.</description></item>
-///   <item><term>Throw</term><description>Throws <see cref="InvalidOperationException"/>.</description></item>
-/// </list>
+/// Builder overflow always grows via <see cref="GrowCharBuffer(int, int)"/> / <see cref="GrowByteBuffer(int, int)"/>.
+/// Generated <c>ZA.String</c>/<c>ZA.Utf8</c>/<c>ZA.Bytes</c> overflow branches on the generated
+/// <c>BufferOverflowBehavior</c> const from MSBuild <c>ZeroAlloc_BufferOverflowBehavior</c>
+/// (Grow ThreadStatic, heap copy, or throw). This type does not read that property at runtime.
 /// </para>
 /// <para>
 /// Buffer size defaults to 2 MiB but can be configured via the MSBuild property
@@ -64,9 +41,7 @@ namespace ZeroAlloc;
 /// </remarks>
 public static class ZeroAllocHelper
 {
-    // ========================================================================
-    // CONSTANTS
-    // ========================================================================
+    #region Constants
 
     /// <summary>
     /// Default buffer size in bytes/chars (2 MiB).
@@ -74,9 +49,9 @@ public static class ZeroAllocHelper
     /// </summary>
     public const int DefaultBufferSize = 2_097_152;
 
-    // ========================================================================
-    // THREADSTATIC CHAR BUFFER (for string operations)
-    // ========================================================================
+    #endregion
+
+    #region ThreadStatic char buffer
 
     /// <summary>
     /// Thread-local character buffer for string formatting.
@@ -92,6 +67,14 @@ public static class ZeroAllocHelper
     private static bool _CharBufferInUse;
 
     /// <summary>
+    /// Generation counter for the current ThreadStatic char-buffer acquire.
+    /// Compared on <see cref="ReleaseCharBuffer(int)"/> so a stale <see cref="TempString"/>
+    /// Dispose cannot unlock a later owner's buffer.
+    /// </summary>
+    [ThreadStatic]
+    private static int _CharBufferEpoch;
+
+    /// <summary>
     /// Acquires access to the ThreadStatic char buffer, or allocates a new one if busy.
     /// </summary>
     /// <param name="bufferSize">The required buffer size (from generated code).</param>
@@ -105,12 +88,12 @@ public static class ZeroAllocHelper
     /// <para>
     /// The <paramref name="isThreadStatic"/> output parameter indicates whether the
     /// returned buffer is the ThreadStatic one (and needs to be released via
-    /// <see cref="ReleaseCharBuffer"/>) or a heap-allocated fallback (which does not).
+    /// <see cref="ReleaseCharBuffer(int)"/>) or a heap-allocated fallback (which does not).
     /// </para>
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static char[] AcquireCharBuffer(int bufferSize, out bool isThreadStatic)
-        => AcquireCharBuffer(bufferSize, recursiveHeapFallback: true, out isThreadStatic);
+        => AcquireCharBuffer(bufferSize, recursiveHeapFallback: true, out isThreadStatic, out _);
 
     /// <summary>
     /// Acquires access to the ThreadStatic char buffer with configurable fallback behavior.
@@ -127,50 +110,115 @@ public static class ZeroAllocHelper
     /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static char[] AcquireCharBuffer(int bufferSize, bool recursiveHeapFallback, out bool isThreadStatic)
-    {
-        // ----------------------------------------------------------------
-        // If buffer is already in use, handle according to fallback setting
-        // ----------------------------------------------------------------
-        if (_CharBufferInUse)
-        {
-            if (!recursiveHeapFallback)
-            {
-                throw new InvalidOperationException(
-                    "Nested ZeroAlloc call detected: ThreadStatic buffer is already in use. " +
-                    "Enable ZeroAlloc_RecursiveHeapFallback to allow heap allocation fallback, " +
-                    "or ensure TempString is disposed before the next formatting call.");
-            }
-
-            isThreadStatic = false;
-            return new char[bufferSize];
-        }
-
-        // ----------------------------------------------------------------
-        // Mark buffer as in use BEFORE allocation
-        // ----------------------------------------------------------------
-        _CharBufferInUse = true;
-        isThreadStatic = true;
-
-        // ----------------------------------------------------------------
-        // Lazy allocation: create buffer on first use for this thread
-        // Reallocate if requested size exceeds current buffer
-        // ----------------------------------------------------------------
-        if (_CharBuffer is null || _CharBuffer.Length < bufferSize)
-        {
-            _CharBuffer = new char[bufferSize];
-        }
-
-        return _CharBuffer;
-    }
+        => AcquireCharBuffer(bufferSize, recursiveHeapFallback, out isThreadStatic, out _);
 
     /// <summary>
-    /// Releases the ThreadStatic char buffer, making it available for the next acquisition.
+    /// Acquires access to the ThreadStatic char buffer with configurable fallback behavior.
+    /// </summary>
+    /// <param name="bufferSize">The required buffer size (from generated code).</param>
+    /// <param name="recursiveHeapFallback">
+    /// If true, falls back to heap allocation when buffer is busy (nested call).
+    /// If false, throws <see cref="InvalidOperationException"/> when buffer is busy.
+    /// </param>
+    /// <param name="isThreadStatic">Output: true if ThreadStatic buffer was acquired, false if heap-allocated.</param>
+    /// <param name="epoch">
+    /// Output: generation of this acquire when <paramref name="isThreadStatic"/> is true; otherwise 0.
+    /// Pass this value to <see cref="ReleaseCharBuffer(int)"/>.
+    /// </param>
+    /// <returns>The char buffer ready for writing.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when <paramref name="recursiveHeapFallback"/> is false and the buffer is already in use.
+    /// </exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="bufferSize"/> is less than or equal to zero.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static char[] AcquireCharBuffer(int bufferSize, bool recursiveHeapFallback, out bool isThreadStatic, out int epoch)
+        => _AcquireBuffer(
+            ref _CharBuffer,
+            ref _CharBufferInUse,
+            ref _CharBufferEpoch,
+            bufferSize,
+            recursiveHeapFallback,
+            out isThreadStatic,
+            out epoch,
+            "Nested ZeroAlloc call detected: ThreadStatic buffer is already in use. " +
+            "Enable ZeroAlloc_RecursiveHeapFallback to allow heap allocation fallback, " +
+            "or ensure TempString is disposed before the next formatting call.");
+
+    /// <summary>
+    /// Releases the ThreadStatic char buffer for the current acquire generation.
     /// </summary>
     /// <remarks>
     /// Called automatically by <see cref="TempString.Dispose"/> when using the ThreadStatic buffer.
+    /// Prefer <see cref="ReleaseCharBuffer(int)"/> so a stale owner cannot unlock a later acquire.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ReleaseCharBuffer() => _CharBufferInUse = false;
+    public static void ReleaseCharBuffer() => ReleaseCharBuffer(_CharBufferEpoch);
+
+    /// <summary>
+    /// Releases the ThreadStatic char buffer when <paramref name="epoch"/> matches the current acquire.
+    /// </summary>
+    /// <param name="epoch">The generation returned by the matching <see cref="AcquireCharBuffer(int, bool, out bool, out int)"/> call.</param>
+    /// <remarks>
+    /// No-ops when the buffer is not in use or <paramref name="epoch"/> does not match the current acquire.
+    /// A second Dispose after implicit conversion therefore cannot unlock a later owner's buffer.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ReleaseCharBuffer(int epoch)
+    {
+        if (!_CharBufferInUse || epoch != _CharBufferEpoch)
+        {
+            return;
+        }
+
+        _CharBufferInUse = false;
+    }
+
+    /// <summary>
+    /// Acquires a ThreadStatic or heap buffer. The in-use flag is set only after allocation succeeds.
+    /// </summary>
+    private static T[] _AcquireBuffer<T>(
+        ref T[]? buffer,
+        ref bool inUse,
+        ref int epochField,
+        int bufferSize,
+        bool recursiveHeapFallback,
+        out bool isThreadStatic,
+        out int epoch,
+        string nestedMessage)
+        where T : unmanaged
+    {
+        if (bufferSize <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(bufferSize), "Buffer size must be greater than zero.");
+        }
+
+        if (inUse)
+        {
+            if (!recursiveHeapFallback)
+            {
+                throw new InvalidOperationException(nestedMessage);
+            }
+
+            isThreadStatic = false;
+            epoch = 0;
+            return new T[bufferSize];
+        }
+
+        if (buffer is null || buffer.Length < bufferSize)
+        {
+            buffer = new T[bufferSize];
+        }
+
+        inUse = true;
+        isThreadStatic = true;
+        unchecked
+        {
+            epochField++;
+        }
+
+        epoch = epochField;
+        return buffer;
+    }
 
     /// <summary>
     /// Checks whether the ThreadStatic char buffer is available for acquisition.
@@ -183,9 +231,9 @@ public static class ZeroAllocHelper
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsCharBufferAvailable() => !_CharBufferInUse;
 
-    // ========================================================================
-    // THREADSTATIC BYTE BUFFER (for UTF-8 and binary operations)
-    // ========================================================================
+    #endregion
+
+    #region ThreadStatic byte buffer
 
     /// <summary>
     /// Thread-local byte buffer for UTF-8 and binary formatting.
@@ -201,6 +249,14 @@ public static class ZeroAllocHelper
     private static bool _ByteBufferInUse;
 
     /// <summary>
+    /// Generation counter for the current ThreadStatic byte-buffer acquire.
+    /// Compared on <see cref="ReleaseByteBuffer(int)"/> so a stale <see cref="TempBytes"/>
+    /// Dispose cannot unlock a later owner's buffer.
+    /// </summary>
+    [ThreadStatic]
+    private static int _ByteBufferEpoch;
+
+    /// <summary>
     /// Acquires access to the ThreadStatic byte buffer, or allocates a new one if busy.
     /// </summary>
     /// <param name="bufferSize">The required buffer size (from generated code).</param>
@@ -214,7 +270,7 @@ public static class ZeroAllocHelper
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] AcquireByteBuffer(int bufferSize, out bool isThreadStatic)
-        => AcquireByteBuffer(bufferSize, recursiveHeapFallback: true, out isThreadStatic);
+        => AcquireByteBuffer(bufferSize, recursiveHeapFallback: true, out isThreadStatic, out _);
 
     /// <summary>
     /// Acquires access to the ThreadStatic byte buffer with configurable fallback behavior.
@@ -231,46 +287,66 @@ public static class ZeroAllocHelper
     /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] AcquireByteBuffer(int bufferSize, bool recursiveHeapFallback, out bool isThreadStatic)
-    {
-        // ----------------------------------------------------------------
-        // If buffer is already in use, handle according to fallback setting
-        // ----------------------------------------------------------------
-        if (_ByteBufferInUse)
-        {
-            if (!recursiveHeapFallback)
-            {
-                throw new InvalidOperationException(
-                    "Nested ZeroAlloc call detected: ThreadStatic buffer is already in use. " +
-                    "Enable ZeroAlloc_RecursiveHeapFallback to allow heap allocation fallback, " +
-                    "or ensure TempBytes is disposed before the next formatting call.");
-            }
-
-            isThreadStatic = false;
-            return new byte[bufferSize];
-        }
-
-        // ----------------------------------------------------------------
-        // Mark buffer as in use BEFORE allocation
-        // ----------------------------------------------------------------
-        _ByteBufferInUse = true;
-        isThreadStatic = true;
-
-        // ----------------------------------------------------------------
-        // Lazy allocation: create buffer on first use for this thread
-        // ----------------------------------------------------------------
-        if (_ByteBuffer is null || _ByteBuffer.Length < bufferSize)
-        {
-            _ByteBuffer = new byte[bufferSize];
-        }
-
-        return _ByteBuffer;
-    }
+        => AcquireByteBuffer(bufferSize, recursiveHeapFallback, out isThreadStatic, out _);
 
     /// <summary>
-    /// Releases the ThreadStatic byte buffer, making it available for the next acquisition.
+    /// Acquires access to the ThreadStatic byte buffer with configurable fallback behavior.
     /// </summary>
+    /// <param name="bufferSize">The required buffer size (from generated code).</param>
+    /// <param name="recursiveHeapFallback">
+    /// If true, falls back to heap allocation when buffer is busy (nested call).
+    /// If false, throws <see cref="InvalidOperationException"/> when buffer is busy.
+    /// </param>
+    /// <param name="isThreadStatic">Output: true if ThreadStatic buffer was acquired, false if heap-allocated.</param>
+    /// <param name="epoch">
+    /// Output: generation of this acquire when <paramref name="isThreadStatic"/> is true; otherwise 0.
+    /// Pass this value to <see cref="ReleaseByteBuffer(int)"/>.
+    /// </param>
+    /// <returns>The byte buffer ready for writing.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when <paramref name="recursiveHeapFallback"/> is false and the buffer is already in use.
+    /// </exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="bufferSize"/> is less than or equal to zero.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ReleaseByteBuffer() => _ByteBufferInUse = false;
+    public static byte[] AcquireByteBuffer(int bufferSize, bool recursiveHeapFallback, out bool isThreadStatic, out int epoch)
+        => _AcquireBuffer(
+            ref _ByteBuffer,
+            ref _ByteBufferInUse,
+            ref _ByteBufferEpoch,
+            bufferSize,
+            recursiveHeapFallback,
+            out isThreadStatic,
+            out epoch,
+            "Nested ZeroAlloc call detected: ThreadStatic buffer is already in use. " +
+            "Enable ZeroAlloc_RecursiveHeapFallback to allow heap allocation fallback, " +
+            "or ensure TempBytes is disposed before the next formatting call.");
+
+    /// <summary>
+    /// Releases the ThreadStatic byte buffer for the current acquire generation.
+    /// </summary>
+    /// <remarks>
+    /// Prefer <see cref="ReleaseByteBuffer(int)"/> so a stale owner cannot unlock a later acquire.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ReleaseByteBuffer() => ReleaseByteBuffer(_ByteBufferEpoch);
+
+    /// <summary>
+    /// Releases the ThreadStatic byte buffer when <paramref name="epoch"/> matches the current acquire.
+    /// </summary>
+    /// <param name="epoch">The generation returned by the matching <see cref="AcquireByteBuffer(int, bool, out bool, out int)"/> call.</param>
+    /// <remarks>
+    /// No-ops when the buffer is not in use or <paramref name="epoch"/> does not match the current acquire.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ReleaseByteBuffer(int epoch)
+    {
+        if (!_ByteBufferInUse || epoch != _ByteBufferEpoch)
+        {
+            return;
+        }
+
+        _ByteBufferInUse = false;
+    }
 
     /// <summary>
     /// Checks whether the ThreadStatic byte buffer is available for acquisition.
@@ -283,9 +359,9 @@ public static class ZeroAllocHelper
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsByteBufferAvailable() => !_ByteBufferInUse;
 
-    // ========================================================================
-    // BUFFER RESIZING
-    // ========================================================================
+    #endregion
+
+    #region Buffer resizing
 
     /// <summary>
     /// Resizes the ThreadStatic char buffer to the specified size.
@@ -397,9 +473,9 @@ public static class ZeroAllocHelper
         _ByteBuffer = null;
     }
 
-    // ========================================================================
-    // BUFFER GROWTH (for TempStringBuilder/TempBytesBuilder)
-    // ========================================================================
+    #endregion
+
+    #region Buffer growth
 
     /// <summary>
     /// Calculates the new buffer size using the growth strategy.
@@ -437,22 +513,14 @@ public static class ZeroAllocHelper
     }
 
     /// <summary>
-    /// When set, the next grow-stall safety guard in builders treats growth as failed (test coverage only).
+    /// When non-zero, the next grow-stall safety guard in builders treats growth as failed (test coverage only).
     /// </summary>
-    internal static bool SimulateGrowStallForCoverage;
+    internal static int SimulateGrowStallForCoverage;
 
     /// <summary>Returns true once when <see cref="SimulateGrowStallForCoverage"/> is set, then clears the flag.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static bool ConsumeSimulatedGrowStall()
-    {
-        if (!SimulateGrowStallForCoverage)
-        {
-            return false;
-        }
-
-        SimulateGrowStallForCoverage = false;
-        return true;
-    }
+    internal static bool ConsumeSimulatedGrowStall() =>
+        Interlocked.Exchange(ref SimulateGrowStallForCoverage, 0) != 0;
 
     /// <summary>
     /// Grows the ThreadStatic char buffer to accommodate at least <paramref name="requiredSize"/> characters.
@@ -467,9 +535,27 @@ public static class ZeroAllocHelper
     {
         char[] oldBuffer = _CharBuffer
             ?? throw new InvalidOperationException("Char buffer not acquired.");
+        return GrowCharBuffer(requiredSize, oldBuffer.Length);
+    }
+
+    /// <summary>
+    /// Grows the ThreadStatic char buffer and copies only <paramref name="usedLength"/> characters.
+    /// </summary>
+    /// <param name="requiredSize">The minimum required buffer size.</param>
+    /// <param name="usedLength">Number of characters that must be preserved.</param>
+    /// <returns>The new (grown) char buffer.</returns>
+    public static char[] GrowCharBuffer(int requiredSize, int usedLength)
+    {
+        char[] oldBuffer = _CharBuffer
+            ?? throw new InvalidOperationException("Char buffer not acquired.");
+        if ((uint)usedLength > (uint)oldBuffer.Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(usedLength));
+        }
+
         int newSize = CalculateGrowth(oldBuffer.Length, requiredSize);
         char[] newBuffer = new char[newSize];
-        oldBuffer.AsSpan().CopyTo(newBuffer);
+        oldBuffer.AsSpan(0, usedLength).CopyTo(newBuffer);
         _CharBuffer = newBuffer;
         return newBuffer;
     }
@@ -490,9 +576,28 @@ public static class ZeroAllocHelper
             return null;
         }
 
+        return TryGrowCharBuffer(requiredSize, oldBuffer.Length);
+    }
+
+    /// <summary>
+    /// Tries to grow the ThreadStatic char buffer, copying only <paramref name="usedLength"/> characters.
+    /// </summary>
+    public static char[]? TryGrowCharBuffer(int requiredSize, int usedLength)
+    {
+        char[]? oldBuffer = _CharBuffer;
+        if (oldBuffer is null)
+        {
+            return null;
+        }
+
+        if ((uint)usedLength > (uint)oldBuffer.Length)
+        {
+            return null;
+        }
+
         int newSize = CalculateGrowth(oldBuffer.Length, requiredSize);
         char[] newBuffer = new char[newSize];
-        oldBuffer.AsSpan().CopyTo(newBuffer);
+        oldBuffer.AsSpan(0, usedLength).CopyTo(newBuffer);
         _CharBuffer = newBuffer;
         return newBuffer;
     }
@@ -510,9 +615,24 @@ public static class ZeroAllocHelper
     {
         byte[] oldBuffer = _ByteBuffer
             ?? throw new InvalidOperationException("Byte buffer not acquired.");
+        return GrowByteBuffer(requiredSize, oldBuffer.Length);
+    }
+
+    /// <summary>
+    /// Grows the ThreadStatic byte buffer and copies only <paramref name="usedLength"/> bytes.
+    /// </summary>
+    public static byte[] GrowByteBuffer(int requiredSize, int usedLength)
+    {
+        byte[] oldBuffer = _ByteBuffer
+            ?? throw new InvalidOperationException("Byte buffer not acquired.");
+        if ((uint)usedLength > (uint)oldBuffer.Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(usedLength));
+        }
+
         int newSize = CalculateGrowth(oldBuffer.Length, requiredSize);
         byte[] newBuffer = new byte[newSize];
-        oldBuffer.AsSpan().CopyTo(newBuffer);
+        oldBuffer.AsSpan(0, usedLength).CopyTo(newBuffer);
         _ByteBuffer = newBuffer;
         return newBuffer;
     }
@@ -533,10 +653,31 @@ public static class ZeroAllocHelper
             return null;
         }
 
+        return TryGrowByteBuffer(requiredSize, oldBuffer.Length);
+    }
+
+    /// <summary>
+    /// Tries to grow the ThreadStatic byte buffer, copying only <paramref name="usedLength"/> bytes.
+    /// </summary>
+    public static byte[]? TryGrowByteBuffer(int requiredSize, int usedLength)
+    {
+        byte[]? oldBuffer = _ByteBuffer;
+        if (oldBuffer is null)
+        {
+            return null;
+        }
+
+        if ((uint)usedLength > (uint)oldBuffer.Length)
+        {
+            return null;
+        }
+
         int newSize = CalculateGrowth(oldBuffer.Length, requiredSize);
         byte[] newBuffer = new byte[newSize];
-        oldBuffer.AsSpan().CopyTo(newBuffer);
+        oldBuffer.AsSpan(0, usedLength).CopyTo(newBuffer);
         _ByteBuffer = newBuffer;
         return newBuffer;
     }
+
+    #endregion
 }

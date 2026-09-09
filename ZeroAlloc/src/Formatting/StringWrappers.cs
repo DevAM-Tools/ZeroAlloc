@@ -193,6 +193,10 @@ public readonly struct Utf8Var : IUtf8SpanFormattable, IBinaryParsable<Utf8Var>
     }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// Allocates a <see cref="string"/> from the claimed payload bytes. This is not a substitute for
+    /// <see cref="BinaryParser.TryReadUtf8Var(int, out ReadOnlySpan{byte})"/> when a caller-defined maximum length is required.
+    /// </remarks>
     public static bool TryParse(ReadOnlySpan<byte> source, out Utf8Var value, out int bytesConsumed)
     {
         if (!VarInt.TryParse(source, out VarInt lengthVar, out int lengthBytes))
@@ -201,15 +205,33 @@ public readonly struct Utf8Var : IUtf8SpanFormattable, IBinaryParsable<Utf8Var>
             bytesConsumed = 0;
             return false;
         }
-        int length = (int)lengthVar.Value;
-        if (source.Length < lengthBytes + length)
+
+        ulong rawLength = lengthVar.Value;
+        if (rawLength > (ulong)int.MaxValue)
         {
             value = default;
             bytesConsumed = 0;
             return false;
         }
+
+        int length = (int)rawLength;
+        if (lengthBytes < 0 || length < 0)
+        {
+            value = default;
+            bytesConsumed = 0;
+            return false;
+        }
+
+        int total = lengthBytes + length;
+        if (total < lengthBytes || source.Length < total)
+        {
+            value = default;
+            bytesConsumed = 0;
+            return false;
+        }
+
         value = new Utf8Var(Encoding.UTF8.GetString(source.Slice(lengthBytes, length)));
-        bytesConsumed = lengthBytes + length;
+        bytesConsumed = total;
         return true;
     }
 
@@ -274,13 +296,24 @@ public readonly struct Utf8FixBE : IUtf8SpanFormattable, IBinaryParsable<Utf8Fix
     }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// Allocates a <see cref="string"/> from the claimed payload bytes. This is not a substitute for
+    /// <see cref="BinaryParser.TryReadUtf8Var(int, out ReadOnlySpan{byte})"/> when a caller-defined maximum length is required.
+    /// </remarks>
     public static bool TryParse(ReadOnlySpan<byte> source, out Utf8FixBE value, out int bytesConsumed)
     {
         if (source.Length < 4)
         { value = default; bytesConsumed = 0; return false; }
-        int length = (int)BinaryPrimitives.ReadUInt32BigEndian(source);
-        if (source.Length < 4 + length)
-        { value = default; bytesConsumed = 0; return false; }
+
+        uint rawLength = BinaryPrimitives.ReadUInt32BigEndian(source);
+        if (rawLength > (uint)(source.Length - 4))
+        {
+            value = default;
+            bytesConsumed = 0;
+            return false;
+        }
+
+        int length = (int)rawLength;
         value = new Utf8FixBE(Encoding.UTF8.GetString(source.Slice(4, length)));
         bytesConsumed = 4 + length;
         return true;
@@ -347,13 +380,24 @@ public readonly struct Utf8FixLE : IUtf8SpanFormattable, IBinaryParsable<Utf8Fix
     }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// Allocates a <see cref="string"/> from the claimed payload bytes. This is not a substitute for
+    /// <see cref="BinaryParser.TryReadUtf8Var(int, out ReadOnlySpan{byte})"/> when a caller-defined maximum length is required.
+    /// </remarks>
     public static bool TryParse(ReadOnlySpan<byte> source, out Utf8FixLE value, out int bytesConsumed)
     {
         if (source.Length < 4)
         { value = default; bytesConsumed = 0; return false; }
-        int length = (int)BinaryPrimitives.ReadUInt32LittleEndian(source);
-        if (source.Length < 4 + length)
-        { value = default; bytesConsumed = 0; return false; }
+
+        uint rawLength = BinaryPrimitives.ReadUInt32LittleEndian(source);
+        if (rawLength > (uint)(source.Length - 4))
+        {
+            value = default;
+            bytesConsumed = 0;
+            return false;
+        }
+
+        int length = (int)rawLength;
         value = new Utf8FixLE(Encoding.UTF8.GetString(source.Slice(4, length)));
         bytesConsumed = 4 + length;
         return true;

@@ -784,11 +784,11 @@ public sealed class BinaryParserTests
     public async Task BinaryParser_ReadByte_InsufficientData_ThrowsException()
     {
         byte[] data = [];
-        BinaryParser parser = new(data);
-        bool threw = false;
-        try { parser.ReadByte(); }
-        catch (InvalidOperationException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BinaryParser parser = new(data);
+            parser.ReadByte();
+        }).Throws<InvalidOperationException>();
     }
 
     /// <summary>Verifies BinaryParser ReadUInt16BE InsufficientData ThrowsException.</summary>
@@ -796,11 +796,11 @@ public sealed class BinaryParserTests
     public async Task BinaryParser_ReadUInt16BE_InsufficientData_ThrowsException()
     {
         byte[] data = [0x01]; // Only 1 byte, need 2
-        BinaryParser parser = new(data);
-        bool threw = false;
-        try { parser.ReadUInt16BE(); }
-        catch (InvalidOperationException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BinaryParser parser = new(data);
+            parser.ReadUInt16BE();
+        }).Throws<InvalidOperationException>();
     }
 
     /// <summary>Verifies BinaryParser ReadUInt32BE InsufficientData ThrowsException.</summary>
@@ -808,11 +808,11 @@ public sealed class BinaryParserTests
     public async Task BinaryParser_ReadUInt32BE_InsufficientData_ThrowsException()
     {
         byte[] data = [0x01, 0x02]; // Only 2 bytes, need 4
-        BinaryParser parser = new(data);
-        bool threw = false;
-        try { parser.ReadUInt32BE(); }
-        catch (InvalidOperationException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BinaryParser parser = new(data);
+            parser.ReadUInt32BE();
+        }).Throws<InvalidOperationException>();
     }
 
     /// <summary>Verifies BinaryParser ReadUInt64BE InsufficientData ThrowsException.</summary>
@@ -820,11 +820,11 @@ public sealed class BinaryParserTests
     public async Task BinaryParser_ReadUInt64BE_InsufficientData_ThrowsException()
     {
         byte[] data = [0x01, 0x02, 0x03, 0x04]; // Only 4 bytes, need 8
-        BinaryParser parser = new(data);
-        bool threw = false;
-        try { parser.ReadUInt64BE(); }
-        catch (InvalidOperationException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BinaryParser parser = new(data);
+            parser.ReadUInt64BE();
+        }).Throws<InvalidOperationException>();
     }
 
     /// <summary>Verifies BinaryParser ReadBytes InsufficientData ThrowsException.</summary>
@@ -832,11 +832,11 @@ public sealed class BinaryParserTests
     public async Task BinaryParser_ReadBytes_InsufficientData_ThrowsException()
     {
         byte[] data = [0x01, 0x02];
-        BinaryParser parser = new(data);
-        bool threw = false;
-        try { parser.ReadBytes(10); }
-        catch (InvalidOperationException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BinaryParser parser = new(data);
+            parser.ReadBytes(10);
+        }).Throws<InvalidOperationException>();
     }
 
     /// <summary>Verifies BinaryParser Skip InsufficientData ThrowsException.</summary>
@@ -844,11 +844,11 @@ public sealed class BinaryParserTests
     public async Task BinaryParser_Skip_InsufficientData_ThrowsException()
     {
         byte[] data = [0x01, 0x02];
-        BinaryParser parser = new(data);
-        bool threw = false;
-        try { parser.Skip(10); }
-        catch (InvalidOperationException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BinaryParser parser = new(data);
+            parser.Skip(10);
+        }).Throws<InvalidOperationException>();
     }
 
     /// <summary>Verifies BinaryParser ReadVarInt MalformedInput ThrowsException.</summary>
@@ -857,11 +857,11 @@ public sealed class BinaryParserTests
     {
         // All bytes have high bit set, creating an overflow
         byte[] data = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01];
-        BinaryParser parser = new(data);
-        bool threw = false;
-        try { parser.ReadVarInt(); }
-        catch (InvalidOperationException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BinaryParser parser = new(data);
+            parser.ReadVarInt();
+        }).Throws<InvalidOperationException>();
     }
 
     /// <summary>Verifies BinaryParser ReadVarInt TruncatedData ThrowsException.</summary>
@@ -869,11 +869,11 @@ public sealed class BinaryParserTests
     public async Task BinaryParser_ReadVarInt_TruncatedData_ThrowsException()
     {
         byte[] data = [0x80]; // High bit set, needs more bytes
-        BinaryParser parser = new(data);
-        bool threw = false;
-        try { parser.ReadVarInt(); }
-        catch (InvalidOperationException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BinaryParser parser = new(data);
+            parser.ReadVarInt();
+        }).Throws<InvalidOperationException>();
     }
 
     // ========================================================================
@@ -1037,11 +1037,11 @@ public sealed class BinaryParserTests
     public async Task BinaryParser_ReadBytes_NegativeLength_ThrowsArgumentOutOfRangeException()
     {
         byte[] data = [0x01, 0x02, 0x03];
-        BinaryParser parser = new(data);
-        bool threw = false;
-        try { parser.ReadBytes(-1); }
-        catch (ArgumentOutOfRangeException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BinaryParser parser = new(data);
+            parser.ReadBytes(-1);
+        }).Throws<ArgumentOutOfRangeException>();
     }
 
     /// <summary>Verifies ReadBytes does not advance position on negative length.</summary>
@@ -1055,8 +1055,11 @@ public sealed class BinaryParserTests
         int position;
         {
             BinaryParser parser = new(data);
-            try { parser.ReadBytes(-5); } catch (ArgumentOutOfRangeException) { /* expected */ }
+            bool threw = false;
+            try { parser.ReadBytes(-5); }
+            catch (ArgumentOutOfRangeException) { threw = true; }
             position = parser.Position;
+            await Assert.That(threw).IsTrue();
         }
 
         // Assert — position must be unchanged
@@ -1068,11 +1071,11 @@ public sealed class BinaryParserTests
     public async Task BinaryParser_Skip_NegativeCount_ThrowsArgumentOutOfRangeException()
     {
         byte[] data = [0x01, 0x02, 0x03];
-        BinaryParser parser = new(data);
-        bool threw = false;
-        try { parser.Skip(-1); }
-        catch (ArgumentOutOfRangeException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BinaryParser parser = new(data);
+            parser.Skip(-1);
+        }).Throws<ArgumentOutOfRangeException>();
     }
 
     /// <summary>Verifies Skip does not advance position on negative count.</summary>
@@ -1086,8 +1089,11 @@ public sealed class BinaryParserTests
         int position;
         {
             BinaryParser parser = new(data);
-            try { parser.Skip(-3); } catch (ArgumentOutOfRangeException) { /* expected */ }
+            bool threw = false;
+            try { parser.Skip(-3); }
+            catch (ArgumentOutOfRangeException) { threw = true; }
             position = parser.Position;
+            await Assert.That(threw).IsTrue();
         }
 
         // Assert — position must be unchanged
@@ -1103,11 +1109,11 @@ public sealed class BinaryParserTests
     {
         // VarInt 2^31 (0x80000000) encoded as 5-byte sequence
         byte[] data = [0x80, 0x80, 0x80, 0x80, 0x08];
-        BinaryParser parser = new(data);
-        bool threw = false;
-        try { parser.ReadUtf8Var(); }
-        catch (InvalidOperationException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BinaryParser parser = new(data);
+            parser.ReadUtf8Var();
+        }).Throws<InvalidOperationException>();
     }
 
     /// <summary>Verifies ReadArray rejects a negative count.</summary>
@@ -1118,6 +1124,7 @@ public sealed class BinaryParserTests
         byte[] data = [0x00, 0x01, 0x00, 0x02];
         BinaryParser parser = new(data);
         U16BE[] destination = new U16BE[10];
+        // ref struct cannot be captured in Throws lambda
         bool threw = false;
         try { parser.ReadArray<U16BE>(-1, destination); }
         catch (ArgumentOutOfRangeException) { threw = true; }
@@ -1136,8 +1143,11 @@ public sealed class BinaryParserTests
         int position;
         {
             BinaryParser parser = new(data);
-            try { parser.ReadArray<U16BE>(-1, destination); } catch (ArgumentOutOfRangeException) { /* expected */ }
+            bool threw = false;
+            try { parser.ReadArray<U16BE>(-1, destination); }
+            catch (ArgumentOutOfRangeException) { threw = true; }
             position = parser.Position;
+            await Assert.That(threw).IsTrue();
         }
 
         // Assert — position must be unchanged
@@ -1155,6 +1165,7 @@ public sealed class BinaryParserTests
         byte[] data = [0x80, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00];
         BinaryParser parser = new(data);
         U16BE[] destination = new U16BE[10];
+        // ref struct cannot be captured in Throws lambda
         bool threw = false;
         try { parser.ReadArrayBE32<U16BE>(destination); }
         catch (InvalidOperationException) { threw = true; }
@@ -1170,11 +1181,11 @@ public sealed class BinaryParserTests
     {
         // 4 bytes encoding uint 0x80000001
         byte[] data = [0x80, 0x00, 0x00, 0x01];
-        BinaryParser parser = new(data);
-        bool threw = false;
-        try { parser.ReadUtf8FixedBE32(); }
-        catch (InvalidOperationException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BinaryParser parser = new(data);
+            parser.ReadUtf8FixedBE32();
+        }).Throws<InvalidOperationException>();
     }
 
     // ========================================================================
@@ -1446,33 +1457,23 @@ public sealed class BinaryParserTests
     [Test]
     public async Task BinaryParseValidator_ValidateType_Primitive_DoesNotThrow()
     {
-        bool threw = false;
-        try { BinaryParseValidator.ValidateType<int>(); }
-        catch (NotSupportedException) { threw = true; }
-
-        await Assert.That(threw).IsFalse();
+        BinaryParseValidator.ValidateType<int>();
+        await Assert.That(typeof(int).IsPrimitive).IsTrue();
     }
 
     /// <summary>Verifies BinaryParseValidator ValidateType KnownWrapperName DoesNotThrow.</summary>
     [Test]
     public async Task BinaryParseValidator_ValidateType_KnownWrapperName_DoesNotThrow()
     {
-        bool threw = false;
-        try { BinaryParseValidator.ValidateType<UIntTestStub>(); }
-        catch (NotSupportedException) { threw = true; }
-
-        await Assert.That(threw).IsFalse();
+        BinaryParseValidator.ValidateType<UIntTestStub>();
+        await Assert.That(typeof(UIntTestStub).Name.StartsWith("UInt", StringComparison.Ordinal)).IsTrue();
     }
 
     /// <summary>Verifies BinaryParseValidator ValidateType Array ThrowsNotSupportedException.</summary>
     [Test]
     public async Task BinaryParseValidator_ValidateType_Array_ThrowsNotSupportedException()
     {
-        bool threw = false;
-        try { BinaryParseValidator.ValidateType<byte[]>(); }
-        catch (NotSupportedException) { threw = true; }
-
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() => BinaryParseValidator.ValidateType<byte[]>()).Throws<NotSupportedException>();
     }
 
     /// <summary>Verifies BinaryParseValidator ValidateType UnsupportedType ThrowsNotSupportedException.</summary>
@@ -1484,20 +1485,12 @@ public sealed class BinaryParserTests
     [Arguments(typeof(UnsupportedValueType))]
     public async Task BinaryParseValidator_ValidateType_UnsupportedType_ThrowsNotSupportedException(Type type)
     {
-        bool threw = false;
-        try
-        {
-            System.Reflection.MethodInfo method = typeof(BinaryParseValidator)
-                .GetMethod(nameof(BinaryParseValidator.ValidateType))!
-                .MakeGenericMethod(type);
-            method.Invoke(null, null);
-        }
-        catch (System.Reflection.TargetInvocationException ex) when (ex.InnerException is NotSupportedException)
-        {
-            threw = true;
-        }
+        System.Reflection.MethodInfo method = typeof(BinaryParseValidator)
+            .GetMethod(nameof(BinaryParseValidator.ValidateType))!
+            .MakeGenericMethod(type);
 
-        await Assert.That(threw).IsTrue();
+        TargetInvocationException ex = Assert.Throws<TargetInvocationException>(() => method.Invoke(null, null));
+        await Assert.That(ex.InnerException).IsTypeOf<NotSupportedException>();
     }
 
     /// <summary>Verifies BinaryParseValidator GetTypeErrorMessage ReturnsGuidance.</summary>

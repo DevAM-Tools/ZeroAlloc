@@ -25,9 +25,7 @@ namespace ZeroAlloc;
 /// </remarks>
 public readonly struct Hex1 : ISpanFormattable, IUtf8SpanFormattable
 {
-    // ========================================================================
-    // CONSTANTS
-    // ========================================================================
+    #region Constants
 
     /// <summary>
     /// The formatted output is always exactly 1 character.
@@ -44,18 +42,18 @@ public readonly struct Hex1 : ISpanFormattable, IUtf8SpanFormattable
     /// </summary>
     private static ReadOnlySpan<byte> _HexBytes => "0123456789ABCDEF"u8;
 
-    // ========================================================================
-    // FIELDS
-    // ========================================================================
+    #endregion
+
+    #region Fields
 
     /// <summary>
     /// The nibble value to format (0-15).
     /// </summary>
     private readonly byte _Value;
 
-    // ========================================================================
-    // CONSTRUCTOR
-    // ========================================================================
+    #endregion
+
+    #region Lifecycle
 
     /// <summary>
     /// Creates a new <see cref="Hex1"/> wrapper for the given nibble.
@@ -67,9 +65,9 @@ public readonly struct Hex1 : ISpanFormattable, IUtf8SpanFormattable
         _Value = (byte)(value & 0xF);
     }
 
-    // ========================================================================
-    // ISPANFORMATTABLE IMPLEMENTATION
-    // ========================================================================
+    #endregion
+
+    #region Public API
 
     /// <summary>
     /// Formats the nibble value as 1-character uppercase hex.
@@ -122,15 +120,16 @@ public readonly struct Hex1 : ISpanFormattable, IUtf8SpanFormattable
     /// </summary>
     public string ToString(string? format, IFormatProvider? formatProvider) => ToString();
 
-    // ========================================================================
-    // OPERATORS
-    // ========================================================================
+    #endregion
+
+    #region Operators
 
     /// <summary>
     /// Implicit conversion from byte to Hex1.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator Hex1(byte value) => new Hex1(value);
+    #endregion
 }
 
 /// <summary>
@@ -145,9 +144,7 @@ public readonly struct Hex1 : ISpanFormattable, IUtf8SpanFormattable
 /// </remarks>
 public readonly struct Hex2 : ISpanFormattable, IUtf8SpanFormattable
 {
-    // ========================================================================
-    // CONSTANTS
-    // ========================================================================
+    #region Constants
 
     /// <summary>
     /// The formatted output is always exactly 2 characters.
@@ -164,18 +161,18 @@ public readonly struct Hex2 : ISpanFormattable, IUtf8SpanFormattable
     /// </summary>
     private static ReadOnlySpan<byte> _HexBytes => "0123456789ABCDEF"u8;
 
-    // ========================================================================
-    // FIELDS
-    // ========================================================================
+    #endregion
+
+    #region Fields
 
     /// <summary>
     /// The byte value to format.
     /// </summary>
     private readonly byte _Value;
 
-    // ========================================================================
-    // CONSTRUCTOR
-    // ========================================================================
+    #endregion
+
+    #region Lifecycle
 
     /// <summary>
     /// Creates a new <see cref="Hex2"/> wrapper for the given byte.
@@ -187,9 +184,9 @@ public readonly struct Hex2 : ISpanFormattable, IUtf8SpanFormattable
         _Value = value;
     }
 
-    // ========================================================================
-    // ISPANFORMATTABLE IMPLEMENTATION
-    // ========================================================================
+    #endregion
+
+    #region Public API
 
     /// <summary>
     /// Formats the byte value as 2-character uppercase hex.
@@ -245,15 +242,16 @@ public readonly struct Hex2 : ISpanFormattable, IUtf8SpanFormattable
     /// </summary>
     public string ToString(string? format, IFormatProvider? formatProvider) => ToString();
 
-    // ========================================================================
-    // OPERATORS
-    // ========================================================================
+    #endregion
+
+    #region Operators
 
     /// <summary>
     /// Implicit conversion from byte to Hex2.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator Hex2(byte value) => new Hex2(value);
+    #endregion
 }
 
 /// <summary>
@@ -262,6 +260,7 @@ public readonly struct Hex2 : ISpanFormattable, IUtf8SpanFormattable
 /// </summary>
 public readonly struct Hex3 : ISpanFormattable, IUtf8SpanFormattable
 {
+    #region Fields
     /// <summary>The formatted length (3 characters).</summary>
     public const int FormattedLength = 3;
     private static ReadOnlySpan<char> _HexChars => "0123456789ABCDEF";
@@ -269,6 +268,9 @@ public readonly struct Hex3 : ISpanFormattable, IUtf8SpanFormattable
 
     private readonly ushort _Value;
 
+    #endregion
+
+    #region Lifecycle
     /// <summary>Creates a new Hex3 formatter for the specified value.</summary>
     /// <param name="value">The value to format as hex (only lower 12 bits used).</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -276,6 +278,10 @@ public readonly struct Hex3 : ISpanFormattable, IUtf8SpanFormattable
     {
         _Value = (ushort)(value & 0xFFF);
     }
+
+    #endregion
+
+    #region Public API
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -326,10 +332,14 @@ public readonly struct Hex3 : ISpanFormattable, IUtf8SpanFormattable
     /// <inheritdoc/>
     public string ToString(string? format, IFormatProvider? formatProvider) => ToString();
 
+    #endregion
+
+    #region Operators
     /// <summary>Implicitly converts a ushort to Hex3.</summary>
     /// <param name="value">The ushort value.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator Hex3(ushort value) => new Hex3(value);
+    #endregion
 }
 
 /// <summary>
@@ -337,6 +347,7 @@ public readonly struct Hex3 : ISpanFormattable, IUtf8SpanFormattable
 /// </summary>
 public readonly struct Hex4 : ISpanFormattable, IUtf8SpanFormattable
 {
+    #region Fields
     /// <summary>The formatted length (4 characters).</summary>
     public const int FormattedLength = 4;
     private static ReadOnlySpan<char> _HexChars => "0123456789ABCDEF";
@@ -344,6 +355,9 @@ public readonly struct Hex4 : ISpanFormattable, IUtf8SpanFormattable
 
     private readonly ushort _Value;
 
+    #endregion
+
+    #region Lifecycle
     /// <summary>Creates a new Hex4 formatter for the specified value.</summary>
     /// <param name="value">The ushort value to format as hex.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -351,6 +365,10 @@ public readonly struct Hex4 : ISpanFormattable, IUtf8SpanFormattable
     {
         _Value = value;
     }
+
+    #endregion
+
+    #region Public API
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -404,10 +422,14 @@ public readonly struct Hex4 : ISpanFormattable, IUtf8SpanFormattable
     /// <inheritdoc/>
     public string ToString(string? format, IFormatProvider? formatProvider) => ToString();
 
+    #endregion
+
+    #region Operators
     /// <summary>Implicitly converts a ushort to Hex4.</summary>
     /// <param name="value">The ushort value.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator Hex4(ushort value) => new Hex4(value);
+    #endregion
 }
 
 /// <summary>
@@ -416,6 +438,7 @@ public readonly struct Hex4 : ISpanFormattable, IUtf8SpanFormattable
 /// </summary>
 public readonly struct Hex5 : ISpanFormattable, IUtf8SpanFormattable
 {
+    #region Fields
     /// <summary>The formatted length (5 characters).</summary>
     public const int FormattedLength = 5;
     private static ReadOnlySpan<char> _HexChars => "0123456789ABCDEF";
@@ -423,6 +446,9 @@ public readonly struct Hex5 : ISpanFormattable, IUtf8SpanFormattable
 
     private readonly uint _Value;
 
+    #endregion
+
+    #region Lifecycle
     /// <summary>Creates a new Hex5 formatter for the specified value.</summary>
     /// <param name="value">The value to format as hex (only lower 20 bits used).</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -430,6 +456,10 @@ public readonly struct Hex5 : ISpanFormattable, IUtf8SpanFormattable
     {
         _Value = value & 0xFFFFF;
     }
+
+    #endregion
+
+    #region Public API
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -486,10 +516,14 @@ public readonly struct Hex5 : ISpanFormattable, IUtf8SpanFormattable
     /// <inheritdoc/>
     public string ToString(string? format, IFormatProvider? formatProvider) => ToString();
 
+    #endregion
+
+    #region Operators
     /// <summary>Implicitly converts a uint to Hex5.</summary>
     /// <param name="value">The uint value.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator Hex5(uint value) => new Hex5(value);
+    #endregion
 }
 
 /// <summary>
@@ -498,6 +532,7 @@ public readonly struct Hex5 : ISpanFormattable, IUtf8SpanFormattable
 /// </summary>
 public readonly struct Hex6 : ISpanFormattable, IUtf8SpanFormattable
 {
+    #region Fields
     /// <summary>The formatted length (6 characters).</summary>
     public const int FormattedLength = 6;
     private static ReadOnlySpan<char> _HexChars => "0123456789ABCDEF";
@@ -505,6 +540,9 @@ public readonly struct Hex6 : ISpanFormattable, IUtf8SpanFormattable
 
     private readonly uint _Value;
 
+    #endregion
+
+    #region Lifecycle
     /// <summary>Creates a new Hex6 formatter for the specified value.</summary>
     /// <param name="value">The value to format as hex (only lower 24 bits used).</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -512,6 +550,10 @@ public readonly struct Hex6 : ISpanFormattable, IUtf8SpanFormattable
     {
         _Value = value & 0xFFFFFF;
     }
+
+    #endregion
+
+    #region Public API
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -571,10 +613,14 @@ public readonly struct Hex6 : ISpanFormattable, IUtf8SpanFormattable
     /// <inheritdoc/>
     public string ToString(string? format, IFormatProvider? formatProvider) => ToString();
 
+    #endregion
+
+    #region Operators
     /// <summary>Implicitly converts a uint to Hex6.</summary>
     /// <param name="value">The uint value.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator Hex6(uint value) => new Hex6(value);
+    #endregion
 }
 
 /// <summary>
@@ -583,6 +629,7 @@ public readonly struct Hex6 : ISpanFormattable, IUtf8SpanFormattable
 /// </summary>
 public readonly struct Hex7 : ISpanFormattable, IUtf8SpanFormattable
 {
+    #region Fields
     /// <summary>The formatted length (7 characters).</summary>
     public const int FormattedLength = 7;
     private static ReadOnlySpan<char> _HexChars => "0123456789ABCDEF";
@@ -590,6 +637,9 @@ public readonly struct Hex7 : ISpanFormattable, IUtf8SpanFormattable
 
     private readonly uint _Value;
 
+    #endregion
+
+    #region Lifecycle
     /// <summary>Creates a new Hex7 formatter for the specified value.</summary>
     /// <param name="value">The value to format as hex (only lower 28 bits used).</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -597,6 +647,10 @@ public readonly struct Hex7 : ISpanFormattable, IUtf8SpanFormattable
     {
         _Value = value & 0xFFFFFFF;
     }
+
+    #endregion
+
+    #region Public API
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -659,10 +713,14 @@ public readonly struct Hex7 : ISpanFormattable, IUtf8SpanFormattable
     /// <inheritdoc/>
     public string ToString(string? format, IFormatProvider? formatProvider) => ToString();
 
+    #endregion
+
+    #region Operators
     /// <summary>Implicitly converts a uint to Hex7.</summary>
     /// <param name="value">The uint value.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator Hex7(uint value) => new Hex7(value);
+    #endregion
 }
 
 /// <summary>
@@ -670,6 +728,7 @@ public readonly struct Hex7 : ISpanFormattable, IUtf8SpanFormattable
 /// </summary>
 public readonly struct Hex8 : ISpanFormattable, IUtf8SpanFormattable
 {
+    #region Fields
     /// <summary>The formatted length (8 characters).</summary>
     public const int FormattedLength = 8;
     private static ReadOnlySpan<char> _HexChars => "0123456789ABCDEF";
@@ -677,6 +736,9 @@ public readonly struct Hex8 : ISpanFormattable, IUtf8SpanFormattable
 
     private readonly uint _Value;
 
+    #endregion
+
+    #region Lifecycle
     /// <summary>Creates a new Hex8 formatter for the specified value.</summary>
     /// <param name="value">The uint value to format as hex.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -684,6 +746,10 @@ public readonly struct Hex8 : ISpanFormattable, IUtf8SpanFormattable
     {
         _Value = value;
     }
+
+    #endregion
+
+    #region Public API
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -737,10 +803,14 @@ public readonly struct Hex8 : ISpanFormattable, IUtf8SpanFormattable
     /// <inheritdoc/>
     public string ToString(string? format, IFormatProvider? formatProvider) => ToString();
 
+    #endregion
+
+    #region Operators
     /// <summary>Implicitly converts a uint to Hex8.</summary>
     /// <param name="value">The uint value.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator Hex8(uint value) => new Hex8(value);
+    #endregion
 }
 
 /// <summary>
@@ -748,6 +818,7 @@ public readonly struct Hex8 : ISpanFormattable, IUtf8SpanFormattable
 /// </summary>
 public readonly struct Hex16 : ISpanFormattable, IUtf8SpanFormattable
 {
+    #region Fields
     /// <summary>The formatted length (16 characters).</summary>
     public const int FormattedLength = 16;
     private static ReadOnlySpan<char> _HexChars => "0123456789ABCDEF";
@@ -755,6 +826,9 @@ public readonly struct Hex16 : ISpanFormattable, IUtf8SpanFormattable
 
     private readonly ulong _Value;
 
+    #endregion
+
+    #region Lifecycle
     /// <summary>Creates a new Hex16 formatter for the specified value.</summary>
     /// <param name="value">The ulong value to format as hex.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -762,6 +836,10 @@ public readonly struct Hex16 : ISpanFormattable, IUtf8SpanFormattable
     {
         _Value = value;
     }
+
+    #endregion
+
+    #region Public API
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -815,8 +893,12 @@ public readonly struct Hex16 : ISpanFormattable, IUtf8SpanFormattable
     /// <inheritdoc/>
     public string ToString(string? format, IFormatProvider? formatProvider) => ToString();
 
+    #endregion
+
+    #region Operators
     /// <summary>Implicitly converts a ulong to Hex16.</summary>
     /// <param name="value">The ulong value.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator Hex16(ulong value) => new Hex16(value);
+    #endregion
 }

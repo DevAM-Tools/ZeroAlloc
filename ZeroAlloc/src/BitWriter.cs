@@ -12,7 +12,7 @@ namespace ZeroAlloc;
 public ref struct BitWriter
 {
     private readonly Span<byte> _Buffer;
-    private int _BitOffset;
+    private long _BitOffset;
 
     /// <summary>
     /// Initializes a new BitWriter with the specified buffer.
@@ -30,18 +30,19 @@ public ref struct BitWriter
 
     /// <summary>
     /// Gets the current bit offset from the start of the buffer.
+    /// Stored as <see cref="long"/> so buffers larger than 256 MiB remain addressable.
     /// </summary>
-    public readonly int BitOffset => _BitOffset;
+    public readonly long BitOffset => _BitOffset;
 
     /// <summary>
     /// Gets the current byte position (rounded down).
     /// </summary>
-    public readonly int BytePosition => _BitOffset >> 3;
+    public readonly int BytePosition => (int)(_BitOffset >> 3);
 
     /// <summary>
     /// Gets the bit position within the current byte (0-7).
     /// </summary>
-    public readonly int BitPositionInByte => _BitOffset & 7;
+    public readonly int BitPositionInByte => (int)(_BitOffset & 7);
 
     /// <summary>
     /// Gets whether the writer is currently byte-aligned.
@@ -51,7 +52,7 @@ public ref struct BitWriter
     /// <summary>
     /// Gets the number of bytes written so far (rounded up to include partial bytes).
     /// </summary>
-    public readonly int BytesWritten => (_BitOffset + 7) >> 3;
+    public readonly int BytesWritten => (int)((_BitOffset + 7) >> 3);
 
     /// <summary>
     /// Writes up to 64 bits from an unsigned integer. Optimized for both aligned and non-aligned writes.
@@ -66,11 +67,10 @@ public ref struct BitWriter
             throw new ArgumentOutOfRangeException(nameof(bitCount), "BitCount must be between 1 and 64");
         }
 
-        if (bitCount > RemainingBits)
+        if (bitCount > _TotalBits - _BitOffset)
         {
             throw new InvalidOperationException(
-                $"Insufficient buffer capacity: need {bitCount} bits at offset {_BitOffset}, "
-                + $"but only {RemainingBits} bits remaining (buffer length: {_Buffer.Length} bytes).");
+                string.Create(CultureInfo.InvariantCulture, $"Insufficient buffer capacity: need {bitCount} bits at offset {_BitOffset}, but only {_TotalBits - _BitOffset} bits remaining (buffer length: {_Buffer.Length} bytes)."));
         }
 
         _WriteBitsCore(value, bitCount);
@@ -84,8 +84,8 @@ public ref struct BitWriter
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void _WriteBitsCore(ulong value, int bitCount)
     {
-        int bytePos = _BitOffset >> 3;
-        int bitPos = _BitOffset & 7;
+        int bytePos = (int)(_BitOffset >> 3);
+        int bitPos = (int)(_BitOffset & 7);
 
         // Mask the value to only include the relevant bits
         if (bitCount < 64)
@@ -104,7 +104,7 @@ public ref struct BitWriter
             _WriteBitsGeneric(bytePos, bitPos, value, bitCount);
         }
 
-        _BitOffset += bitCount;
+        _AdvanceBits(bitCount);
     }
 
     /// <summary>
@@ -183,12 +183,11 @@ public ref struct BitWriter
             if (RemainingBits < 8)
             {
                 throw new InvalidOperationException(
-                    $"Insufficient buffer capacity: need 8 bits at offset {_BitOffset}, "
-                    + $"but only {RemainingBits} bits remaining (buffer length: {_Buffer.Length} bytes).");
+                    string.Create(CultureInfo.InvariantCulture, $"Insufficient buffer capacity: need 8 bits at offset {_BitOffset}, but only {RemainingBits} bits remaining (buffer length: {_Buffer.Length} bytes)."));
             }
 
             _Buffer[BytePosition] = value;
-            _BitOffset += 8;
+            _AdvanceBits(8);
         }
         else
         {
@@ -262,10 +261,10 @@ public ref struct BitWriter
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AlignToNextByte()
     {
-        int remainder = _BitOffset & 7;
+        int remainder = (int)(_BitOffset & 7);
         if (remainder != 0)
         {
-            _BitOffset += 8 - remainder;
+            _AdvanceBits(8 - remainder);
         }
     }
 
@@ -281,14 +280,13 @@ public ref struct BitWriter
             throw new ArgumentOutOfRangeException(nameof(bitCount), "BitCount must be non-negative");
         }
 
-        if (bitCount > RemainingBits)
+        if ((long)bitCount > _TotalBits - _BitOffset)
         {
             throw new InvalidOperationException(
-                $"Insufficient buffer capacity: need {bitCount} bits at offset {_BitOffset}, "
-                + $"but only {RemainingBits} bits remaining (buffer length: {_Buffer.Length} bytes).");
+                string.Create(CultureInfo.InvariantCulture, $"Insufficient buffer capacity: need {bitCount} bits at offset {_BitOffset}, but only {_TotalBits - _BitOffset} bits remaining (buffer length: {_Buffer.Length} bytes)."));
         }
 
-        _BitOffset += bitCount;
+        _AdvanceBits(bitCount);
     }
 
     /// <summary>
@@ -305,24 +303,96 @@ public ref struct BitWriter
         if (data.Length > RemainingBytes)
         {
             throw new InvalidOperationException(
-                $"Insufficient buffer capacity: need {data.Length} bytes at byte offset {BytePosition}, "
-                + $"but only {RemainingBytes} bytes remaining (buffer length: {_Buffer.Length} bytes).");
+                string.Create(CultureInfo.InvariantCulture, $"Insufficient buffer capacity: need {data.Length} bytes at byte offset {BytePosition}, but only {RemainingBytes} bytes remaining (buffer length: {_Buffer.Length} bytes)."));
         }
 
-        int byteOffset = _BitOffset >> 3;
+        long bitAdvance = BitReader.ByteLengthToBitCapacity(data.Length);
+        if (!BitReader.TryAddBitOffset(_BitOffset, bitAdvance, out long newOffset))
+        {
+            throw new InvalidOperationException(
+                string.Create(CultureInfo.InvariantCulture, $"Cannot write {data.Length} bytes: bit offset would overflow"));
+        }
+
+        int byteOffset = (int)(_BitOffset >> 3);
         data.CopyTo(_Buffer.Slice(byteOffset));
-        _BitOffset += data.Length << 3;
+        _BitOffset = newOffset;
+    }
+
+    /// <summary>
+    /// Total bits addressable in the current buffer, computed in 64-bit arithmetic.
+    /// </summary>
+    private readonly long _TotalBits => BitReader.ByteLengthToBitCapacity(_Buffer.Length);
+
+    /// <summary>
+    /// Advances the bit cursor by <paramref name="bitAdvance"/> bits, throwing when the sum would wrap <see cref="long"/>.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void _AdvanceBits(long bitAdvance)
+    {
+        if (!BitReader.TryAddBitOffset(_BitOffset, bitAdvance, out long newOffset))
+        {
+            throw new InvalidOperationException(
+                string.Create(CultureInfo.InvariantCulture, $"Cannot advance {bitAdvance} bits: bit offset would overflow"));
+        }
+
+        _BitOffset = newOffset;
+    }
+
+    /// <summary>
+    /// Tries to advance the bit cursor by <paramref name="bitAdvance"/> bits without wrapping <see cref="long"/>.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private bool _TryAdvanceBits(long bitAdvance)
+    {
+        if (!BitReader.TryAddBitOffset(_BitOffset, bitAdvance, out long newOffset))
+        {
+            return false;
+        }
+
+        _BitOffset = newOffset;
+        return true;
     }
 
     /// <summary>
     /// Gets the remaining bits available in the buffer.
+    /// Values larger than <see cref="int.MaxValue"/> saturate at <see cref="int.MaxValue"/>.
     /// </summary>
-    public readonly int RemainingBits => (_Buffer.Length << 3) - _BitOffset;
+    public readonly int RemainingBits
+    {
+        get
+        {
+            long remaining = _TotalBits - _BitOffset;
+            if (remaining <= 0)
+            {
+                return 0;
+            }
+
+            return remaining > int.MaxValue
+                ? int.MaxValue
+                : (int)remaining;
+        }
+    }
 
     /// <summary>
     /// Gets the remaining bytes available in the buffer (rounded down).
+    /// Values larger than <see cref="int.MaxValue"/> saturate at <see cref="int.MaxValue"/>.
     /// </summary>
-    public readonly int RemainingBytes => ((_Buffer.Length << 3) - _BitOffset) >> 3;
+    public readonly int RemainingBytes
+    {
+        get
+        {
+            long remaining = _TotalBits - _BitOffset;
+            if (remaining <= 0)
+            {
+                return 0;
+            }
+
+            long bytes = remaining >> 3;
+            return bytes > int.MaxValue
+                ? int.MaxValue
+                : (int)bytes;
+        }
+    }
 
     #region Try-Write Methods
 
@@ -341,7 +411,7 @@ public ref struct BitWriter
             throw new ArgumentOutOfRangeException(nameof(bitCount), "BitCount must be between 1 and 64");
         }
 
-        if (bitCount > RemainingBits)
+        if (bitCount > _TotalBits - _BitOffset)
         {
             return false;
         }
@@ -366,7 +436,7 @@ public ref struct BitWriter
         if (IsByteAligned)
         {
             _Buffer[BytePosition] = value;
-            _BitOffset += 8;
+            _AdvanceBits(8);
         }
         else
         {
@@ -485,12 +555,11 @@ public ref struct BitWriter
             throw new ArgumentOutOfRangeException(nameof(bitCount), "BitCount must be non-negative");
         }
 
-        if (bitCount > RemainingBits)
+        if ((long)bitCount > _TotalBits - _BitOffset || !_TryAdvanceBits(bitCount))
         {
             return false;
         }
 
-        _BitOffset += bitCount;
         return true;
     }
 
@@ -506,9 +575,15 @@ public ref struct BitWriter
             return false;
         }
 
-        int byteOffset = _BitOffset >> 3;
+        long bitAdvance = BitReader.ByteLengthToBitCapacity(data.Length);
+        if (!BitReader.TryAddBitOffset(_BitOffset, bitAdvance, out long newOffset))
+        {
+            return false;
+        }
+
+        int byteOffset = (int)(_BitOffset >> 3);
         data.CopyTo(_Buffer.Slice(byteOffset));
-        _BitOffset += data.Length << 3;
+        _BitOffset = newOffset;
         return true;
     }
 

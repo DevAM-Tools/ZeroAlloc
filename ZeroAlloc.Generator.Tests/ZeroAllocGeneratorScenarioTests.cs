@@ -157,7 +157,9 @@ internal sealed class ZeroAllocGeneratorScenarioTests
             compilation,
             new ZeroAllocGenerator());
 
-        await Assert.That(output.SyntaxTrees.Count()).IsEqualTo(1);
+        await Assert.That(output.SyntaxTrees.Count()).IsGreaterThanOrEqualTo(2);
+        await Assert.That(GeneratorTestHelper.HasGeneratedSource(output, "PlainClass")).IsFalse();
+        await Assert.That(GeneratorTestHelper.HasGeneratedHint(output, "ZeroAlloc.ZA.Stub.g.cs")).IsTrue();
         await Assert.That(diagnostics.Length).IsEqualTo(0);
     }
 

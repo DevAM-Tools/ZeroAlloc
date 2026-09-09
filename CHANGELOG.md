@@ -7,6 +7,67 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-09-09
+
+ZeroAlloc 0.6.0 is a consumer-facing release: each consuming compilation gets `ZeroAlloc.ZA` without a handwritten subclass, generated overflow modes actually run, and binary string parse grows an explicit size cap.
+
+### Added
+
+- Per-assembly `ZeroAlloc.ZA`: after `using ZeroAlloc;`, call `ZA.String` / `ZA.Utf8` / `ZA.Bytes` / `ZA.Lazy` without declaring a `ZeroAllocBase` subclass. Extra subclasses (`MyApi : ZeroAllocBase`) still generate.
+- MSBuild property `ZeroAlloc_GenerateDefaultClass` (default `true`). Set `false` to suppress default `ZA` (`ZEROALLOC_SUPPRESS_DEFAULT_ZA`). Packed as `buildTransitive/ZeroAlloc.targets`. The `ZeroAlloc` library assembly itself never contains type `ZeroAlloc.ZA`.
+- `[StringMaxLength(n)]` on `[BinaryParsable]` string members. Generated `TryParse` rejects UTF-8 payloads above the cap without allocating. Default cap is 1 MiB when the attribute is omitted (diagnostic **ZA2016**, Info).
+- `ZeroAlloc_BufferOverflowBehavior` is honored for **generated** `ZA.String` / `ZA.Utf8` / `ZA.Bytes`: `Grow` (default, ThreadStatic), `HeapFallback` (one-shot heap copy), `Throw` (`InvalidOperationException`, buffer released). `TempStringBuilder` / `TempBytesBuilder` always grow; they do not read this property.
+
+### Changed
+
+- ThreadStatic `TempString` / `TempBytes` release is epoch-based: implicit conversion plus a later `Dispose` cannot unlock a newer owner's buffer.
+- Buffer acquire allocates before setting in-use, so OOM cannot leave the thread lock stuck.
+- `GrowCharBuffer` / `GrowByteBuffer` copy only the used prefix, not the unused tail.
+- Length-prefix and bit-cursor integer hardening: `Utf8Var` / `Utf8FixBE` / `Utf8FixLE` reject oversized prefixes; `VarInt` fails leftover 10th-byte payload bits; `BitReader` / `BitWriter` use 64-bit bit capacity (`ByteLengthToBitCapacity`) instead of `Length << 3`; `BinaryParser` remaining-length checks use unsigned remaining.
+- ZA1002 message names `SpanStringBuilder` (not a non-existent `ZeroStringBuilder`).
+- Packable version uses `VersionPrefix` `0.6.0`. `ContinuousIntegrationBuild` is pack/CI-pack only so Release coverage PDBs stay valid.
+- Local tool `exitpointgaps` 1.0.1. Central package transitive pinning enabled.
+
+### Fixed
+
+- Nested `using` / double `Dispose` on `TempString` / `TempBytes` unlocking the ThreadStatic buffer.
+- Documented overflow switch that previously always heap-copied.
+- Grow-stall test hook is `volatile`.
+- Generator XML/header drift (`[BinaryRemaining]` and similar names that were never shipped).
+
+### Breaking
+
+- Setting `ZeroAlloc_BufferOverflowBehavior` to `Throw` now throws from generated `ZA.*` format methods when the ThreadStatic buffer is too small (previously the property was ignored).
+
+A leftover 0.5.x `internal partial class ZA : ZeroAllocBase { }` in the consumer namespace is a **second** type, not a merge with generated `ZeroAlloc.ZA`. Delete it. A leftover `partial` in `namespace ZeroAlloc` merges with the stub. Opt out with `ZeroAlloc_GenerateDefaultClass`=`false`.
+
+### Not in this release
+
+- `ZA.ParseBytes` / `TryParseBytes` are not generated. Use `[BinaryParsable]` `TryParse` or `BinaryParser`.
+- Passthrough interceptors / `ZA.LocalizedLazy` are not included.
+
+## [0.5.2] - 2026-07-09
+
+Maintenance release: quality gates moved from CSharpStyleValidator / CoverageGap.Tool to **CSharpStyleChecker** / **ExitPointGaps**. Minor library and generator fixes.
+
+### Added
+
+- `LazyString` comparison operators `<`, `<=`, `>`, `>=` (delegate to `CompareTo`).
+
+### Changed
+
+- `SpanStringBuilder` numeric/date `TryFormat` calls pass `CultureInfo.InvariantCulture`.
+- Generator parameter XML docs for constructed generic types use escaped `<c>` literals (avoids CS1570/CS1584 in consumer XML-doc builds).
+- Repository analysis: CSharpStyleChecker 1.x, ExitPointGaps 1.0.0, `AnalysisLevel` 10-recommended.
+
+## [0.5.1] - 2026-07-07
+
+Maintenance release. No consumer-facing API or runtime behavior changes.
+
+### Changed
+
+- Quality gates: CSharpStyleValidator 2.1.2, CoverageGap.Tool 2.1.2, floating CPM versions for several packages.
+
 ## [0.5.0] - 2026-06-17
 
 ### Added
@@ -43,21 +104,21 @@ Prior releases: see git tags `0.1.0` through `0.4.0`.
 
 ## Release process (manual)
 
-Prerequisites: .NET SDK 10 (`global.json`), `dotnet tool restore` (installs `coveragegap.tool` from `.config/dotnet-tools.json`).
+Prerequisites: .NET SDK 10 (`global.json`), `dotnet tool restore` (installs `exitpointgaps` from `.config/dotnet-tools.json`).
 
 ```bash
 # 1. Quality gate
 dotnet build ZeroAlloc.slnx -c Release
 dotnet test ZeroAlloc.slnx -c Release
-dotnet tool run coveragegap run solution ZeroAlloc.slnx --repo-root . --configuration Release --format agent
+dotnet tool run exitpointgaps --repo-root . --configuration Release
 # Expect: exitGapCount == 0, gatePassed == true
 
 # 2. Pack (deterministic sources for symbols)
 dotnet pack ZeroAlloc/ZeroAlloc.csproj -c Release -p:ContinuousIntegrationBuild=true -o artifacts
 
 # 3. Publish to nuget.org (requires API key)
-dotnet nuget push artifacts/ZeroAlloc.0.5.0.nupkg --source https://api.nuget.org/v3/index.json --api-key <NUGET_API_KEY>
-dotnet nuget push artifacts/ZeroAlloc.0.5.0.snupkg --source https://api.nuget.org/v3/index.json --api-key <NUGET_API_KEY>
+dotnet nuget push artifacts/ZeroAlloc.0.6.0.nupkg --source https://api.nuget.org/v3/index.json --api-key <NUGET_API_KEY>
+dotnet nuget push artifacts/ZeroAlloc.0.6.0.snupkg --source https://api.nuget.org/v3/index.json --api-key <NUGET_API_KEY>
 ```
 
-After publish: create git tag `v0.5.0` and GitHub release with this changelog section.
+After publish: create git tag `v0.6.0` and GitHub release with this changelog section.

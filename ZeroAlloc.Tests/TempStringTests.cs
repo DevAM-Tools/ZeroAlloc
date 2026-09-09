@@ -32,6 +32,16 @@ public sealed class TempStringTests
         }
         await Assert.That(content).IsEqualTo("Hello");
     }
+
+    /// <summary>Verifies the three-argument constructor defaults epoch to 0 for heap buffers.</summary>
+    [Test]
+    public async Task TempString_ThreeArgumentConstructor_HeapBuffer_DoesNotThrowOnDispose()
+    {
+        char[] buffer = ['H', 'i'];
+        TempString temp = new(buffer, 2, isThreadStatic: false);
+        temp.Dispose();
+        await Assert.That(temp.Length).IsEqualTo(2);
+    }
     /// <summary>Verifies String IntValue FormatsCorrectly.</summary>
     [Test]
     public async Task String_IntValue_FormatsCorrectly()

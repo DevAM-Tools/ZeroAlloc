@@ -1,0 +1,9 @@
+<!-- Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information. -->
+<Project>
+  <PropertyGroup>
+    <ZeroAlloc_GenerateDefaultClass Condition="'$(ZeroAlloc_GenerateDefaultClass)' == ''">true</ZeroAlloc_GenerateDefaultClass>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(ZeroAlloc_GenerateDefaultClass)' != 'true'">
+    <DefineConstants>$(DefineConstants);ZEROALLOC_SUPPRESS_DEFAULT_ZA</DefineConstants>
+  </PropertyGroup>
+</Project>

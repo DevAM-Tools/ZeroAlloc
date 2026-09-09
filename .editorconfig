@@ -41,3 +41,13 @@ csharp_indent_labels = one_less_than_current
 csharp_indent_block_contents = true
 csharp_indent_braces = false
 csharp_indent_case_contents_when_block = true
+
+# IDE1006 Naming rule violation
+# Disabled: this repo requires _PascalCase for private members (tech-csharp.md Naming), which conflicts with
+# the default IDE1006 camelCase / _camelCase styles. Naming is enforced by CSharpStyleChecker (CSC*) and
+# tech-csharp, not by IDE1006.
+# Configured here rather than Directory.Build.props <NoWarn>: IDE1006 is a code-style diagnostic whose
+# native surface is .editorconfig (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/style-rules/ide1006).
+# With EnforceCodeStyleInBuild=true this also silences the build; <NoWarn> would hide compile warnings only
+# and would not clear IDE squiggles.
+dotnet_diagnostic.IDE1006.severity = none

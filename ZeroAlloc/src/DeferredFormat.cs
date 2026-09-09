@@ -11,12 +11,20 @@ namespace ZeroAlloc;
 /// <typeparam name="TState">The type of the captured state (usually a ValueTuple).</typeparam>
 internal sealed class DeferredFormat<TState>(TState state, Func<TState, string> formatter) : IDeferredFormat
 {
+    #region Fields
+
     /// <summary>The captured state value.</summary>
     private readonly TState _State = state;
 
     /// <summary>The static formatter delegate.</summary>
     private readonly Func<TState, string> _Formatter = formatter;
 
+    #endregion
+
+    #region Public API
+
     /// <inheritdoc/>
     public string Evaluate() => _Formatter(_State);
+
+    #endregion
 }

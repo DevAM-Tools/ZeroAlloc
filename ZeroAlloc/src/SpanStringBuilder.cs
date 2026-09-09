@@ -22,8 +22,14 @@ namespace ZeroAlloc;
 /// </remarks>
 public ref struct SpanStringBuilder
 {
-    private Span<char> _Buffer;
+    #region Fields
+
+    private readonly Span<char> _Buffer;
     private int _Position;
+
+    #endregion
+
+    #region Lifecycle
 
     /// <summary>
     /// Initializes a new instance of <see cref="SpanStringBuilder"/> with the given buffer.
@@ -35,6 +41,10 @@ public ref struct SpanStringBuilder
         _Buffer = buffer;
         _Position = 0;
     }
+
+    #endregion
+
+    #region Public API
 
     /// <summary>
     /// Gets the current position (number of characters written).
@@ -75,7 +85,7 @@ public ref struct SpanStringBuilder
         if ((uint)count > (uint)_Position)
         {
             throw new ArgumentOutOfRangeException(nameof(count),
-                $"Cannot seek back {count} characters when only {_Position} characters have been written.");
+                string.Create(CultureInfo.InvariantCulture, $"Cannot seek back {count} characters when only {_Position} characters have been written."));
         }
 
         _Position -= count;
@@ -97,6 +107,9 @@ public ref struct SpanStringBuilder
         _Position -= count;
         return true;
     }
+
+    #endregion
+
     #region Append - String Literals
 
     /// <summary>
@@ -587,7 +600,7 @@ public ref struct SpanStringBuilder
     {
         if (!value.TryFormat(_Buffer.Slice(_Position), out int charsWritten, format, provider))
         {
-            throw new InvalidOperationException($"Buffer too small for {typeof(T).Name} value.");
+            throw new InvalidOperationException(string.Create(CultureInfo.InvariantCulture, $"Buffer too small for {typeof(T).Name} value."));
         }
 
         _Position += charsWritten;

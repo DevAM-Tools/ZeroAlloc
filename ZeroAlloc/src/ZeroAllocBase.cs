@@ -7,25 +7,24 @@
 // zero-allocation string and binary serialization.
 //
 // Usage (in user's assembly):
-//   1. Define: partial class ZA : ZeroAllocBase { }
+//   1. using ZeroAlloc;
 //   2. Call:   ZA.String("Hello ", name, "!")
-//   3. The source generator fills in the specialized methods
+//   3. The source generator emits ZeroAlloc.ZA and fills in specialized methods
+//   Optional extra: internal sealed partial class MyApi : ZeroAllocBase { }
+//   Opt-out: <ZeroAlloc_GenerateDefaultClass>false</ZeroAlloc_GenerateDefaultClass>
 // ============================================================================
 
 namespace ZeroAlloc;
 
 /// <summary>
 /// Base class for zero-allocation string and binary building.
+/// Thread-safety: the type is stateless. Generated methods use thread-local buffers via
+/// <see cref="ZeroAllocHelper"/>. Concurrent calls from different threads are safe. Nested
+/// calls on the same thread fall back to heap or throw according to acquire settings.
 /// </summary>
 /// <remarks>
 /// <para>
-/// To use ZeroAlloc, create a partial class in your assembly that inherits from this:
-/// </para>
-/// <code>
-/// partial class ZA : ZeroAllocBase { }
-/// </code>
-/// <para>
-/// Then call the generated static methods:
+/// The source generator emits <c>ZeroAlloc.ZA</c> in each consumer compilation. After <c>using ZeroAlloc;</c>, call:
 /// </para>
 /// <code>
 /// string result = ZA.String("Hello ", name, "!");
@@ -33,19 +32,17 @@ namespace ZeroAlloc;
 /// byte[] bytes = ZA.Bytes(header, payload);
 /// </code>
 /// <para>
-/// The source generator analyzes your calls and generates optimized methods
-/// directly in your partial class.
+/// Additional <c>internal sealed partial class MyApi : ZeroAllocBase</c> types are optional.
+/// Set MSBuild property <c>ZeroAlloc_GenerateDefaultClass</c> to <c>false</c> to suppress default <c>ZA</c>.
 /// </para>
 /// </remarks>
 /// <example>
 /// <code>
-/// // Step 1: Define your class (once per assembly)
-/// partial class ZA : ZeroAllocBase { }
-/// 
-/// // Step 2: Use it anywhere
+/// using ZeroAlloc;
+///
 /// string greeting = ZA.String("Hello, ", userName, "!");
 /// byte[] json = ZA.Utf8("{\"id\":", userId, "}");
-/// 
+///
 /// // Try-variants for zero heap allocation
 /// Span&lt;char&gt; buffer = stackalloc char[256];
 /// if (ZA.TryString(buffer, out int written, "ID: ", id))
@@ -56,24 +53,14 @@ namespace ZeroAlloc;
 /// </example>
 public abstract class ZeroAllocBase
 {
-    // ========================================================================
-    // PROTECTED CONSTRUCTOR
-    // ========================================================================
-    // Prevents direct instantiation - users must inherit from this class.
-    // ========================================================================
+    #region Lifecycle
 
     /// <summary>
     /// Protected constructor prevents direct instantiation.
     /// </summary>
     protected ZeroAllocBase() { }
 
-    // ========================================================================
-    // PUBLIC STATIC METHODS - API SURFACE
-    // ========================================================================
-    // These methods provide the public API surface for code completion and
-    // discoverability. The source generator creates internal overloads with
-    // specific type signatures that shadow these generic versions.
-    // ========================================================================
+    #endregion
 
     #region String API
 
@@ -250,6 +237,47 @@ public abstract class ZeroAllocBase
         throw new NotSupportedException(
             "The generic TryBytes() method is not supported. " +
             "Use the source generator to create type-specific overloads.");
+    }
+
+    #endregion
+
+    #region ParseBytes API
+
+    /// <summary>
+    /// Parses the given buffer into the compile-time type combination.
+    /// The source generator creates specific overloads. This generic method must not be reached.
+    /// </summary>
+    /// <typeparam name="T">The parsed result type (tuple or <c>IBinaryParsable</c> struct).</typeparam>
+    /// <param name="source">Untrusted input bytes.</param>
+    /// <param name="result">When this method throws, undefined; generated overloads write the parsed value.</param>
+    /// <exception cref="InvalidOperationException">Generator did not emit an overload.</exception>
+    /// <remarks>
+    /// Thread-safety: static; throws until generated. Nested ThreadStatic use does not apply.
+    /// </remarks>
+    public static void ParseBytes<T>(ReadOnlySpan<byte> source, out T result)
+    {
+        throw new InvalidOperationException(
+            "The generic ParseBytes() method should never be called. " +
+            "The source generator should have created a specific overload for your argument types. " +
+            "Please rebuild your project to regenerate the source.");
+    }
+
+    /// <summary>
+    /// Tries to parse the given buffer into the compile-time type combination.
+    /// The source generator creates specific overloads. This generic method must not be reached.
+    /// </summary>
+    /// <typeparam name="T">The parsed result type (tuple or <c>IBinaryParsable</c> struct).</typeparam>
+    /// <param name="source">Untrusted input bytes.</param>
+    /// <param name="result">Undefined unless a generated overload succeeds.</param>
+    /// <param name="bytesConsumed">Undefined unless a generated overload succeeds.</param>
+    /// <returns>Generated overloads return whether parsing succeeded.</returns>
+    /// <exception cref="InvalidOperationException">Generator did not emit an overload.</exception>
+    public static bool TryParseBytes<T>(ReadOnlySpan<byte> source, out T result, out int bytesConsumed)
+    {
+        throw new InvalidOperationException(
+            "The generic TryParseBytes() method should never be called. " +
+            "The source generator should have created a specific overload for your argument types. " +
+            "Please rebuild your project to regenerate the source.");
     }
 
     #endregion

@@ -51,23 +51,17 @@ public sealed class ZeroAllocHelperTests
     [Test]
     public async Task AcquireCharBuffer_NestedWithoutFallback_ThrowsInvalidOperationException()
     {
-        bool threw = false;
+        char[] outer = ZeroAllocHelper.AcquireCharBuffer(64, out _);
+        _ = outer;
+        try
         {
-            char[] outer = ZeroAllocHelper.AcquireCharBuffer(64, out _);
-            _ = outer;
-            try
-            {
-                ZeroAllocHelper.AcquireCharBuffer(64, recursiveHeapFallback: false, out _);
-            }
-            catch (InvalidOperationException)
-            {
-                threw = true;
-            }
-
+            await Assert.That(() => ZeroAllocHelper.AcquireCharBuffer(64, recursiveHeapFallback: false, out _))
+                .Throws<InvalidOperationException>();
+        }
+        finally
+        {
             ZeroAllocHelper.ReleaseCharBuffer();
         }
-
-        await Assert.That(threw).IsTrue();
     }
     /// <summary>Verifies IsCharBufferAvailable ReflectsAcquisitionState.</summary>
     [Test]
@@ -111,22 +105,16 @@ public sealed class ZeroAllocHelperTests
     [Test]
     public async Task AcquireByteBuffer_NestedWithoutFallback_ThrowsInvalidOperationException()
     {
-        bool threw = false;
+        ZeroAllocHelper.AcquireByteBuffer(64, out _);
+        try
         {
-            ZeroAllocHelper.AcquireByteBuffer(64, out _);
-            try
-            {
-                ZeroAllocHelper.AcquireByteBuffer(64, recursiveHeapFallback: false, out _);
-            }
-            catch (InvalidOperationException)
-            {
-                threw = true;
-            }
-
+            await Assert.That(() => ZeroAllocHelper.AcquireByteBuffer(64, recursiveHeapFallback: false, out _))
+                .Throws<InvalidOperationException>();
+        }
+        finally
+        {
             ZeroAllocHelper.ReleaseByteBuffer();
         }
-
-        await Assert.That(threw).IsTrue();
     }
     /// <summary>Verifies IsByteBufferAvailable ReflectsAcquisitionState.</summary>
     [Test]
@@ -169,25 +157,37 @@ public sealed class ZeroAllocHelperTests
     [Test]
     public async Task ResizeCharBuffer_InvalidSize_ThrowsArgumentOutOfRangeException()
     {
-        bool threw = false;
-        try { ZeroAllocHelper.ResizeCharBuffer(0); }
-        catch (ArgumentOutOfRangeException) { threw = true; }
+        await Assert.That(() => ZeroAllocHelper.ResizeCharBuffer(0)).Throws<ArgumentOutOfRangeException>();
+    }
 
-        await Assert.That(threw).IsTrue();
+    /// <summary>Verifies a failed acquire does not leave the ThreadStatic char buffer locked.</summary>
+    [Test]
+    public async Task AcquireCharBuffer_NonPositiveSize_LeavesBufferAvailable()
+    {
+        await Assert.That(() => ZeroAllocHelper.AcquireCharBuffer(0, out _)).Throws<ArgumentOutOfRangeException>();
+        await Assert.That(ZeroAllocHelper.IsCharBufferAvailable()).IsTrue();
+    }
+
+    /// <summary>Verifies a failed acquire does not leave the ThreadStatic byte buffer locked.</summary>
+    [Test]
+    public async Task AcquireByteBuffer_NonPositiveSize_LeavesBufferAvailable()
+    {
+        await Assert.That(() => ZeroAllocHelper.AcquireByteBuffer(0, out _)).Throws<ArgumentOutOfRangeException>();
+        await Assert.That(ZeroAllocHelper.IsByteBufferAvailable()).IsTrue();
     }
     /// <summary>Verifies ResizeCharBuffer WhileInUse ThrowsInvalidOperationException.</summary>
     [Test]
     public async Task ResizeCharBuffer_WhileInUse_ThrowsInvalidOperationException()
     {
-        bool threw = false;
+        ZeroAllocHelper.AcquireCharBuffer(64, out _);
+        try
         {
-            ZeroAllocHelper.AcquireCharBuffer(64, out _);
-            try { ZeroAllocHelper.ResizeCharBuffer(128); }
-            catch (InvalidOperationException) { threw = true; }
+            await Assert.That(() => ZeroAllocHelper.ResizeCharBuffer(128)).Throws<InvalidOperationException>();
+        }
+        finally
+        {
             ZeroAllocHelper.ReleaseCharBuffer();
         }
-
-        await Assert.That(threw).IsTrue();
     }
     /// <summary>Verifies ResizeByteBuffer ValidSize UpdatesBufferSize.</summary>
     [Test]
@@ -205,11 +205,7 @@ public sealed class ZeroAllocHelperTests
     [Test]
     public async Task ResizeByteBuffer_InvalidSize_ThrowsArgumentOutOfRangeException()
     {
-        bool threw = false;
-        try { ZeroAllocHelper.ResizeByteBuffer(-1); }
-        catch (ArgumentOutOfRangeException) { threw = true; }
-
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() => ZeroAllocHelper.ResizeByteBuffer(-1)).Throws<ArgumentOutOfRangeException>();
     }
     /// <summary>Verifies ReleaseBuffers WhenIdle ClearsBuffers.</summary>
     [Test]
@@ -232,15 +228,15 @@ public sealed class ZeroAllocHelperTests
     [Test]
     public async Task ReleaseBuffers_WhileCharBufferInUse_ThrowsInvalidOperationException()
     {
-        bool threw = false;
+        ZeroAllocHelper.AcquireCharBuffer(64, out _);
+        try
         {
-            ZeroAllocHelper.AcquireCharBuffer(64, out _);
-            try { ZeroAllocHelper.ReleaseBuffers(); }
-            catch (InvalidOperationException) { threw = true; }
+            await Assert.That(() => ZeroAllocHelper.ReleaseBuffers()).Throws<InvalidOperationException>();
+        }
+        finally
+        {
             ZeroAllocHelper.ReleaseCharBuffer();
         }
-
-        await Assert.That(threw).IsTrue();
     }
 
     // ========================================================================
@@ -336,29 +332,29 @@ public sealed class ZeroAllocHelperTests
     [Test]
     public async Task ResizeByteBuffer_WhileInUse_ThrowsInvalidOperationException()
     {
-        bool threw = false;
+        ZeroAllocHelper.AcquireByteBuffer(64, out _);
+        try
         {
-            ZeroAllocHelper.AcquireByteBuffer(64, out _);
-            try { ZeroAllocHelper.ResizeByteBuffer(128); }
-            catch (InvalidOperationException) { threw = true; }
+            await Assert.That(() => ZeroAllocHelper.ResizeByteBuffer(128)).Throws<InvalidOperationException>();
+        }
+        finally
+        {
             ZeroAllocHelper.ReleaseByteBuffer();
         }
-
-        await Assert.That(threw).IsTrue();
     }
     /// <summary>Verifies ReleaseBuffers WhileByteBufferInUse ThrowsInvalidOperationException.</summary>
     [Test]
     public async Task ReleaseBuffers_WhileByteBufferInUse_ThrowsInvalidOperationException()
     {
-        bool threw = false;
+        ZeroAllocHelper.AcquireByteBuffer(64, out _);
+        try
         {
-            ZeroAllocHelper.AcquireByteBuffer(64, out _);
-            try { ZeroAllocHelper.ReleaseBuffers(); }
-            catch (InvalidOperationException) { threw = true; }
+            await Assert.That(() => ZeroAllocHelper.ReleaseBuffers()).Throws<InvalidOperationException>();
+        }
+        finally
+        {
             ZeroAllocHelper.ReleaseByteBuffer();
         }
-
-        await Assert.That(threw).IsTrue();
     }
     /// <summary>Verifies TryGrowCharBuffer WhenBufferAcquired ReturnsGrownBuffer.</summary>
     [Test]
@@ -403,7 +399,7 @@ public sealed class ZeroAllocHelperTests
     {
         bool consumed;
         {
-            ZeroAllocHelper.SimulateGrowStallForCoverage = false;
+            ZeroAllocHelper.SimulateGrowStallForCoverage = 0;
             consumed = ZeroAllocHelper.ConsumeSimulatedGrowStall();
         }
 
@@ -416,10 +412,10 @@ public sealed class ZeroAllocHelperTests
         bool first;
         bool second;
         {
-            ZeroAllocHelper.SimulateGrowStallForCoverage = true;
+            ZeroAllocHelper.SimulateGrowStallForCoverage = 1;
             first = ZeroAllocHelper.ConsumeSimulatedGrowStall();
             second = ZeroAllocHelper.ConsumeSimulatedGrowStall();
-            ZeroAllocHelper.SimulateGrowStallForCoverage = false;
+            ZeroAllocHelper.SimulateGrowStallForCoverage = 0;
         }
 
         await Assert.That(first).IsTrue();
@@ -434,7 +430,7 @@ public sealed class ZeroAllocHelperTests
     [Test]
     public async Task ConsumeSimulatedGrowStall_WhenFlagUnset_ReturnsFalse()
     {
-        ZeroAllocHelper.SimulateGrowStallForCoverage = false;
+        ZeroAllocHelper.SimulateGrowStallForCoverage = 0;
 
         bool result = ZeroAllocHelper.ConsumeSimulatedGrowStall();
 
@@ -448,13 +444,81 @@ public sealed class ZeroAllocHelperTests
         bool first;
         bool second;
         {
-            ZeroAllocHelper.SimulateGrowStallForCoverage = true;
+            ZeroAllocHelper.SimulateGrowStallForCoverage = 1;
             first = ZeroAllocHelper.ConsumeSimulatedGrowStall();
             second = ZeroAllocHelper.ConsumeSimulatedGrowStall();
-            ZeroAllocHelper.SimulateGrowStallForCoverage = false;
+            ZeroAllocHelper.SimulateGrowStallForCoverage = 0;
         }
 
         await Assert.That(first).IsTrue();
         await Assert.That(second).IsFalse();
+    }
+
+    /// <summary>Verifies GrowCharBuffer rejects a usedLength past the current buffer.</summary>
+    [Test]
+    public async Task GrowCharBuffer_UsedLengthPastBuffer_ThrowsArgumentOutOfRangeException()
+    {
+        char[] buffer = ZeroAllocHelper.AcquireCharBuffer(64, out _);
+        try
+        {
+            await Assert.That(() => ZeroAllocHelper.GrowCharBuffer(128, buffer.Length + 1))
+                .Throws<ArgumentOutOfRangeException>();
+        }
+        finally
+        {
+            ZeroAllocHelper.ReleaseCharBuffer();
+        }
+    }
+
+    /// <summary>Verifies TryGrowCharBuffer returns null when usedLength exceeds the buffer.</summary>
+    [Test]
+    public async Task TryGrowCharBuffer_UsedLengthPastBuffer_ReturnsNull()
+    {
+        char[]? result;
+        char[] buffer = ZeroAllocHelper.AcquireCharBuffer(64, out _);
+        try
+        {
+            result = ZeroAllocHelper.TryGrowCharBuffer(128, buffer.Length + 1);
+        }
+        finally
+        {
+            ZeroAllocHelper.ReleaseCharBuffer();
+        }
+
+        await Assert.That(result).IsNull();
+    }
+
+    /// <summary>Verifies GrowByteBuffer rejects a usedLength past the current buffer.</summary>
+    [Test]
+    public async Task GrowByteBuffer_UsedLengthPastBuffer_ThrowsArgumentOutOfRangeException()
+    {
+        byte[] buffer = ZeroAllocHelper.AcquireByteBuffer(64, out _);
+        try
+        {
+            await Assert.That(() => ZeroAllocHelper.GrowByteBuffer(128, buffer.Length + 1))
+                .Throws<ArgumentOutOfRangeException>();
+        }
+        finally
+        {
+            ZeroAllocHelper.ReleaseByteBuffer();
+        }
+    }
+
+    /// <summary>Verifies TryGrowByteBuffer returns null when usedLength exceeds the buffer.</summary>
+    [Test]
+    public async Task TryGrowByteBuffer_UsedLengthPastBuffer_ReturnsNull()
+    {
+        byte[]? result;
+        byte[] buffer = ZeroAllocHelper.AcquireByteBuffer(64, out _);
+        try
+        {
+            result = ZeroAllocHelper.TryGrowByteBuffer(128, buffer.Length + 1);
+        }
+        finally
+        {
+            ZeroAllocHelper.ReleaseByteBuffer();
+        }
+
+        await Assert.That(result).IsNull();
     }
 }

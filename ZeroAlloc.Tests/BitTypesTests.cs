@@ -108,11 +108,7 @@ public sealed class BitTypesTests
     [Arguments((byte)65)]
     public async Task UIntBits_InvalidBitCount_ThrowsArgumentOutOfRangeException(byte bitCount)
     {
-        bool threw = false;
-        try { _ = new UIntBits(1, bitCount); }
-        catch (ArgumentOutOfRangeException) { threw = true; }
-
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() => _ = new UIntBits(1, bitCount)).Throws<ArgumentOutOfRangeException>();
     }
 
     // ========================================================================
@@ -148,10 +144,6 @@ public sealed class BitTypesTests
     [Arguments((byte)65)]
     public async Task IntBits_InvalidBitCount_ThrowsArgumentOutOfRangeException(byte bitCount)
     {
-        bool threw = false;
-        try { _ = new IntBits(1, bitCount); }
-        catch (ArgumentOutOfRangeException) { threw = true; }
-
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() => _ = new IntBits(1, bitCount)).Throws<ArgumentOutOfRangeException>();
     }
 }

@@ -16,4 +16,7 @@
     <Compile Remove="$(MSBuildProjectDirectory)\Generated\**" />
     <None Remove="$(MSBuildProjectDirectory)\Generated\**" />
   </ItemGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)ZeroAlloc.Generator\build\ZeroAlloc.Generator.targets"
+          Condition="Exists('$(MSBuildThisFileDirectory)ZeroAlloc.Generator\build\ZeroAlloc.Generator.targets')" />
 </Project>

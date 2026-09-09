@@ -3,15 +3,6 @@
 namespace ZeroAlloc.Demo;
 
 // ============================================================================
-// ZeroAlloc User-Defined Allocation Helper
-// ============================================================================
-// Step 1: Define a partial class that inherits from ZeroAllocBase.
-//         The class MUST be internal (not public) to limit usage to this assembly.
-//         The source generator will add optimized static methods to this class.
-// ============================================================================
-internal sealed partial class ZA : ZeroAllocBase { }
-
-// ============================================================================
 // Demo Types for Generated Code Showcase
 // ============================================================================
 
@@ -506,6 +497,6 @@ internal sealed class Program
         Console.WriteLine("=== Demo completed successfully! ===");
         Console.WriteLine();
         Console.WriteLine("Inspect the generated code in:");
-        Console.WriteLine("  ZeroAlloc.Demo/obj/Generated/ZeroAlloc.Generator/ZeroAlloc.Generator.ZeroAllocGenerator/ZA.ZeroAlloc.g.cs");
+        Console.WriteLine("  ZeroAlloc.Demo/obj/Generated/ZeroAlloc.Generator/ZeroAlloc.Generator.ZeroAllocGenerator/ZeroAlloc.ZA.ZeroAlloc.g.cs");
     }
 }

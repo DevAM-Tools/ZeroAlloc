@@ -380,15 +380,12 @@ public sealed class TempBytesBuilderTests
     [Test]
     public async Task SeekBack_TooMuch_ThrowsArgumentOutOfRangeException()
     {
-        bool threw = false;
+        await Assert.That(() =>
         {
             using TempBytesBuilder builder = TempBytesBuilder.Create();
             builder.Append([0x01, 0x02]);
-            try { builder.SeekBack(10); }
-            catch (ArgumentOutOfRangeException) { threw = true; }
-        }
-
-        await Assert.That(threw).IsTrue();
+            builder.SeekBack(10);
+        }).Throws<ArgumentOutOfRangeException>();
     }
 
     /// <summary>Verifies TrySeekBack Valid ReturnsTrue.</summary>
@@ -700,7 +697,8 @@ public sealed class TempBytesBuilderTests
             using TempBytesBuilder builder = TempBytesBuilder.Create();
             byteOk = builder.TryAppend(0x01);
             builder.Clear();
-            byteArrayOk = builder.TryAppend([0x02, 0x03]);
+            byte[] byteArrayPayload = [0x02, 0x03];
+            byteArrayOk = builder.TryAppend(byteArrayPayload);
             spanOk = builder.TryAppend((ReadOnlySpan<byte>)[0x04]);
             WritableByteStruct value = new() { First = 0xAA, Second = 0xBB, Third = 0xCC };
             genericOk = builder.TryAppend(value);
@@ -830,18 +828,18 @@ public sealed class TempBytesBuilderTests
             TempBytesBuilder builder = TempBytesBuilder.Create();
             try
             {
-                ZeroAllocHelper.SimulateGrowStallForCoverage = true;
+                ZeroAllocHelper.SimulateGrowStallForCoverage = 1;
                 try { builder.Append<AlwaysFailBinaryWrite>(new()); }
                 catch (InvalidOperationException) { genericThrew = true; }
 
-                ZeroAllocHelper.SimulateGrowStallForCoverage = true;
+                ZeroAllocHelper.SimulateGrowStallForCoverage = 1;
                 try { builder.AppendUtf8Formattable<AlwaysFailUtf8Format>(new()); }
                 catch (InvalidOperationException) { utf8Threw = true; }
             }
             finally
             {
                 builder.Dispose();
-                ZeroAllocHelper.SimulateGrowStallForCoverage = false;
+                ZeroAllocHelper.SimulateGrowStallForCoverage = 0;
             }
         }
 
@@ -860,16 +858,16 @@ public sealed class TempBytesBuilderTests
             TempBytesBuilder builder = TempBytesBuilder.Create();
             try
             {
-                ZeroAllocHelper.SimulateGrowStallForCoverage = true;
+                ZeroAllocHelper.SimulateGrowStallForCoverage = 1;
                 genericFail = builder.TryAppend<AlwaysFailBinaryWrite>(new());
 
-                ZeroAllocHelper.SimulateGrowStallForCoverage = true;
+                ZeroAllocHelper.SimulateGrowStallForCoverage = 1;
                 utf8Fail = builder.TryAppendUtf8Formattable<AlwaysFailUtf8Format>(new());
             }
             finally
             {
                 builder.Dispose();
-                ZeroAllocHelper.SimulateGrowStallForCoverage = false;
+                ZeroAllocHelper.SimulateGrowStallForCoverage = 0;
             }
         }
 

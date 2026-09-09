@@ -1,10 +1,6 @@
 ﻿// Copyright © 2026 DevAM. All rights reserved. Licensed under MIT license. See license in the repository root for license information.
 
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
-
-// For netstandard2.0 compatibility (required for source generators)
+// Polyfill for init-only setters on netstandard2.0 (Roslyn generator host).
 #if !NET5_0_OR_GREATER
 
 namespace System.Runtime.CompilerServices;

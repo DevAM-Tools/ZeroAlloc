@@ -281,15 +281,12 @@ public sealed class TempStringBuilderTests
     [Test]
     public async Task SeekBack_TooMuch_ThrowsArgumentOutOfRangeException()
     {
-        bool threw = false;
+        await Assert.That(() =>
         {
             using TempStringBuilder builder = TempStringBuilder.Create();
             builder.Append("Hi");
-            try { builder.SeekBack(10); }
-            catch (ArgumentOutOfRangeException) { threw = true; }
-        }
-
-        await Assert.That(threw).IsTrue();
+            builder.SeekBack(10);
+        }).Throws<ArgumentOutOfRangeException>();
     }
 
     /// <summary>Verifies TrySeekBack Valid ReturnsTrue.</summary>
@@ -801,14 +798,14 @@ public sealed class TempStringBuilderTests
             TempStringBuilder builder = TempStringBuilder.Create();
             try
             {
-                ZeroAllocHelper.SimulateGrowStallForCoverage = true;
+                ZeroAllocHelper.SimulateGrowStallForCoverage = 1;
                 try { builder.Append<AlwaysFailSpanFormat>(new(), default); }
                 catch (InvalidOperationException) { threw = true; }
             }
             finally
             {
                 builder.Dispose();
-                ZeroAllocHelper.SimulateGrowStallForCoverage = false;
+                ZeroAllocHelper.SimulateGrowStallForCoverage = 0;
             }
         }
 
@@ -825,13 +822,13 @@ public sealed class TempStringBuilderTests
             TempStringBuilder builder = TempStringBuilder.Create();
             try
             {
-                ZeroAllocHelper.SimulateGrowStallForCoverage = true;
+                ZeroAllocHelper.SimulateGrowStallForCoverage = 1;
                 failed = !builder.TryAppend<AlwaysFailSpanFormat>(new(), default);
             }
             finally
             {
                 builder.Dispose();
-                ZeroAllocHelper.SimulateGrowStallForCoverage = false;
+                ZeroAllocHelper.SimulateGrowStallForCoverage = 0;
             }
         }
 

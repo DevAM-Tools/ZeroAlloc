@@ -11,7 +11,7 @@ namespace ZeroAlloc;
 public ref struct BitReader
 {
     private readonly ReadOnlySpan<byte> _Buffer;
-    private int _BitOffset; // Global bit offset from start of buffer
+    private long _BitOffset; // Global bit offset from start of buffer
 
     /// <summary>
     /// Initializes a new BitReader with the specified buffer.
@@ -26,18 +26,19 @@ public ref struct BitReader
 
     /// <summary>
     /// Gets the current bit offset from the start of the buffer.
+    /// Stored as <see cref="long"/> so buffers larger than 256 MiB remain addressable.
     /// </summary>
-    public readonly int BitOffset => _BitOffset;
+    public readonly long BitOffset => _BitOffset;
 
     /// <summary>
     /// Gets the current byte position (rounded down).
     /// </summary>
-    public readonly int BytePosition => _BitOffset >> 3;
+    public readonly int BytePosition => (int)(_BitOffset >> 3);
 
     /// <summary>
     /// Gets the bit position within the current byte (0-7).
     /// </summary>
-    public readonly int BitPositionInByte => _BitOffset & 7;
+    public readonly int BitPositionInByte => (int)(_BitOffset & 7);
 
     /// <summary>
     /// Gets whether the reader is currently byte-aligned.
@@ -58,11 +59,11 @@ public ref struct BitReader
         }
 
         // Ensure enough bits remain in the buffer before accessing data
-        int totalBits = _Buffer.Length << 3;
-        if (_BitOffset + bitCount > totalBits)
+        if (bitCount > _TotalBits - _BitOffset)
         {
             throw new InvalidOperationException(
-                $"Cannot read {bitCount} bits: only {totalBits - _BitOffset} bits remaining");
+                string.Create(CultureInfo.InvariantCulture,
+                    $"Cannot read {bitCount} bits: only {_TotalBits - _BitOffset} bits remaining"));
         }
 
         return _ReadBitsCore(bitCount);
@@ -76,10 +77,10 @@ public ref struct BitReader
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private ulong _ReadBitsCore(int bitCount)
     {
-        int bytePos = _BitOffset >> 3;
-        int bitPos = _BitOffset & 7;
+        int bytePos = (int)(_BitOffset >> 3);
+        int bitPos = (int)(_BitOffset & 7);
         ulong value = bitPos == 0 ? _ReadBitsAligned(bytePos, bitCount) : _ReadBitsUnaligned(bytePos, bitPos, bitCount);
-        _BitOffset += bitCount;
+        _AdvanceBits(bitCount);
         return value;
     }
 
@@ -145,10 +146,10 @@ public ref struct BitReader
             throw new InvalidOperationException("Cannot read 1 bit: no bits remaining");
         }
 
-        int bytePos = _BitOffset >> 3;
-        int bitPos = _BitOffset & 7;
+        int bytePos = (int)(_BitOffset >> 3);
+        int bitPos = (int)(_BitOffset & 7);
         bool bit = ((_Buffer[bytePos] >> (7 - bitPos)) & 1) == 1;
-        _BitOffset++;
+        _AdvanceBits(1);
         return new Bit1(bit);
     }
 
@@ -228,11 +229,12 @@ public ref struct BitReader
             if (RemainingBits < 8)
             {
                 throw new InvalidOperationException(
-                    $"Cannot read 8 bits: only {RemainingBits} bits remaining");
+                    string.Create(CultureInfo.InvariantCulture,
+                        $"Cannot read 8 bits: only {RemainingBits} bits remaining"));
             }
 
             byte value = _Buffer[BytePosition];
-            _BitOffset += 8;
+            _AdvanceBits(8);
             return value;
         }
         return (byte)ReadBits(8);
@@ -293,10 +295,10 @@ public ref struct BitReader
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AlignToNextByte()
     {
-        int remainder = _BitOffset & 7;
+        int remainder = (int)(_BitOffset & 7);
         if (remainder != 0)
         {
-            _BitOffset += 8 - remainder;
+            _AdvanceBits(8 - remainder);
         }
     }
 
@@ -311,13 +313,14 @@ public ref struct BitReader
             throw new ArgumentOutOfRangeException(nameof(bitCount), "BitCount must be non-negative");
         }
 
-        if (bitCount > RemainingBits)
+        if ((long)bitCount > _TotalBits - _BitOffset)
         {
             throw new InvalidOperationException(
-                $"Cannot skip {bitCount} bits: only {RemainingBits} bits remaining");
+                string.Create(CultureInfo.InvariantCulture,
+                    $"Cannot skip {bitCount} bits: only {_TotalBits - _BitOffset} bits remaining"));
         }
 
-        _BitOffset += bitCount;
+        _AdvanceBits(bitCount);
     }
 
     /// <summary>
@@ -341,24 +344,130 @@ public ref struct BitReader
         if (byteCount > RemainingBytes)
         {
             throw new InvalidOperationException(
-                $"Cannot read {byteCount} bytes: only {RemainingBytes} bytes remaining");
+                string.Create(CultureInfo.InvariantCulture,
+                    $"Cannot read {byteCount} bytes: only {RemainingBytes} bytes remaining"));
         }
 
         // Capture offset before mutation so state is never partially modified on failure
-        int byteOffset = _BitOffset >> 3;
-        _BitOffset += byteCount << 3;
+        int byteOffset = (int)(_BitOffset >> 3);
+        _AdvanceBits(ByteLengthToBitCapacity(byteCount));
         return _Buffer.Slice(byteOffset, byteCount);
     }
 
     /// <summary>
-    /// Gets the remaining bits available in the buffer.
+    /// Adds a bit advance to a bit offset without wrapping <see cref="long"/>.
+    /// Returns <see langword="false"/> when either input is negative or the sum overflows.
     /// </summary>
-    public readonly int RemainingBits => (_Buffer.Length << 3) - _BitOffset;
+    internal static bool TryAddBitOffset(long bitOffset, long bitAdvance, out long newOffset)
+    {
+        if (bitOffset < 0 || bitAdvance < 0)
+        {
+            newOffset = bitOffset;
+            return false;
+        }
+
+        long sum = bitOffset + bitAdvance;
+        if (sum < bitOffset)
+        {
+            newOffset = bitOffset;
+            return false;
+        }
+
+        newOffset = sum;
+        return true;
+    }
+
+    /// <summary>
+    /// Advances the bit cursor by <paramref name="bitAdvance"/> bits, throwing when the sum would wrap <see cref="long"/>.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void _AdvanceBits(long bitAdvance)
+    {
+        if (!TryAddBitOffset(_BitOffset, bitAdvance, out long newOffset))
+        {
+            throw new InvalidOperationException(
+                string.Create(CultureInfo.InvariantCulture,
+                    $"Cannot advance {bitAdvance} bits: bit offset would overflow"));
+        }
+
+        _BitOffset = newOffset;
+    }
+
+    /// <summary>
+    /// Tries to advance the bit cursor by <paramref name="bitAdvance"/> bits without wrapping <see cref="long"/>.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private bool _TryAdvanceBits(long bitAdvance)
+    {
+        if (!TryAddBitOffset(_BitOffset, bitAdvance, out long newOffset))
+        {
+            return false;
+        }
+
+        _BitOffset = newOffset;
+        return true;
+    }
+
+    /// <summary>
+    /// Converts a byte length to a bit capacity without overflowing a 32-bit left shift.
+    /// </summary>
+    /// <param name="byteLength">Buffer length in bytes. Negative values are treated as empty.</param>
+    /// <returns>The bit capacity as <c>byteLength * 8</c> in 64-bit arithmetic.</returns>
+    internal static long ByteLengthToBitCapacity(int byteLength)
+    {
+        if (byteLength <= 0)
+        {
+            return 0;
+        }
+
+        return (long)byteLength * 8L;
+    }
+
+    /// <summary>
+    /// Total bits addressable in the current buffer, computed in 64-bit arithmetic.
+    /// </summary>
+    private readonly long _TotalBits => ByteLengthToBitCapacity(_Buffer.Length);
+
+    /// <summary>
+    /// Gets the remaining bits available in the buffer.
+    /// Values larger than <see cref="int.MaxValue"/> saturate at <see cref="int.MaxValue"/>.
+    /// </summary>
+    public readonly int RemainingBits
+    {
+        get
+        {
+            long remaining = _TotalBits - _BitOffset;
+            if (remaining <= 0)
+            {
+                return 0;
+            }
+
+            return remaining > int.MaxValue
+                ? int.MaxValue
+                : (int)remaining;
+        }
+    }
 
     /// <summary>
     /// Gets the remaining bytes available in the buffer (rounded down).
+    /// Values larger than <see cref="int.MaxValue"/> saturate at <see cref="int.MaxValue"/>.
     /// </summary>
-    public readonly int RemainingBytes => ((_Buffer.Length << 3) - _BitOffset) >> 3;
+    public readonly int RemainingBytes
+    {
+        get
+        {
+            long remaining = _TotalBits - _BitOffset;
+            if (remaining <= 0)
+            {
+                return 0;
+            }
+
+            long bytes = remaining >> 3;
+            return bytes > int.MaxValue
+                ? int.MaxValue
+                : (int)bytes;
+        }
+    }
 
     #region Try-Read Methods
 
@@ -401,10 +510,10 @@ public ref struct BitReader
         }
 
         // Inline ReadBit1's fast path — avoids a second RemainingBits check.
-        int bytePos = _BitOffset >> 3;
-        int bitPos = _BitOffset & 7;
+        int bytePos = (int)(_BitOffset >> 3);
+        int bitPos = (int)(_BitOffset & 7);
         value = new Bit1(((_Buffer[bytePos] >> (7 - bitPos)) & 1) == 1);
-        _BitOffset++;
+        _AdvanceBits(1);
         return true;
     }
 
@@ -585,7 +694,7 @@ public ref struct BitReader
         if (IsByteAligned)
         {
             value = _Buffer[BytePosition];
-            _BitOffset += 8;
+            _AdvanceBits(8);
         }
         else
         {
@@ -710,12 +819,11 @@ public ref struct BitReader
             throw new ArgumentOutOfRangeException(nameof(bitCount), "BitCount must be non-negative");
         }
 
-        if (bitCount > RemainingBits)
+        if ((long)bitCount > _TotalBits - _BitOffset || !_TryAdvanceBits(bitCount))
         {
             return false;
         }
 
-        _BitOffset += bitCount;
         return true;
     }
 
@@ -738,8 +846,13 @@ public ref struct BitReader
             return false;
         }
 
-        int byteOffset = _BitOffset >> 3;
-        _BitOffset += byteCount << 3;
+        int byteOffset = (int)(_BitOffset >> 3);
+        if (!_TryAdvanceBits(ByteLengthToBitCapacity(byteCount)))
+        {
+            value = default;
+            return false;
+        }
+
         value = _Buffer.Slice(byteOffset, byteCount);
         return true;
     }

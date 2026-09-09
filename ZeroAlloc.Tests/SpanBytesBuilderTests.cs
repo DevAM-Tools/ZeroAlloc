@@ -573,6 +573,28 @@ public sealed class SpanBytesBuilderTests
         await Assert.That(length).IsEqualTo(0);
     }
 
+    /// <summary>Verifies Append ByteArray WritesBytes.</summary>
+    [Test]
+    public async Task Append_ByteArray_WritesBytes()
+    {
+        int length;
+        byte first;
+        byte second;
+        {
+            Span<byte> buffer = stackalloc byte[8];
+            SpanBytesBuilder builder = new(buffer);
+            byte[] bytes = [0x0A, 0x0B];
+            builder.Append(bytes);
+            length = builder.Length;
+            first = buffer[0];
+            second = buffer[1];
+        }
+
+        await Assert.That(length).IsEqualTo(2);
+        await Assert.That((int)first).IsEqualTo(0x0A);
+        await Assert.That((int)second).IsEqualTo(0x0B);
+    }
+
     /// <summary>Verifies Append EmptySpan DoesNothing.</summary>
     [Test]
     public async Task Append_EmptySpan_DoesNothing()
@@ -775,20 +797,24 @@ public sealed class SpanBytesBuilderTests
     public async Task ExitCoverage_TryAppendByteArray_AndGeneric_Succeed()
     {
         bool arrayOk;
+        bool byteArrayOverloadOk;
         bool genericOk;
         int length;
         {
             Span<byte> buffer = stackalloc byte[32];
             SpanBytesBuilder builder = new(buffer);
             arrayOk = builder.TryAppend([0x0A, 0x0B]);
+            byte[] byteArrayPayload = [0x0C, 0x0D];
+            byteArrayOverloadOk = builder.TryAppend(byteArrayPayload);
             WritableByteStruct value = new() { First = 0x01, Second = 0x02, Third = 0x03 };
             genericOk = builder.TryAppend(value);
             length = builder.Length;
         }
 
         await Assert.That(arrayOk).IsTrue();
+        await Assert.That(byteArrayOverloadOk).IsTrue();
         await Assert.That(genericOk).IsTrue();
-        await Assert.That(length).IsEqualTo(5);
+        await Assert.That(length).IsEqualTo(7);
     }
 
     /// <summary>Verifies ExitCoverage TryAppend InsufficientSpace ReturnsFalse.</summary>

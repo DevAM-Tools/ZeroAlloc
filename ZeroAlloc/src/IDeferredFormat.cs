@@ -8,6 +8,10 @@ namespace ZeroAlloc;
 /// </summary>
 internal interface IDeferredFormat
 {
+    #region Public API
+
     /// <summary>Evaluates the deferred format and returns the result string.</summary>
     string Evaluate();
+
+    #endregion
 }

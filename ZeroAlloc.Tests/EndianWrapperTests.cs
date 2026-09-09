@@ -602,6 +602,19 @@ public sealed class EndianWrapperTests
         await Assert.That(value.Value).IsEqualTo(0UL);
     }
 
+    /// <summary>Verifies VarInt.TryParse rejects a 10th byte whose payload bits extend past bit 63.</summary>
+    [Test]
+    public async Task VarInt_TryParse_TenthByteOverflowBits_ReturnsFalse()
+    {
+        ReadOnlySpan<byte> overflow = [0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x02];
+
+        bool success = VarInt.TryParse(overflow, out VarInt value, out int consumed);
+
+        await Assert.That(success).IsFalse();
+        await Assert.That(consumed).IsEqualTo(0);
+        await Assert.That(value.Value).IsEqualTo(0UL);
+    }
+
     /// <summary>Verifies smaller integer types implicitly widen into VarInt.</summary>
     [Test]
     public async Task VarInt_ImplicitConversion_FromByte_PreservesValue()

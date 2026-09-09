@@ -942,6 +942,29 @@ public sealed class BinaryParsableTests
         await Assert.That(result.Message).IsEqualTo("Hello");
         await Assert.That(consumed).IsEqualTo(7);
     }
+    /// <summary>Hostile BE32 length prefix must not allocate or throw.</summary>
+    [Test]
+    public async Task StringBE4Attr_HostileLengthPrefix_ReturnsFalse()
+    {
+        byte[] data = [0x7F, 0xFF, 0xFF, 0xFF];
+
+        bool success = StringBE4AttrTestStruct.TryParse(data, out _, out int consumed);
+
+        await Assert.That(success).IsFalse();
+        await Assert.That(consumed).IsEqualTo(0);
+    }
+
+    /// <summary>Length prefix under remaining bytes but over StringMaxLength must not GetString.</summary>
+    [Test]
+    public async Task StringBE4Max8Attr_LengthOverCap_ReturnsFalse()
+    {
+        byte[] data = [0x00, 0x00, 0x00, 0x64, .. new byte[100]];
+
+        bool success = StringBE4Max8AttrTestStruct.TryParse(data, out _, out int consumed);
+
+        await Assert.That(success).IsFalse();
+        await Assert.That(consumed).IsEqualTo(0);
+    }
     /// <summary>Verifies StringLE2Attr ParsesLittleEndianLengthPrefixedString.</summary>
     [Test]
     public async Task StringLE2Attr_ParsesLittleEndianLengthPrefixedString()
@@ -1369,6 +1392,25 @@ public readonly partial struct StringBE2AttrTestStruct
 {
     /// <summary>Gets the Message field.</summary>
     [StringLengthBE(2)]
+    public string Message { get; init; }
+}
+
+/// <summary>String with 4-byte big-endian length prefix for hostile-prefix tests.</summary>
+[BinaryParsable]
+public readonly partial struct StringBE4AttrTestStruct
+{
+    /// <summary>Gets the Message field.</summary>
+    [StringLengthBE(4)]
+    public string Message { get; init; }
+}
+
+/// <summary>BE32 string with an 8-byte UTF-8 cap so remaining-length does not hide the cap.</summary>
+[BinaryParsable]
+public readonly partial struct StringBE4Max8AttrTestStruct
+{
+    /// <summary>Gets the Message field.</summary>
+    [StringLengthBE(4)]
+    [StringMaxLength(8)]
     public string Message { get; init; }
 }
 

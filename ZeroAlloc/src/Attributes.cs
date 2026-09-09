@@ -386,6 +386,28 @@ public enum Endianness
 public sealed class StringLengthVarIntAttribute : Attribute { }
 
 /// <summary>
+/// Caps UTF-8 byte length when generating <c>TryParse</c> for a string member.
+/// </summary>
+/// <remarks>
+/// Without this attribute, generated parsers use a default of 1,048,576 bytes (1 MiB).
+/// Hostile length prefixes above the cap make <c>TryParse</c> return false without allocating.
+/// </remarks>
+[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
+public sealed class StringMaxLengthAttribute : Attribute
+{
+    /// <summary>Maximum UTF-8 payload size in bytes.</summary>
+    public int MaxBytes { get; }
+
+    /// <summary>Creates a max-length cap for generated string members.</summary>
+    /// <param name="maxBytes">Maximum UTF-8 bytes; must be greater than zero.</param>
+    public StringMaxLengthAttribute(int maxBytes)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxBytes);
+        MaxBytes = maxBytes;
+    }
+}
+
+/// <summary>
 /// Marks a string member as having a fixed-size big-endian length prefix.
 /// </summary>
 [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]

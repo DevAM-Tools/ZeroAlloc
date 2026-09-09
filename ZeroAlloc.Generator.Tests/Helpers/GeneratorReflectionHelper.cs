@@ -98,13 +98,7 @@ internal static class GeneratorReflectionHelper
     ];
 
     /// <summary>Type names mirrored from <c>ZeroAllocGenerator</c> recursion detection.</summary>
-    public static HashSet<string> CreateZeroAllocTypeNames() =>
-    [
-        "TempString", "TempBytes",
-        "TempStringBuilder", "TempBytesBuilder",
-        "ZeroStringBuilder", "ZeroBytesBuilder",
-        "StackStringBuilder", "StackBytesBuilder",
-    ];
+    public static HashSet<string> CreateZeroAllocTypeNames() => [.. ZeroAllocGenerator.RecursionTypeNames];
 
     private static GeneratorSyntaxContext _CreateGeneratorSyntaxContext(SyntaxNode node, SemanticModel semanticModel)
     {

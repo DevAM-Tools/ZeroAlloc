@@ -21,7 +21,8 @@ public sealed class BitReaderTests
         // Arrange - 0b10000000 = 0x80
         byte[] data = [0x80];
         bool bitValue;
-        int bitOffset;
+        long bitOffset;
+
         {
             BitReader reader = new(data);
 
@@ -80,7 +81,8 @@ public sealed class BitReaderTests
         // Arrange - 0b11000000 = 0xC0 -> 2 bits = 3
         byte[] data = [0xC0];
         byte resultValue;
-        int bitOffset;
+        long bitOffset;
+
         {
             BitReader reader = new(data);
 
@@ -102,7 +104,8 @@ public sealed class BitReaderTests
         // Arrange - 0b10100000 = 0xA0 -> 3 bits = 5
         byte[] data = [0xA0];
         byte resultValue;
-        int bitOffset;
+        long bitOffset;
+
         {
             BitReader reader = new(data);
 
@@ -124,7 +127,8 @@ public sealed class BitReaderTests
         // Arrange - 0b11110000 = 0xF0 -> 4 bits = 15
         byte[] data = [0xF0];
         byte resultValue;
-        int bitOffset;
+        long bitOffset;
+
         {
             BitReader reader = new(data);
 
@@ -146,7 +150,8 @@ public sealed class BitReaderTests
         // Arrange - 0b10101000 = 0xA8 -> 5 bits = 21
         byte[] data = [0xA8];
         byte resultValue;
-        int bitOffset;
+        long bitOffset;
+
         {
             BitReader reader = new(data);
 
@@ -168,7 +173,8 @@ public sealed class BitReaderTests
         // Arrange - 0b10101000 = 0xA8 -> 6 bits = 42
         byte[] data = [0xA8];
         byte resultValue;
-        int bitOffset;
+        long bitOffset;
+
         {
             BitReader reader = new(data);
 
@@ -190,7 +196,8 @@ public sealed class BitReaderTests
         // Arrange - 0b10101010 = 0xAA -> 7 bits = 85
         byte[] data = [0xAA];
         byte resultValue;
-        int bitOffset;
+        long bitOffset;
+
         {
             BitReader reader = new(data);
 
@@ -327,17 +334,18 @@ public sealed class BitReaderTests
         BitReader reader = new(data);
 
         // Act & Assert — zero bits (try-catch because BitReader is a ref struct)
-        bool threw0 = false;
+        // ref struct cannot be captured in Throws lambda
+        bool threw = false;
         try { reader.ReadBits(0); }
-        catch (ArgumentOutOfRangeException) { threw0 = true; }
-        await Assert.That(threw0).IsTrue();
+        catch (ArgumentOutOfRangeException) { threw = true; }
+        await Assert.That(threw).IsTrue();
 
         // Act & Assert — 65 bits
-        BitReader reader2 = new(data);
-        bool threw65 = false;
-        try { reader2.ReadBits(65); }
-        catch (ArgumentOutOfRangeException) { threw65 = true; }
-        await Assert.That(threw65).IsTrue();
+        await Assert.That(() =>
+        {
+            BitReader reader2 = new(data);
+            reader2.ReadBits(65);
+        }).Throws<ArgumentOutOfRangeException>();
     }
 
     // ========================================================================
@@ -352,7 +360,8 @@ public sealed class BitReaderTests
         // Arrange
         byte[] data = [0xAB];
         byte result;
-        int bitOffset;
+        long bitOffset;
+
         {
             BitReader reader = new(data);
 
@@ -508,7 +517,8 @@ public sealed class BitReaderTests
         byte[] data = [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
                         0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10];
         UInt128 result;
-        int bitOffset;
+        long bitOffset;
+
         {
             BitReader reader = new(data);
 
@@ -676,7 +686,8 @@ public sealed class BitReaderTests
         // Arrange
         byte[] data = [0xFF, 0xAB];
         bool isByteAligned;
-        int bitOffset;
+        long bitOffset;
+
         {
             BitReader reader = new(data);
             reader.ReadBit1(); // Now at bit 1
@@ -698,7 +709,8 @@ public sealed class BitReaderTests
     {
         // Arrange
         byte[] data = [0x00];
-        int bitOffset;
+        long bitOffset;
+
         {
             BitReader reader = new(data);
 
@@ -717,7 +729,8 @@ public sealed class BitReaderTests
     {
         // Arrange
         byte[] data = [0x00, 0x00];
-        int bitOffset;
+        long bitOffset;
+
         bool isByteAligned;
         {
             BitReader reader = new(data);
@@ -745,7 +758,8 @@ public sealed class BitReaderTests
     {
         // Arrange
         byte[] data = [0x00, 0xAB];
-        int bitOffset;
+        long bitOffset;
+
         byte nextByte;
         {
             BitReader reader = new(data);
@@ -767,7 +781,8 @@ public sealed class BitReaderTests
     {
         // Arrange
         byte[] data = [0x00, 0x00];
-        int bitOffset;
+        long bitOffset;
+
         bool isByteAligned;
         {
             BitReader reader = new(data);
@@ -795,7 +810,8 @@ public sealed class BitReaderTests
         // Arrange
         byte[] data = [0x01, 0x02, 0x03, 0x04];
         byte[] resultArray;
-        int bitOffset;
+        long bitOffset;
+
         {
             BitReader reader = new(data);
 
@@ -820,6 +836,7 @@ public sealed class BitReaderTests
         reader.ReadBit1(); // Not aligned
 
         // Act & Assert (try-catch because BitReader is a ref struct)
+        // ref struct cannot be captured in Throws lambda
         bool threw = false;
         try { reader.ReadBytes(2); }
         catch (InvalidOperationException) { threw = true; }
@@ -837,7 +854,7 @@ public sealed class BitReaderTests
     {
         // Arrange
         byte[] data = [0x00, 0x00];
-        int bitOffset0, bitOffset1, bitOffset5;
+        long bitOffset0, bitOffset1, bitOffset5;
         {
             BitReader reader = new(data);
 
@@ -924,6 +941,38 @@ public sealed class BitReaderTests
 
         await Assert.That(remaining0).IsEqualTo(16);
         await Assert.That(remaining1).IsEqualTo(8);
+    }
+
+    /// <summary>Verifies byte-length to bit-capacity conversion does not wrap at the 32-bit shift boundary.</summary>
+    [Test]
+    [Arguments(0, 0L)]
+    [Arguments(1, 8L)]
+    [Arguments(268_435_455, 2_147_483_640L)]
+    [Arguments(268_435_456, 2_147_483_648L)]
+    [Arguments(int.MaxValue, 17_179_869_176L)]
+    [Arguments(-1, 0L)]
+    public async Task BitReader_ByteLengthToBitCapacity_DoesNotOverflowIntShift(int byteLength, long expectedBits)
+    {
+        long actual = BitReader.ByteLengthToBitCapacity(byteLength);
+
+        await Assert.That(actual).IsEqualTo(expectedBits);
+    }
+
+    /// <summary>Verifies bit-offset addition uses 64-bit arithmetic past the 32-bit shift boundary.</summary>
+    [Test]
+    [Arguments(0L, 8L, true, 8L)]
+    [Arguments(0L, 2_147_483_647L, true, 2_147_483_647L)]
+    [Arguments(0L, 2_147_483_648L, true, 2_147_483_648L)]
+    [Arguments(2_147_483_647L, 1L, true, 2_147_483_648L)]
+    [Arguments(8L, -1L, false, 8L)]
+    [Arguments(-1L, 8L, false, -1L)]
+    [Arguments(long.MaxValue, 1L, false, long.MaxValue)]
+    public async Task BitReader_TryAddBitOffset_Uses64BitArithmetic(long bitOffset, long bitAdvance, bool expectedOk, long expectedOffset)
+    {
+        bool ok = BitReader.TryAddBitOffset(bitOffset, bitAdvance, out long newOffset);
+
+        await Assert.That(ok).IsEqualTo(expectedOk);
+        await Assert.That(newOffset).IsEqualTo(expectedOffset);
     }
 
     // ========================================================================
@@ -1041,6 +1090,7 @@ public sealed class BitReaderTests
         byte[] data = [0xFF];
         BitReader reader = new(data);
         for (int i = 0; i < 8; i++) { reader.ReadBit1(); }
+        // ref struct cannot be captured in Throws lambda
         bool threw = false;
         try { reader.ReadBit1(); }
         catch (InvalidOperationException) { threw = true; }
@@ -1052,11 +1102,11 @@ public sealed class BitReaderTests
     public async Task BitReader_ReadBit1_EmptyBuffer_ThrowsInvalidOperationException()
     {
         byte[] empty = [];
-        BitReader reader = new(empty);
-        bool threw = false;
-        try { reader.ReadBit1(); }
-        catch (InvalidOperationException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BitReader reader = new(empty);
+            reader.ReadBit1();
+        }).Throws<InvalidOperationException>();
     }
 
     // ========================================================================
@@ -1071,6 +1121,7 @@ public sealed class BitReaderTests
         byte[] data = [0xAB];
         BitReader reader = new(data);
         reader.ReadByte();
+        // ref struct cannot be captured in Throws lambda
         bool threw = false;
         try { reader.ReadByte(); }
         catch (InvalidOperationException) { threw = true; }
@@ -1082,11 +1133,11 @@ public sealed class BitReaderTests
     public async Task BitReader_ReadByte_Aligned_EmptyBuffer_ThrowsInvalidOperationException()
     {
         byte[] empty = [];
-        BitReader reader = new(empty);
-        bool threw = false;
-        try { reader.ReadByte(); }
-        catch (InvalidOperationException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BitReader reader = new(empty);
+            reader.ReadByte();
+        }).Throws<InvalidOperationException>();
     }
 
     // ========================================================================
@@ -1099,11 +1150,11 @@ public sealed class BitReaderTests
     public async Task BitReader_SkipBits_NegativeCount_ThrowsArgumentOutOfRangeException()
     {
         byte[] data = [0xFF, 0xFF];
-        BitReader reader = new(data);
-        bool threw = false;
-        try { reader.SkipBits(-1); }
-        catch (ArgumentOutOfRangeException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BitReader reader = new(data);
+            reader.SkipBits(-1);
+        }).Throws<ArgumentOutOfRangeException>();
     }
 
     /// <summary>Verifies SkipBits throws when count exceeds remaining bits.</summary>
@@ -1111,11 +1162,11 @@ public sealed class BitReaderTests
     public async Task BitReader_SkipBits_ExceedsRemaining_ThrowsInvalidOperationException()
     {
         byte[] data = [0xFF];
-        BitReader reader = new(data);
-        bool threw = false;
-        try { reader.SkipBits(9); }
-        catch (InvalidOperationException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BitReader reader = new(data);
+            reader.SkipBits(9);
+        }).Throws<InvalidOperationException>();
     }
 
     /// <summary>Verifies SkipBits of exactly remaining bits does not throw.</summary>
@@ -1139,7 +1190,7 @@ public sealed class BitReaderTests
     public async Task BitReader_SkipBits_Overflow_DoesNotMutateOffset()
     {
         byte[] data = [0xFF];
-        int offsetBefore, offsetAfter;
+        long offsetBefore, offsetAfter;
         {
             BitReader reader = new(data);
             offsetBefore = reader.BitOffset;
@@ -1163,11 +1214,11 @@ public sealed class BitReaderTests
     public async Task BitReader_ReadBytes_NegativeCount_ThrowsArgumentOutOfRangeException()
     {
         byte[] data = [0xFF, 0xFF];
-        BitReader reader = new(data);
-        bool threw = false;
-        try { reader.ReadBytes(-1); }
-        catch (ArgumentOutOfRangeException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BitReader reader = new(data);
+            reader.ReadBytes(-1);
+        }).Throws<ArgumentOutOfRangeException>();
     }
 
     /// <summary>Verifies ReadBytes throws when count exceeds remaining bytes.</summary>
@@ -1175,11 +1226,11 @@ public sealed class BitReaderTests
     public async Task BitReader_ReadBytes_ExceedsRemaining_ThrowsInvalidOperationException()
     {
         byte[] data = [0xFF];
-        BitReader reader = new(data);
-        bool threw = false;
-        try { reader.ReadBytes(2); }
-        catch (InvalidOperationException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BitReader reader = new(data);
+            reader.ReadBytes(2);
+        }).Throws<InvalidOperationException>();
     }
 
     /// <summary>Verifies ReadBytes does not mutate BitOffset on failure (checks before mutation).</summary>
@@ -1187,7 +1238,7 @@ public sealed class BitReaderTests
     public async Task BitReader_ReadBytes_Overflow_DoesNotMutateOffset()
     {
         byte[] data = [0xFF, 0xFF];
-        int offsetBefore, offsetAfter;
+        long offsetBefore, offsetAfter;
         {
             BitReader reader = new(data);
             offsetBefore = reader.BitOffset;
@@ -1208,6 +1259,7 @@ public sealed class BitReaderTests
         byte[] data = [0xFF, 0xFF];
         BitReader reader = new(data);
         reader.ReadBit1();
+        // ref struct cannot be captured in Throws lambda
         bool threw = false;
         try { reader.ReadBytes(1); }
         catch (InvalidOperationException) { threw = true; }
@@ -1226,7 +1278,8 @@ public sealed class BitReaderTests
         byte[] data = [0b10110100];
         bool ok;
         ulong value;
-        int bitOffset;
+        long bitOffset;
+
         {
             BitReader reader = new(data);
             ok = reader.TryReadBits(4, out value);
@@ -1528,7 +1581,8 @@ public sealed class BitReaderTests
     {
         byte[] data = [0xAB, 0xCD];
         bool ok;
-        int bitOffset;
+        long bitOffset;
+
         {
             BitReader reader = new(data);
             ok = reader.TrySkipBits(8);
@@ -1546,7 +1600,8 @@ public sealed class BitReaderTests
         byte[] data = [0x01, 0x02, 0x03];
         bool ok;
         byte[] valueArray;
-        int bitOffset;
+        long bitOffset;
+
         {
             BitReader reader = new(data);
             ok = reader.TryReadBytes(2, out ReadOnlySpan<byte> value);
@@ -1573,7 +1628,8 @@ public sealed class BitReaderTests
         byte[] data = [0xFF];
         bool ok;
         ulong value;
-        int bitOffset;
+        long bitOffset;
+
         {
             BitReader reader = new(data);
             reader.TryReadBits(6, out ulong _); // consume 6 bits, 2 remain
@@ -1591,7 +1647,8 @@ public sealed class BitReaderTests
     public async Task BitReader_TryReadBit1_EmptyBuffer_ReturnsFalse()
     {
         bool ok;
-        int bitOffset;
+        long bitOffset;
+
         {
             BitReader reader = new([]);
             ok = reader.TryReadBit1(out Bit1 _);
@@ -1608,7 +1665,8 @@ public sealed class BitReaderTests
     {
         byte[] data = [0xFF];
         bool ok;
-        int bitOffset;
+        long bitOffset;
+
         {
             BitReader reader = new(data);
             reader.TryReadBits(7, out ulong _); // 1 bit left
@@ -1626,7 +1684,8 @@ public sealed class BitReaderTests
     {
         byte[] data = [0xFF];
         bool ok;
-        int bitOffset;
+        long bitOffset;
+
         {
             BitReader reader = new(data);
             reader.TryReadBits(5, out ulong _); // 3 bits left
@@ -1645,7 +1704,8 @@ public sealed class BitReaderTests
         byte[] data = [0xFF];
         bool ok;
         byte value;
-        int bitOffset;
+        long bitOffset;
+
         {
             BitReader reader = new(data);
             reader.TryReadBits(4, out ulong _); // 4 bits left
@@ -1664,7 +1724,8 @@ public sealed class BitReaderTests
     {
         byte[] data = [0xFF]; // only 8 bits
         bool ok;
-        int bitOffset;
+        long bitOffset;
+
         {
             BitReader reader = new(data);
             ok = reader.TryReadUInt16(out ushort _);
@@ -1681,7 +1742,8 @@ public sealed class BitReaderTests
     {
         byte[] data = [0x01, 0x02]; // only 16 bits
         bool ok;
-        int bitOffset;
+        long bitOffset;
+
         {
             BitReader reader = new(data);
             ok = reader.TryReadUInt32(out uint _);
@@ -1698,7 +1760,8 @@ public sealed class BitReaderTests
     {
         byte[] data = [0x01, 0x02, 0x03, 0x04]; // only 32 bits
         bool ok;
-        int bitOffset;
+        long bitOffset;
+
         {
             BitReader reader = new(data);
             ok = reader.TryReadUInt64(out ulong _);
@@ -1715,7 +1778,8 @@ public sealed class BitReaderTests
     {
         byte[] data = [0x01, 0x02]; // only 16 bits
         bool ok;
-        int bitOffset;
+        long bitOffset;
+
         {
             BitReader reader = new(data);
             ok = reader.TryReadInt32(out int _);
@@ -1732,7 +1796,8 @@ public sealed class BitReaderTests
     {
         byte[] data = [0xFF];
         bool ok;
-        int bitOffset;
+        long bitOffset;
+
         {
             BitReader reader = new(data);
             ok = reader.TrySkipBits(9);
@@ -1748,7 +1813,8 @@ public sealed class BitReaderTests
     public async Task BitReader_TrySkipBits_Zero_AlwaysReturnsTrue()
     {
         bool ok;
-        int bitOffset;
+        long bitOffset;
+
         {
             BitReader reader = new([]);
             ok = reader.TrySkipBits(0);
@@ -1765,7 +1831,8 @@ public sealed class BitReaderTests
     {
         byte[] data = [0xFF, 0xFF];
         bool ok;
-        int bitOffset;
+        long bitOffset;
+
         {
             BitReader reader = new(data);
             reader.TryReadBit1(out Bit1 _);
@@ -1783,7 +1850,8 @@ public sealed class BitReaderTests
     {
         byte[] data = [0xFF];
         bool ok;
-        int bitOffset;
+        long bitOffset;
+
         {
             BitReader reader = new(data);
             ok = reader.TryReadBytes(2, out ReadOnlySpan<byte> _);
@@ -1804,11 +1872,11 @@ public sealed class BitReaderTests
     public async Task BitReader_TryReadBits_BitCountZero_ThrowsArgumentOutOfRangeException()
     {
         byte[] data = [0xFF];
-        BitReader reader = new(data);
-        bool threw = false;
-        try { reader.TryReadBits(0, out ulong _); }
-        catch (ArgumentOutOfRangeException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BitReader reader = new(data);
+            reader.TryReadBits(0, out ulong _);
+        }).Throws<ArgumentOutOfRangeException>();
     }
 
     /// <summary>Verifies BitReader TryReadBits BitCountOver64 ThrowsArgumentOutOfRangeException.</summary>
@@ -1816,11 +1884,11 @@ public sealed class BitReaderTests
     public async Task BitReader_TryReadBits_BitCountOver64_ThrowsArgumentOutOfRangeException()
     {
         byte[] data = new byte[16];
-        BitReader reader = new(data);
-        bool threw = false;
-        try { reader.TryReadBits(65, out ulong _); }
-        catch (ArgumentOutOfRangeException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BitReader reader = new(data);
+            reader.TryReadBits(65, out ulong _);
+        }).Throws<ArgumentOutOfRangeException>();
     }
 
     /// <summary>Verifies BitReader TrySkipBits NegativeCount ThrowsArgumentOutOfRangeException.</summary>
@@ -1828,11 +1896,11 @@ public sealed class BitReaderTests
     public async Task BitReader_TrySkipBits_NegativeCount_ThrowsArgumentOutOfRangeException()
     {
         byte[] data = [0xFF];
-        BitReader reader = new(data);
-        bool threw = false;
-        try { reader.TrySkipBits(-1); }
-        catch (ArgumentOutOfRangeException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BitReader reader = new(data);
+            reader.TrySkipBits(-1);
+        }).Throws<ArgumentOutOfRangeException>();
     }
 
     /// <summary>Verifies BitReader TryReadBytes NegativeCount ThrowsArgumentOutOfRangeException.</summary>
@@ -1840,11 +1908,11 @@ public sealed class BitReaderTests
     public async Task BitReader_TryReadBytes_NegativeCount_ThrowsArgumentOutOfRangeException()
     {
         byte[] data = [0xFF];
-        BitReader reader = new(data);
-        bool threw = false;
-        try { reader.TryReadBytes(-1, out ReadOnlySpan<byte> _); }
-        catch (ArgumentOutOfRangeException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BitReader reader = new(data);
+            reader.TryReadBytes(-1, out ReadOnlySpan<byte> _);
+        }).Throws<ArgumentOutOfRangeException>();
     }
 
     /// <summary>Verifies BitReader TryReadUIntBits ZeroBitCount ThrowsArgumentOutOfRangeException.</summary>
@@ -1852,11 +1920,11 @@ public sealed class BitReaderTests
     public async Task BitReader_TryReadUIntBits_ZeroBitCount_ThrowsArgumentOutOfRangeException()
     {
         byte[] data = [0xFF];
-        BitReader reader = new(data);
-        bool threw = false;
-        try { reader.TryReadUIntBits(0, out UIntBits _); }
-        catch (ArgumentOutOfRangeException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BitReader reader = new(data);
+            reader.TryReadUIntBits(0, out UIntBits _);
+        }).Throws<ArgumentOutOfRangeException>();
     }
 
     /// <summary>Verifies BitReader TryReadIntBits ZeroBitCount ThrowsArgumentOutOfRangeException.</summary>
@@ -1864,11 +1932,11 @@ public sealed class BitReaderTests
     public async Task BitReader_TryReadIntBits_ZeroBitCount_ThrowsArgumentOutOfRangeException()
     {
         byte[] data = [0xFF];
-        BitReader reader = new(data);
-        bool threw = false;
-        try { reader.TryReadIntBits(0, out IntBits _); }
-        catch (ArgumentOutOfRangeException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BitReader reader = new(data);
+            reader.TryReadIntBits(0, out IntBits _);
+        }).Throws<ArgumentOutOfRangeException>();
     }
 
     // ========================================================================
@@ -1902,7 +1970,8 @@ public sealed class BitReaderTests
     {
         byte[] data = [0xFF];
         bool ok;
-        int bitOffset;
+        long bitOffset;
+
         {
             BitReader reader = new(data);
             reader.ReadBits(consumedBits);
@@ -1927,7 +1996,8 @@ public sealed class BitReaderTests
     {
         byte[] data = [0xFF];
         bool ok;
-        int bitOffset;
+        long bitOffset;
+
         {
             BitReader reader = new(data);
             reader.ReadBits(1);
@@ -1945,7 +2015,8 @@ public sealed class BitReaderTests
     {
         byte[] data = [0xFF];
         bool ok;
-        int bitOffset;
+        long bitOffset;
+
         {
             BitReader reader = new(data);
             reader.ReadBits(5);
@@ -1963,7 +2034,8 @@ public sealed class BitReaderTests
     {
         byte[] data = [0xFF];
         bool ok;
-        int bitOffset;
+        long bitOffset;
+
         {
             BitReader reader = new(data);
             reader.ReadBits(1);
@@ -1981,7 +2053,8 @@ public sealed class BitReaderTests
     {
         byte[] data = [0xFF, 0xFF, 0xFF, 0xFF];
         bool ok;
-        int bitOffset;
+        long bitOffset;
+
         {
             BitReader reader = new(data);
             reader.ReadBits(1);

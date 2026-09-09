@@ -30,8 +30,9 @@ For each iteration starting at `1`:
 3. **Stop** — When open-finding count is zero per Stage 3 success criteria, exit loop.
 4. **Remediate** — Execute `workflow-implement.md` for every open finding in the latest review artifact.
    - Process findings in Priority Action List order.
-   - Mark each finding `✅` in the review artifact only after Verify pass, alignment confirmed, and commit done.
+   - Mark each finding `✅` in the review artifact only after Verify pass and alignment confirmed.
    - Do not skip Cosmetic, Refactoring, or Performance findings unless user explicitly defers them in this session.
+   - Skip implement Stage 5 Exam. Run Stage 4.
 5. **Increment** — `iteration += 1`; return to step 1.
 
 ## Stage 3 — Stop Conditions
@@ -51,7 +52,7 @@ For each iteration starting at `1`:
 
 - Output review iteration table: path, open Error count, open total count, status.
 - Output implementation status table for every remediated finding ID.
-- Run full build and all tests in Release.
+- Run full build and all tests in optimized/Release configuration. Use Verify/build commands from the loaded tech skill.
 - State release verdict from latest review Closing Assessment.
 - List deferred findings with deferral reason when user approved deferral.
 - Use terse chat per Section 2; cite artifact paths only.

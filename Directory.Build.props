@@ -11,7 +11,9 @@
     <DebugType>embedded</DebugType>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)' == 'Release' or '$(CI)' == 'true'">
+  <!-- CIB only for explicit pack (dotnet pack -p:ContinuousIntegrationBuild=true) or CI pack jobs.
+       Release test/coverage need local PDB paths — global CIB breaks MTP Cobertura. -->
+  <PropertyGroup Condition="'$(CI)' == 'true' and '$(GeneratePackageOnBuild)' == 'true'">
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
   </PropertyGroup>
 
@@ -21,7 +23,7 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(IsPackable)' != 'false'">
-    <Version>0.5.2</Version>
+    <VersionPrefix>0.6.0</VersionPrefix>
     <Authors>DevAM</Authors>
     <Company>DevAM</Company>
     <Copyright>Copyright © 2026 DevAM. All rights reserved.</Copyright>

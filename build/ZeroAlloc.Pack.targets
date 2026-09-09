@@ -22,6 +22,10 @@
             Pack="true"
             PackagePath="buildTransitive/ZeroAlloc.props"
             Visible="false" />
+      <None Include="$(MSBuildProjectDirectory)\..\ZeroAlloc.Generator\build\ZeroAlloc.Generator.targets"
+            Pack="true"
+            PackagePath="buildTransitive/ZeroAlloc.targets"
+            Visible="false" />
     </ItemGroup>
   </Target>
 </Project>

@@ -71,6 +71,12 @@ public readonly ref struct TempString : IDisposable
     /// </summary>
     private readonly bool _IsThreadStatic;
 
+    /// <summary>
+    /// Acquire generation from <see cref="ZeroAllocHelper.AcquireCharBuffer(int, bool, out bool, out int)"/>.
+    /// Stale Dispose after implicit conversion cannot unlock a later owner's buffer.
+    /// </summary>
+    private readonly int _Epoch;
+
     // ========================================================================
     // CONSTRUCTOR
     // ========================================================================
@@ -83,13 +89,31 @@ public readonly ref struct TempString : IDisposable
     /// <param name="isThreadStatic">True if using ThreadStatic buffer, false if heap-allocated fallback.</param>
     /// <remarks>
     /// This constructor is called by generated code after formatting is complete.
+    /// Heap-allocated instances pass epoch 0; ThreadStatic owners must use the epoch overload.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TempString(char[] buffer, int length, bool isThreadStatic)
+        : this(buffer, length, isThreadStatic, epoch: 0)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new <see cref="TempString"/> with the given buffer, length, ownership, and acquire generation.
+    /// </summary>
+    /// <param name="buffer">The buffer containing the formatted content.</param>
+    /// <param name="length">The number of valid characters written to the buffer.</param>
+    /// <param name="isThreadStatic">True if using ThreadStatic buffer, false if heap-allocated fallback.</param>
+    /// <param name="epoch">Generation returned by the matching acquire; ignored when <paramref name="isThreadStatic"/> is false.</param>
+    /// <remarks>
+    /// This constructor is called by generated code after formatting is complete.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public TempString(char[] buffer, int length, bool isThreadStatic, int epoch)
     {
         _Buffer = buffer;
         _Length = length;
         _IsThreadStatic = isThreadStatic;
+        _Epoch = epoch;
     }
 
     // ========================================================================
@@ -184,12 +208,12 @@ public readonly ref struct TempString : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
-        // Only release if we're using the ThreadStatic buffer
-        if (_IsThreadStatic)
+        if (!_IsThreadStatic)
         {
-            ZeroAllocHelper.ReleaseCharBuffer();
+            return;
         }
-        // Heap-allocated buffers are simply garbage collected
+
+        ZeroAllocHelper.ReleaseCharBuffer(_Epoch);
     }
 
     // ========================================================================

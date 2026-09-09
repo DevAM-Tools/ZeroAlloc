@@ -54,28 +54,26 @@ High-performance, zero-allocation serialization library for binary data and stri
 ```csharp
 using ZeroAlloc;
 
-// Step 1: Create a class inheriting from ZeroAllocBase (must be internal partial!)
-internal partial class ZA : ZeroAllocBase { }
-
-// Step 2: Use with implicit conversion (convenient, allocates result)
+// ZA is generated in this assembly (0.6.0+). No ZeroAllocBase subclass to write.
+// Opt out: <ZeroAlloc_GenerateDefaultClass>false</ZeroAlloc_GenerateDefaultClass>
 string greeting = ZA.String("User ", userId, " logged in at ", timestamp);
 byte[] utf8Data = ZA.Utf8("Count: ", count);
 byte[] binary = ZA.Bytes(new U16BE(0x1234), new Utf8("Hello"));
 
-// Step 3: Use with explicit span (zero-allocation, must dispose)
+// Use with explicit span (zero-allocation, must dispose)
 using TempString temp = ZA.String("User ", userId, " logged in");
 ReadOnlySpan<char> span = temp.AsSpan();
 
-// Step 4: Defer string formatting until actually needed (lazy evaluation)
+// Defer string formatting until actually needed (lazy evaluation)
 LazyString displayText = ZA.Lazy("User ", userId, " logged in at ", timestamp);
 // String is NOT built yet — zero work done. Only evaluated on first access:
 string text = displayText;  // implicitly converted → string is built and cached.
 
-// Step 5: Use culture-sensitive formatting
+// Use culture-sensitive formatting
 string localized = ZA.LocalizedString(CultureInfo.GetCultureInfo("de-DE"), "Price: ", amount, " €");
 byte[] localizedUtf8 = ZA.LocalizedUtf8(culture, "Date: ", DateTime.Now);
 
-// Step 6: Parse binary data
+// Parse binary data
 if (PacketHeader.TryParse(data, out var header, out int consumed))
 {
     Console.WriteLine($"Version: {header.Version.Value}");
@@ -767,7 +765,7 @@ stream.Write(builder.AsSpan());
 | **Raw Bytes** | `byte`, `byte[]`, `ReadOnlySpan<byte>` |
 | **Big-Endian Wrappers** | `U16BE`, `U32BE`, `U64BE`, `U128BE`, `I16BE`, `I32BE`, `I64BE`, `I128BE` |
 | **Little-Endian Wrappers** | `U16LE`, `U32LE`, `U64LE`, `U128LE`, `I16LE`, `I32LE`, `I64LE`, `I128LE` |
-| **String Wrappers** | `Utf8Raw`, `Utf8NullTerminated`, `Utf8VarInt`, `Utf8BEFixed`, `Utf8LEFixed` |
+| **String Wrappers** | `Utf8`, `Utf8Z`, `Utf8Var`, `Utf8FixBE`, `Utf8FixLE`, `Utf8Fix16LE` |
 | **Variable-Length** | `VarInt`, `VarIntZigZag` |
 | **Custom** | `IBinarySerializable` |
 
@@ -963,13 +961,15 @@ Strings must specify how their length is encoded using one of the dedicated stri
 | `[StringNullTerminated]` | Null-terminated (C-style) | File paths, BSTR |
 | `[StringFixedLength(n)]` | Fixed byte count (null-padded) | Fixed record formats |
 | `[StringLengthFromField(name)]` | Length from another field | Dynamic protocols |
+| `[StringMaxLength(n)]` | Max UTF-8 payload bytes (`n` required). If this attribute is **absent**, generated `TryParse` uses 1,048,576 and reports **ZA2016** (Info). Over the cap, `TryParse` returns `false` (no `GetString`). | Hostile / untrusted input |
 
 ```csharp
 [BinaryParsable]
 public readonly partial struct Message
 {
     [StringLengthVarInt]
-    public string Name { get; init; }              // VarInt-prefixed (most compact)
+    [StringMaxLength(256)]
+    public string Name { get; init; }              // VarInt-prefixed (most compact), cap 256 UTF-8 bytes
     
     [StringLengthBE(2)]
     public string ShortText { get; init; }         // 2-byte big-endian length prefix
@@ -1069,6 +1069,7 @@ public readonly partial struct FlagsPacket
 | **Strings require length attribute** | All `string` members must have a string length attribute. Compile error otherwise. |
 | **Bytes/Memory require length attribute** | Dynamic `byte[]`/`Memory<byte>` members require a length attribute. |
 | **`FromField` order requirement** | Length fields must be declared BEFORE the data field using `[StringLengthFromField]` or `[BytesLengthFromField]`. |
+| **String payload cap** | Generated string `TryParse` rejects UTF-8 payloads above `[StringMaxLength(n)]`, or 1,048,576 bytes when the attribute is omitted (**ZA2016**, Info). |
 
 > **Legacy Support:** The legacy `[BinaryStringLength(StringLengthEncoding.VarInt)]` attribute is still supported for backwards compatibility, but the new dedicated attributes are recommended for clarity.
 
@@ -1320,7 +1321,7 @@ public readonly struct NetworkPacket : IBinarySerializable
     public ushort Version { get; init; }
     public string Payload { get; init; }
 
-    public bool TryGetSerializedSize(out int size)
+    public bool TryGetWrittenSize(out int size)
     {
         size = 2 + Encoding.UTF8.GetByteCount(Payload);
         return true;
@@ -1393,8 +1394,11 @@ Configure via MSBuild properties in your `.csproj`:
   <!-- Heap fallback on nested/recursive calls (default: true) -->
   <ZeroAlloc_RecursiveHeapFallback>true</ZeroAlloc_RecursiveHeapFallback>
   
-  <!-- Buffer overflow behavior: Grow, HeapFallback, or Throw (default: Grow) -->
+  <!-- Generated ZA.String / ZA.Utf8 / ZA.Bytes only: Grow, HeapFallback, or Throw (default: Grow). Temp* builders always grow. -->
   <ZeroAlloc_BufferOverflowBehavior>Grow</ZeroAlloc_BufferOverflowBehavior>
+
+  <!-- Emit ZeroAlloc.ZA in this compilation (default: true). Set false to suppress. -->
+  <ZeroAlloc_GenerateDefaultClass>true</ZeroAlloc_GenerateDefaultClass>
 </PropertyGroup>
 ```
 
@@ -1402,7 +1406,8 @@ Configure via MSBuild properties in your `.csproj`:
 |----------|---------|-------------|
 | `ZeroAlloc_DefaultBufferSize` | `2097152` | Initial ThreadStatic buffer size in bytes/chars |
 | `ZeroAlloc_RecursiveHeapFallback` | `true` | Heap fallback on nested calls; `false` throws exception |
-| `ZeroAlloc_BufferOverflowBehavior` | `Grow` | `Grow`=grow buffer, `HeapFallback`=heap alloc, `Throw`=exception |
+| `ZeroAlloc_BufferOverflowBehavior` | `Grow` | Generated `ZA.String` / `ZA.Utf8` / `ZA.Bytes` / `ZA.LocalizedString` / `ZA.LocalizedUtf8` only: `Grow` ThreadStatic, `HeapFallback`=one-shot heap, `Throw`=`InvalidOperationException`. `TempStringBuilder` / `TempBytesBuilder` always grow. |
+| `ZeroAlloc_GenerateDefaultClass` | `true` | Emits `ZeroAlloc.ZA` in this compilation; `false` suppresses it. Extra `ZeroAllocBase` subclasses still generate. |
 
 ### Runtime Buffer Management
 
@@ -1434,19 +1439,23 @@ Or in `.csproj`:
 
 ```xml
 <ItemGroup>
-  <PackageReference Include="ZeroAlloc" Version="0.5.0" />
+  <PackageReference Include="ZeroAlloc" Version="0.6.0" />
 </ItemGroup>
 ```
 
 ### Per-Assembly Setup
 
-Each assembly must define its own `ZeroAllocBase` subclass:
+The generator emits `ZeroAlloc.ZA` automatically in each consumer compilation (0.6.0+). After `using ZeroAlloc;`, call `ZA.String(...)` / `ZA.Utf8(...)` / `ZA.Bytes(...)`. No handwritten `ZeroAllocBase` subclass is required.
+
+A leftover 0.5.x `internal partial class ZA : ZeroAllocBase { }` in **your** namespace is a **second** type (`MyApp.ZA`), not a merge with generated `ZeroAlloc.ZA`. Delete it. Unqualified `ZA` in that namespace is the leftover class. A leftover `partial` in `namespace ZeroAlloc` merges with the stub.
+
+Optional extra APIs (a second type name in the same assembly):
 
 ```csharp
-// In your project (must be internal partial!)
-using ZeroAlloc;
-internal partial class ZA : ZeroAllocBase { }
+internal sealed partial class MyApi : ZeroAllocBase { }
 ```
+
+**Opt-out:** set `ZeroAlloc_GenerateDefaultClass` to `false` in the consuming `.csproj` (see [Configuration](#configuration)). That defines `ZEROALLOC_SUPPRESS_DEFAULT_ZA` and default `ZA` is not emitted. Extra subclasses still generate.
 
 **Requirements:**
 - .NET 10.0 or later

@@ -157,6 +157,20 @@ public sealed class ZeroAllocBaseTests
         InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => ZeroAllocBase.LazyInterpolated("a"));
         await Assert.That(ex).IsNotNull();
     }
+
+    /// <summary>Verifies the generic ParseBytes fallback throws until the generator emits an overload.</summary>
+    [Test]
+    public async Task ZeroAllocBase_ParseBytes_Fallback_ThrowsInvalidOperationException()
+    {
+        await Assert.That(() => ZeroAllocBase.ParseBytes<int>([], out _)).Throws<InvalidOperationException>();
+    }
+
+    /// <summary>Verifies the generic TryParseBytes fallback throws until the generator emits an overload.</summary>
+    [Test]
+    public async Task ZeroAllocBase_TryParseBytes_Fallback_ThrowsInvalidOperationException()
+    {
+        await Assert.That(() => ZeroAllocBase.TryParseBytes<int>([], out _, out _)).Throws<InvalidOperationException>();
+    }
 }
 
 /// <summary>
@@ -408,6 +422,25 @@ public sealed class AttributeTests
     {
         StringLengthFromFieldAttribute attr = new("NameLength");
         await Assert.That(attr.LengthFieldName).IsEqualTo("NameLength");
+    }
+
+    // ========================================================================
+    // StringMaxLengthAttribute
+    // ========================================================================
+
+    /// <summary>Verifies StringMaxLengthAttribute StoresMaxBytes.</summary>
+    [Test]
+    public async Task StringMaxLengthAttribute_StoresMaxBytes()
+    {
+        StringMaxLengthAttribute attr = new(1024);
+        await Assert.That(attr.MaxBytes).IsEqualTo(1024);
+    }
+
+    /// <summary>Verifies StringMaxLengthAttribute rejects a non-positive cap.</summary>
+    [Test]
+    public async Task StringMaxLengthAttribute_NonPositiveMaxBytes_ThrowsArgumentOutOfRangeException()
+    {
+        await Assert.That(() => _ = new StringMaxLengthAttribute(0)).Throws<ArgumentOutOfRangeException>();
     }
 
     // ========================================================================

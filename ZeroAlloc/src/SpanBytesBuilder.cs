@@ -80,7 +80,7 @@ public ref struct SpanBytesBuilder
         if ((uint)count > (uint)_Position)
         {
             throw new ArgumentOutOfRangeException(nameof(count),
-                $"Cannot seek back {count} bytes when only {_Position} bytes have been written.");
+                string.Create(CultureInfo.InvariantCulture, $"Cannot seek back {count} bytes when only {_Position} bytes have been written."));
         }
 
         _Position -= count;
@@ -113,7 +113,7 @@ public ref struct SpanBytesBuilder
     {
         if ((uint)count > (uint)Remaining)
         {
-            throw new ArgumentOutOfRangeException(nameof(count), $"Cannot advance {count} bytes when only {Remaining} bytes remain.");
+            throw new ArgumentOutOfRangeException(nameof(count), string.Create(CultureInfo.InvariantCulture, $"Cannot advance {count} bytes when only {Remaining} bytes remain."));
         }
 
         _Position += count;
@@ -126,7 +126,7 @@ public ref struct SpanBytesBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void _ThrowBufferTooSmall(string operation)
     {
-        throw new InvalidOperationException($"Buffer too small for {operation}.");
+        throw new InvalidOperationException(string.Create(CultureInfo.InvariantCulture, $"Buffer too small for {operation}."));
     }
 
     /// <summary>Appends a single byte to the buffer.</summary>
@@ -586,7 +586,7 @@ public ref struct SpanBytesBuilder
     {
         if (!value.TryWrite(_Buffer.Slice(_Position), out int bytesWritten))
         {
-            throw new InvalidOperationException($"Buffer too small for {typeof(T).Name}.");
+            throw new InvalidOperationException(string.Create(CultureInfo.InvariantCulture, $"Buffer too small for {typeof(T).Name}."));
         }
         _Position += bytesWritten;
     }
@@ -1136,7 +1136,7 @@ public ref struct SpanBytesBuilder
     {
         if (!value.TryFormat(_Buffer.Slice(_Position), out int bytesWritten, format, provider))
         {
-            throw new InvalidOperationException($"Buffer too small for {typeof(T).Name}.");
+            throw new InvalidOperationException(string.Create(CultureInfo.InvariantCulture, $"Buffer too small for {typeof(T).Name}."));
         }
         _Position += bytesWritten;
     }
@@ -1387,5 +1387,5 @@ public ref struct SpanBytesBuilder
     }
 
     /// <summary>Returns a string representation of the builder state.</summary>
-    public readonly override string ToString() => $"SpanBytesBuilder[{_Position} bytes]";
+    public readonly override string ToString() => string.Create(CultureInfo.InvariantCulture, $"SpanBytesBuilder[{_Position} bytes]");
 }

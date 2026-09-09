@@ -15,6 +15,8 @@ namespace ZeroAlloc;
 [StructLayout(LayoutKind.Auto)]
 public readonly struct LazyString : IEquatable<LazyString>, IComparable<LazyString>
 {
+    #region Fields
+
     /// <summary>Empty string singleton (non-null, zero-length).</summary>
     public static readonly LazyString Empty = new(string.Empty);
 
@@ -24,6 +26,10 @@ public readonly struct LazyString : IEquatable<LazyString>, IComparable<LazyStri
     //   Func<string>  → deferred evaluation (atomically replaced with result on first access)
     //   IDeferredFormat → stateful deferred (FormatLazy / generator-produced code)
     private readonly object? _Value;
+
+    #endregion
+
+    #region Lifecycle
 
     /// <summary>Creates from an already-evaluated string.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -38,6 +44,10 @@ public readonly struct LazyString : IEquatable<LazyString>, IComparable<LazyStri
     {
         _Value = value;
     }
+
+    #endregion
+
+    #region Public API
 
     /// <summary>Creates a lazily-evaluated string. The factory is called at most once per storage location.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -117,6 +127,10 @@ public readonly struct LazyString : IEquatable<LazyString>, IComparable<LazyStri
         }
     }
 
+    #endregion
+
+    #region Private helpers
+
     /// <summary>
     /// Evaluates the factory and atomically replaces <c>_Value</c> with the result.
     /// Uses <c>Unsafe.AsRef</c> to mutate the readonly field — this is safe because:
@@ -171,6 +185,10 @@ public readonly struct LazyString : IEquatable<LazyString>, IComparable<LazyStri
         Interlocked.CompareExchange(ref Unsafe.AsRef(in _Value), result, deferred);
         return true;
     }
+
+    #endregion
+
+    #region Public API
 
     /// <summary>Whether this instance has no value (default/absent).</summary>
     public bool IsNull
@@ -322,4 +340,6 @@ public readonly struct LazyString : IEquatable<LazyString>, IComparable<LazyStri
 
     /// <summary>Greater-than-or-equal operator.</summary>
     public static bool operator >=(LazyString left, LazyString right) => left.CompareTo(right) >= 0;
+
+    #endregion
 }

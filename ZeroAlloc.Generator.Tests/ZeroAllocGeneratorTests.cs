@@ -183,6 +183,10 @@ internal sealed class ZeroAllocGeneratorTests
         await Assert.That(generated!.Contains("DefaultBufferSize", StringComparison.Ordinal)).IsTrue();
         await Assert.That(generated.Contains("RecursiveHeapFallback", StringComparison.Ordinal)).IsTrue();
         await Assert.That(generated.Contains("BufferOverflowBehavior", StringComparison.Ordinal)).IsTrue();
+        await Assert.That(generated.Contains("GrowCharBuffer", StringComparison.Ordinal)).IsTrue();
+        await Assert.That(generated.Contains("BufferOverflowBehavior == 2", StringComparison.Ordinal)).IsTrue();
+        await Assert.That(generated.Contains("bool transferred = false", StringComparison.Ordinal)).IsTrue();
+        await Assert.That(generated.Contains("ReleaseCharBuffer(epoch)", StringComparison.Ordinal)).IsTrue();
     }
 
     [Test]
@@ -232,7 +236,43 @@ internal sealed class ZeroAllocGeneratorTests
             compilation,
             new ZeroAllocGenerator());
 
-        await Assert.That(output.SyntaxTrees.Count()).IsEqualTo(1);
+        await Assert.That(output.SyntaxTrees.Count()).IsGreaterThanOrEqualTo(2);
+        await Assert.That(GeneratorTestHelper.HasGeneratedSource(output, "PlainClass")).IsFalse();
+        await Assert.That(GeneratorTestHelper.HasGeneratedHint(output, "ZeroAlloc.ZA.Stub.g.cs")).IsTrue();
         await Assert.That(diagnostics.Length).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task ZA1002_Message_MentionsSpanStringBuilder()
+    {
+        const string source = """
+            using System;
+            using ZeroAlloc;
+
+            internal partial class RecurseApi : ZeroAllocBase { }
+
+            internal readonly struct RecurseFormat : ISpanFormattable
+            {
+                public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+                {
+                    charsWritten = 0;
+                    _ = RecurseApi.String("x");
+                    return false;
+                }
+
+                public string ToString(string? format, IFormatProvider? formatProvider) => "";
+            }
+
+            internal static class Usage
+            {
+                internal static void Call() => RecurseApi.String(new RecurseFormat());
+            }
+            """;
+
+        CSharpCompilation compilation = GeneratorTestHelper.CreateCompilation(source);
+        (_, ImmutableArray<Diagnostic> diagnostics) = GeneratorTestHelper.RunGenerator(compilation, new ZeroAllocGenerator());
+        Diagnostic? za1002 = diagnostics.FirstOrDefault(d => d.Id == "ZA1002");
+        await Assert.That(za1002).IsNotNull();
+        await Assert.That(za1002!.GetMessage(CultureInfo.InvariantCulture).Contains("SpanStringBuilder", StringComparison.Ordinal)).IsTrue();
     }
 }

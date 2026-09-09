@@ -971,7 +971,9 @@ internal sealed class GeneratorExitCoverageTests
     #endregion
 
     /// <summary>Dispatch proxy returning null <see cref="ISymbol.ContainingNamespace"/>.</summary>
-    private sealed class NullNamespaceTypeProxy : DispatchProxy
+#pragma warning disable CA1852 // DispatchProxy.Create requires a non-sealed proxy type.
+    private class NullNamespaceTypeProxy : DispatchProxy
+#pragma warning restore CA1852
     {
         public static ITypeSymbol Create()
             => DispatchProxy.Create<ITypeSymbol, NullNamespaceTypeProxy>();

@@ -189,29 +189,19 @@ public sealed class NegativeAndEdgeCaseTests
     [Test]
     public async Task TempString_DoubleDispose_NoException()
     {
-        bool threw = false;
-        try
-        {
-            TempString temp = ZA.String("Test");
-            temp.Dispose();
-            temp.Dispose();
-        }
-        catch (Exception) { threw = true; }
-        await Assert.That(threw).IsFalse();
+        TempString temp = ZA.String("Test");
+        temp.Dispose();
+        temp.Dispose();
+        await Assert.That(temp.IsEmpty).IsFalse();
     }
     /// <summary>Verifies TempBytes DoubleDispose NoException.</summary>
     [Test]
     public async Task TempBytes_DoubleDispose_NoException()
     {
-        bool threw = false;
-        try
-        {
-            TempBytes temp = ZA.Utf8("Test");
-            temp.Dispose();
-            temp.Dispose();
-        }
-        catch (Exception) { threw = true; }
-        await Assert.That(threw).IsFalse();
+        TempBytes temp = ZA.Utf8("Test");
+        temp.Dispose();
+        temp.Dispose();
+        await Assert.That(temp.Length).IsGreaterThan(0);
     }
     /// <summary>Verifies LazyString FormatLazy AsString ThrowsOnFactoryFailure.</summary>
     [Test]
@@ -792,44 +782,44 @@ public sealed class NegativeAndEdgeCaseTests
     public async Task BinaryParser_EmptyBuffer_ThrowsOnRead()
     {
         byte[] empty = [];
-        BinaryParser parser = new(empty);
-        bool threw = false;
-        try { parser.ReadByte(); }
-        catch (InvalidOperationException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BinaryParser parser = new(empty);
+            parser.ReadByte();
+        }).Throws<InvalidOperationException>();
     }
     /// <summary>Verifies BinaryParser InsufficientForUInt16 throws.</summary>
     [Test]
     public async Task BinaryParser_InsufficientForUInt16_Throws()
     {
         byte[] data = [0x01];
-        BinaryParser parser = new(data);
-        bool threw = false;
-        try { parser.ReadUInt16BE(); }
-        catch (InvalidOperationException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BinaryParser parser = new(data);
+            parser.ReadUInt16BE();
+        }).Throws<InvalidOperationException>();
     }
     /// <summary>Verifies BinaryParser InsufficientForUInt32 throws.</summary>
     [Test]
     public async Task BinaryParser_InsufficientForUInt32_Throws()
     {
         byte[] data = [0x01, 0x02, 0x03];
-        BinaryParser parser = new(data);
-        bool threw = false;
-        try { parser.ReadUInt32BE(); }
-        catch (InvalidOperationException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BinaryParser parser = new(data);
+            parser.ReadUInt32BE();
+        }).Throws<InvalidOperationException>();
     }
     /// <summary>Verifies BinaryParser InsufficientForUInt64 throws.</summary>
     [Test]
     public async Task BinaryParser_InsufficientForUInt64_Throws()
     {
         byte[] data = [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07];
-        BinaryParser parser = new(data);
-        bool threw = false;
-        try { parser.ReadUInt64BE(); }
-        catch (InvalidOperationException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BinaryParser parser = new(data);
+            parser.ReadUInt64BE();
+        }).Throws<InvalidOperationException>();
     }
     /// <summary>Verifies BinaryParser VarIntTooLong throws.</summary>
     [Test]
@@ -837,11 +827,22 @@ public sealed class NegativeAndEdgeCaseTests
     {
         // VarInt that would exceed 64 bits
         byte[] data = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01];
-        BinaryParser parser = new(data);
-        bool threw = false;
-        try { parser.ReadVarInt(); }
-        catch (InvalidOperationException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BinaryParser parser = new(data);
+            parser.ReadVarInt();
+        }).Throws<InvalidOperationException>();
+    }
+    /// <summary>Verifies BinaryParser ReadVarInt rejects a 10th byte whose payload bits extend past bit 63.</summary>
+    [Test]
+    public async Task BinaryParser_ReadVarInt_TenthByteOverflowBits_Throws()
+    {
+        byte[] data = [0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x02];
+        await Assert.That(() =>
+        {
+            BinaryParser parser = new(data);
+            parser.ReadVarInt();
+        }).Throws<InvalidOperationException>();
     }
     /// <summary>Verifies BinaryParser VarIntTruncated throws.</summary>
     [Test]
@@ -849,33 +850,33 @@ public sealed class NegativeAndEdgeCaseTests
     {
         // VarInt with continuation bit set but no more bytes
         byte[] data = [0x80];
-        BinaryParser parser = new(data);
-        bool threw = false;
-        try { parser.ReadVarInt(); }
-        catch (InvalidOperationException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BinaryParser parser = new(data);
+            parser.ReadVarInt();
+        }).Throws<InvalidOperationException>();
     }
     /// <summary>Verifies BinaryParser SkipBeyondBuffer throws.</summary>
     [Test]
     public async Task BinaryParser_SkipBeyondBuffer_Throws()
     {
         byte[] data = [0x01, 0x02];
-        BinaryParser parser = new(data);
-        bool threw = false;
-        try { parser.Skip(100); }
-        catch (InvalidOperationException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BinaryParser parser = new(data);
+            parser.Skip(100);
+        }).Throws<InvalidOperationException>();
     }
     /// <summary>Verifies BinaryParser ReadBytesBeyondBuffer throws.</summary>
     [Test]
     public async Task BinaryParser_ReadBytesBeyondBuffer_Throws()
     {
         byte[] data = [0x01, 0x02];
-        BinaryParser parser = new(data);
-        bool threw = false;
-        try { parser.ReadBytes(100); }
-        catch (InvalidOperationException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BinaryParser parser = new(data);
+            parser.ReadBytes(100);
+        }).Throws<InvalidOperationException>();
     }
 
     #endregion
@@ -892,22 +893,22 @@ public sealed class NegativeAndEdgeCaseTests
     public async Task BitReader_ReadBitsZero_Throws()
     {
         byte[] data = [0x00];
-        BitReader reader = new(data);
-        bool threw = false;
-        try { reader.ReadBits(0); }
-        catch (ArgumentOutOfRangeException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BitReader reader = new(data);
+            reader.ReadBits(0);
+        }).Throws<ArgumentOutOfRangeException>();
     }
     /// <summary>Verifies BitReader ReadBits65 throws.</summary>
     [Test]
     public async Task BitReader_ReadBits65_Throws()
     {
         byte[] data = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
-        BitReader reader = new(data);
-        bool threw = false;
-        try { reader.ReadBits(65); }
-        catch (ArgumentOutOfRangeException) { threw = true; }
-        await Assert.That(threw).IsTrue();
+        await Assert.That(() =>
+        {
+            BitReader reader = new(data);
+            reader.ReadBits(65);
+        }).Throws<ArgumentOutOfRangeException>();
     }
     /// <summary>Verifies BitReader ReadBytesNotAligned throws.</summary>
     [Test]
@@ -916,6 +917,7 @@ public sealed class NegativeAndEdgeCaseTests
         byte[] data = [0x00, 0x01, 0x02];
         BitReader reader = new(data);
         reader.ReadBit1(); // Now not aligned
+        // ref struct cannot be captured in Throws lambda
         bool threw = false;
         try { reader.ReadBytes(2); }
         catch (InvalidOperationException) { threw = true; }
@@ -964,7 +966,7 @@ public sealed class NegativeAndEdgeCaseTests
         SpanBytesBuilder builder = new(buffer);
         bool threw = false;
         try { builder.AppendInt32BigEndian(0x12345678); }
-        catch (Exception) { threw = true; }
+        catch (InvalidOperationException) { threw = true; }
         await Assert.That(threw).IsTrue();
     }
     /// <summary>Verifies SpanBytesBuilder OverflowInt64 throws.</summary>
@@ -975,7 +977,7 @@ public sealed class NegativeAndEdgeCaseTests
         SpanBytesBuilder builder = new(buffer);
         bool threw = false;
         try { builder.AppendInt64BigEndian(0x123456789ABCDEF0L); }
-        catch (Exception) { threw = true; }
+        catch (InvalidOperationException) { threw = true; }
         await Assert.That(threw).IsTrue();
     }
     /// <summary>Verifies SpanStringBuilder SeekBackNegative throws.</summary>
@@ -985,6 +987,7 @@ public sealed class NegativeAndEdgeCaseTests
         Span<char> buffer = stackalloc char[10];
         SpanStringBuilder builder = new(buffer);
         builder.Append("Test");
+        // ref struct cannot be captured in Throws lambda
         bool threw = false;
         try { builder.SeekBack(10); }
         catch (ArgumentOutOfRangeException) { threw = true; }
@@ -997,6 +1000,7 @@ public sealed class NegativeAndEdgeCaseTests
         Span<byte> buffer = stackalloc byte[10];
         SpanBytesBuilder builder = new(buffer);
         builder.Append([0x01, 0x02, 0x03]);
+        // ref struct cannot be captured in Throws lambda
         bool threw = false;
         try { builder.SeekBack(10); }
         catch (ArgumentOutOfRangeException) { threw = true; }

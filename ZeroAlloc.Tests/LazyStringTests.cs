@@ -240,6 +240,24 @@ public sealed class LazyStringTests
         LazyString right = default;
         await Assert.That(left.CompareTo(right)).IsEqualTo(0);
     }
+
+    /// <summary>Verifies comparison operators delegate to <see cref="LazyString.CompareTo"/>.</summary>
+    [Test]
+    public async Task ComparisonOperators_Ordering()
+    {
+        LazyString alpha = new("alpha");
+        LazyString beta = new("beta");
+
+        await Assert.That(alpha < beta).IsTrue();
+        await Assert.That(beta < alpha).IsFalse();
+        await Assert.That(alpha <= beta).IsTrue();
+        await Assert.That(beta <= alpha).IsFalse();
+        await Assert.That(beta > alpha).IsTrue();
+        await Assert.That(alpha > beta).IsFalse();
+        await Assert.That(beta >= alpha).IsTrue();
+        await Assert.That(alpha >= beta).IsFalse();
+    }
+
     /// <summary>Verifies IsEmpty LazyDeferredValue UsesEvaluatedLength.</summary>
     [Test]
     [Arguments(true)]
