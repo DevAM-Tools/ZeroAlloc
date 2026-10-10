@@ -499,7 +499,8 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
         // because Roslyn can filter by attribute name directly
         IncrementalValuesProvider<ParsableTypeInfo?> parsableTypes = context.SyntaxProvider
             .ForAttributeWithMetadataName(
-                fullyQualifiedMetadataName: "ZeroAlloc.BinaryParsableAttribute",
+                // Literal metadata name required: typeof unavailable (generator does not reference ZeroAlloc.dll).
+                fullyQualifiedMetadataName: BinaryGeneratorHelpers.BinaryParsableMetadataName,
                 predicate: static (node, _) => node is StructDeclarationSyntax or RecordDeclarationSyntax,
                 transform: static (ctx, _) => _GetParsableTypeInfo(ctx))
             .Where(static info => info is not null);
@@ -567,7 +568,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
 
         // Get namespace and type info
         string typeName = typeSymbol.Name;
-        string? ns = typeSymbol.ContainingNamespace?.IsGlobalNamespace == true
+        string? ns = typeSymbol.ContainingNamespace?.IsGlobalNamespace is true
             ? null
             : typeSymbol.ContainingNamespace?.ToDisplayString();
         string fullTypeName = typeSymbol.ToDisplayString();
@@ -626,14 +627,14 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
             // Check for [BinaryIgnore]
             bool isIgnored = member.GetAttributes().Any(a =>
                 a.AttributeClass?.Name == "BinaryIgnoreAttribute" ||
-                a.AttributeClass?.ToDisplayString() == "ZeroAlloc.BinaryIgnoreAttribute");
+                a.AttributeClass?.ToDisplayString() == BinaryGeneratorHelpers.BinaryIgnoreMetadataName);
 
             // Get [BinaryOrder] if present
             int? explicitOrder = null;
             AttributeData? orderAttr = member.GetAttributes().FirstOrDefault(a =>
                 a.AttributeClass?.Name == "BinaryOrderAttribute" ||
-                a.AttributeClass?.ToDisplayString() == "ZeroAlloc.BinaryOrderAttribute");
-            if (orderAttr is not null && orderAttr.ConstructorArguments.Length > 0)
+                a.AttributeClass?.ToDisplayString() == BinaryGeneratorHelpers.BinaryOrderMetadataName);
+            if (orderAttr?.ConstructorArguments.Length > 0)
             {
                 explicitOrder = orderAttr.ConstructorArguments[0].Value as int?;
             }
@@ -666,8 +667,8 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
             int? fixedLength = null;
             AttributeData? lengthAttr = member.GetAttributes().FirstOrDefault(a =>
                 a.AttributeClass?.Name == "BinaryFixedLengthAttribute" ||
-                a.AttributeClass?.ToDisplayString() == "ZeroAlloc.BinaryFixedLengthAttribute");
-            if (lengthAttr is not null && lengthAttr.ConstructorArguments.Length > 0)
+                a.AttributeClass?.ToDisplayString() == BinaryGeneratorHelpers.BinaryFixedLengthMetadataName);
+            if (lengthAttr?.ConstructorArguments.Length > 0)
             {
                 fixedLength = lengthAttr.ConstructorArguments[0].Value as int?;
             }
@@ -678,7 +679,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
             Endianness? explicitEndianness = null;
             AttributeData? fieldAttr = member.GetAttributes().FirstOrDefault(a =>
                 a.AttributeClass?.Name == "BinaryFieldAttribute" ||
-                a.AttributeClass?.ToDisplayString() == "ZeroAlloc.BinaryFieldAttribute");
+                a.AttributeClass?.ToDisplayString() == BinaryGeneratorHelpers.BinaryFieldMetadataName);
             if (fieldAttr is not null)
             {
                 foreach (KeyValuePair<string, TypedConstant> arg in fieldAttr.NamedArguments)
@@ -810,8 +811,8 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
             bool hasStringMaxLength = false;
             AttributeData? stringMaxAttr = member.GetAttributes().FirstOrDefault(a =>
                 a.AttributeClass?.Name == "StringMaxLengthAttribute" ||
-                a.AttributeClass?.ToDisplayString() == "ZeroAlloc.StringMaxLengthAttribute");
-            if (stringMaxAttr is not null && stringMaxAttr.ConstructorArguments.Length > 0 &&
+                a.AttributeClass?.ToDisplayString() == BinaryGeneratorHelpers.StringMaxLengthMetadataName);
+            if (stringMaxAttr?.ConstructorArguments.Length > 0 &&
                 stringMaxAttr.ConstructorArguments[0].Value is int maxBytes && maxBytes > 0)
             {
                 maxStringBytes = maxBytes;
@@ -921,14 +922,14 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
         // Check for [BinaryParsable] nested type
         if (type.GetAttributes().Any(a =>
             a.AttributeClass?.Name == "BinaryParsableAttribute" ||
-            a.AttributeClass?.ToDisplayString() == "ZeroAlloc.BinaryParsableAttribute"))
+            a.AttributeClass?.ToDisplayString() == BinaryGeneratorHelpers.BinaryParsableMetadataName))
         {
             return ParsableMemberKind.NestedParsable;
         }
 
         // Check for types implementing IBinaryParsable<T> (including our wrappers like Utf8Var, BytesVar, etc.)
         if (type.AllInterfaces.Any(i =>
-            i.OriginalDefinition.ToDisplayString() == "ZeroAlloc.IBinaryParsable<T>" ||
+            i.OriginalDefinition.ToDisplayString() == BinaryGeneratorHelpers.IBinaryParsableMetadataName ||
             (i.IsGenericType && i.Name == "IBinaryParsable" && i.ContainingNamespace?.Name == "ZeroAlloc")))
         {
             return ParsableMemberKind.NestedParsable;
@@ -1480,7 +1481,7 @@ public sealed class BinaryParsableGenerator : IIncrementalGenerator
     /// <returns><c>true</c> if all references are valid; otherwise <c>false</c>.</returns>
     private static bool _ValidateLengthFromFieldReferences(SourceProductionContext ctx, List<ParsableMemberInfo> orderedMembers)
     {
-        HashSet<string> parsedFieldNames = new();
+        HashSet<string> parsedFieldNames = [];
 
         for (int i = 0; i < orderedMembers.Count; i++)
         {

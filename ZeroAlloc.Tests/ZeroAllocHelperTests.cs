@@ -21,9 +21,9 @@ public sealed class ZeroAllocHelperTests
         bool isThreadStatic;
         int length;
         {
-            char[] buffer = ZeroAllocHelper.AcquireCharBuffer(64, out isThreadStatic);
+            char[] buffer = ZeroAllocHelper.AcquireCharBuffer(64, out isThreadStatic, out int epoch);
             length = buffer.Length;
-            ZeroAllocHelper.ReleaseCharBuffer();
+            ZeroAllocHelper.ReleaseCharBuffer(epoch);
         }
 
         await Assert.That(isThreadStatic).IsTrue();
@@ -36,12 +36,11 @@ public sealed class ZeroAllocHelperTests
         bool outerThreadStatic;
         bool innerThreadStatic;
         {
-            char[] outer = ZeroAllocHelper.AcquireCharBuffer(64, out outerThreadStatic);
-            char[] inner = ZeroAllocHelper.AcquireCharBuffer(64, recursiveHeapFallback: true, out innerThreadStatic);
+            char[] outer = ZeroAllocHelper.AcquireCharBuffer(64, out outerThreadStatic, out int outerEpoch);
+            char[] inner = ZeroAllocHelper.AcquireCharBuffer(64, recursiveHeapFallback: true, out innerThreadStatic, out _);
             _ = outer;
             _ = inner;
-            ZeroAllocHelper.ReleaseCharBuffer();
-            ZeroAllocHelper.ReleaseCharBuffer();
+            ZeroAllocHelper.ReleaseCharBuffer(outerEpoch);
         }
 
         await Assert.That(outerThreadStatic).IsTrue();
@@ -51,7 +50,7 @@ public sealed class ZeroAllocHelperTests
     [Test]
     public async Task AcquireCharBuffer_NestedWithoutFallback_ThrowsInvalidOperationException()
     {
-        char[] outer = ZeroAllocHelper.AcquireCharBuffer(64, out _);
+        char[] outer = ZeroAllocHelper.AcquireCharBuffer(64, out _, out int epoch);
         _ = outer;
         try
         {
@@ -60,7 +59,7 @@ public sealed class ZeroAllocHelperTests
         }
         finally
         {
-            ZeroAllocHelper.ReleaseCharBuffer();
+            ZeroAllocHelper.ReleaseCharBuffer(epoch);
         }
     }
     /// <summary>Verifies IsCharBufferAvailable ReflectsAcquisitionState.</summary>
@@ -72,15 +71,33 @@ public sealed class ZeroAllocHelperTests
         bool availableAfter;
         {
             availableBefore = ZeroAllocHelper.IsCharBufferAvailable();
-            ZeroAllocHelper.AcquireCharBuffer(64, out _);
+            ZeroAllocHelper.AcquireCharBuffer(64, out _, out int epoch);
             availableDuring = ZeroAllocHelper.IsCharBufferAvailable();
-            ZeroAllocHelper.ReleaseCharBuffer();
+            ZeroAllocHelper.ReleaseCharBuffer(epoch);
             availableAfter = ZeroAllocHelper.IsCharBufferAvailable();
         }
 
         await Assert.That(availableBefore).IsTrue();
         await Assert.That(availableDuring).IsFalse();
         await Assert.That(availableAfter).IsTrue();
+    }
+
+    /// <summary>Verifies a mismatched epoch does not unlock the current owner.</summary>
+    [Test]
+    public async Task ReleaseCharBuffer_MismatchedEpoch_DoesNotUnlock()
+    {
+        ZeroAllocHelper.AcquireCharBuffer(64, out _, out int epoch);
+        try
+        {
+            ZeroAllocHelper.ReleaseCharBuffer(epoch - 1);
+            await Assert.That(ZeroAllocHelper.IsCharBufferAvailable()).IsFalse();
+        }
+        finally
+        {
+            ZeroAllocHelper.ReleaseCharBuffer(epoch);
+        }
+
+        await Assert.That(ZeroAllocHelper.IsCharBufferAvailable()).IsTrue();
     }
 
     // ========================================================================
@@ -94,9 +111,9 @@ public sealed class ZeroAllocHelperTests
     {
         bool isThreadStatic;
         {
-            byte[] buffer = ZeroAllocHelper.AcquireByteBuffer(64, out isThreadStatic);
+            byte[] buffer = ZeroAllocHelper.AcquireByteBuffer(64, out isThreadStatic, out int epoch);
             _ = buffer;
-            ZeroAllocHelper.ReleaseByteBuffer();
+            ZeroAllocHelper.ReleaseByteBuffer(epoch);
         }
 
         await Assert.That(isThreadStatic).IsTrue();
@@ -105,7 +122,7 @@ public sealed class ZeroAllocHelperTests
     [Test]
     public async Task AcquireByteBuffer_NestedWithoutFallback_ThrowsInvalidOperationException()
     {
-        ZeroAllocHelper.AcquireByteBuffer(64, out _);
+        ZeroAllocHelper.AcquireByteBuffer(64, out _, out int epoch);
         try
         {
             await Assert.That(() => ZeroAllocHelper.AcquireByteBuffer(64, recursiveHeapFallback: false, out _))
@@ -113,7 +130,7 @@ public sealed class ZeroAllocHelperTests
         }
         finally
         {
-            ZeroAllocHelper.ReleaseByteBuffer();
+            ZeroAllocHelper.ReleaseByteBuffer(epoch);
         }
     }
     /// <summary>Verifies IsByteBufferAvailable ReflectsAcquisitionState.</summary>
@@ -125,9 +142,9 @@ public sealed class ZeroAllocHelperTests
         bool availableAfter;
         {
             availableBefore = ZeroAllocHelper.IsByteBufferAvailable();
-            ZeroAllocHelper.AcquireByteBuffer(64, out _);
+            ZeroAllocHelper.AcquireByteBuffer(64, out _, out int epoch);
             availableDuring = ZeroAllocHelper.IsByteBufferAvailable();
-            ZeroAllocHelper.ReleaseByteBuffer();
+            ZeroAllocHelper.ReleaseByteBuffer(epoch);
             availableAfter = ZeroAllocHelper.IsByteBufferAvailable();
         }
 
@@ -179,14 +196,14 @@ public sealed class ZeroAllocHelperTests
     [Test]
     public async Task ResizeCharBuffer_WhileInUse_ThrowsInvalidOperationException()
     {
-        ZeroAllocHelper.AcquireCharBuffer(64, out _);
+        ZeroAllocHelper.AcquireCharBuffer(64, out _, out int epoch);
         try
         {
             await Assert.That(() => ZeroAllocHelper.ResizeCharBuffer(128)).Throws<InvalidOperationException>();
         }
         finally
         {
-            ZeroAllocHelper.ReleaseCharBuffer();
+            ZeroAllocHelper.ReleaseCharBuffer(epoch);
         }
     }
     /// <summary>Verifies ResizeByteBuffer ValidSize UpdatesBufferSize.</summary>
@@ -228,14 +245,14 @@ public sealed class ZeroAllocHelperTests
     [Test]
     public async Task ReleaseBuffers_WhileCharBufferInUse_ThrowsInvalidOperationException()
     {
-        ZeroAllocHelper.AcquireCharBuffer(64, out _);
+        ZeroAllocHelper.AcquireCharBuffer(64, out _, out int epoch);
         try
         {
             await Assert.That(() => ZeroAllocHelper.ReleaseBuffers()).Throws<InvalidOperationException>();
         }
         finally
         {
-            ZeroAllocHelper.ReleaseCharBuffer();
+            ZeroAllocHelper.ReleaseCharBuffer(epoch);
         }
     }
 
@@ -263,12 +280,12 @@ public sealed class ZeroAllocHelperTests
         char firstChar;
         int newLength;
         {
-            char[] buffer = ZeroAllocHelper.AcquireCharBuffer(64, out _);
+            char[] buffer = ZeroAllocHelper.AcquireCharBuffer(64, out _, out int epoch);
             buffer[0] = 'Z';
             char[] grown = ZeroAllocHelper.GrowCharBuffer(128);
             firstChar = grown[0];
             newLength = grown.Length;
-            ZeroAllocHelper.ReleaseCharBuffer();
+            ZeroAllocHelper.ReleaseCharBuffer(epoch);
         }
 
         await Assert.That(firstChar).IsEqualTo('Z');
@@ -292,11 +309,11 @@ public sealed class ZeroAllocHelperTests
     {
         byte firstByte;
         {
-            byte[] buffer = ZeroAllocHelper.AcquireByteBuffer(64, out _);
+            byte[] buffer = ZeroAllocHelper.AcquireByteBuffer(64, out _, out int epoch);
             buffer[0] = 0xAB;
             byte[] grown = ZeroAllocHelper.GrowByteBuffer(128);
             firstByte = grown[0];
-            ZeroAllocHelper.ReleaseByteBuffer();
+            ZeroAllocHelper.ReleaseByteBuffer(epoch);
         }
 
         await Assert.That((int)firstByte).IsEqualTo(0xAB);
@@ -332,28 +349,28 @@ public sealed class ZeroAllocHelperTests
     [Test]
     public async Task ResizeByteBuffer_WhileInUse_ThrowsInvalidOperationException()
     {
-        ZeroAllocHelper.AcquireByteBuffer(64, out _);
+        ZeroAllocHelper.AcquireByteBuffer(64, out _, out int epoch);
         try
         {
             await Assert.That(() => ZeroAllocHelper.ResizeByteBuffer(128)).Throws<InvalidOperationException>();
         }
         finally
         {
-            ZeroAllocHelper.ReleaseByteBuffer();
+            ZeroAllocHelper.ReleaseByteBuffer(epoch);
         }
     }
     /// <summary>Verifies ReleaseBuffers WhileByteBufferInUse ThrowsInvalidOperationException.</summary>
     [Test]
     public async Task ReleaseBuffers_WhileByteBufferInUse_ThrowsInvalidOperationException()
     {
-        ZeroAllocHelper.AcquireByteBuffer(64, out _);
+        ZeroAllocHelper.AcquireByteBuffer(64, out _, out int epoch);
         try
         {
             await Assert.That(() => ZeroAllocHelper.ReleaseBuffers()).Throws<InvalidOperationException>();
         }
         finally
         {
-            ZeroAllocHelper.ReleaseByteBuffer();
+            ZeroAllocHelper.ReleaseByteBuffer(epoch);
         }
     }
     /// <summary>Verifies TryGrowCharBuffer WhenBufferAcquired ReturnsGrownBuffer.</summary>
@@ -363,12 +380,12 @@ public sealed class ZeroAllocHelperTests
         char firstChar;
         int newLength;
         {
-            char[] buffer = ZeroAllocHelper.AcquireCharBuffer(64, out _);
+            char[] buffer = ZeroAllocHelper.AcquireCharBuffer(64, out _, out int epoch);
             buffer[0] = 'X';
             char[]? grown = ZeroAllocHelper.TryGrowCharBuffer(128);
             firstChar = grown![0];
             newLength = grown.Length;
-            ZeroAllocHelper.ReleaseCharBuffer();
+            ZeroAllocHelper.ReleaseCharBuffer(epoch);
         }
 
         await Assert.That(firstChar).IsEqualTo('X');
@@ -381,12 +398,12 @@ public sealed class ZeroAllocHelperTests
         byte firstByte;
         int newLength;
         {
-            byte[] buffer = ZeroAllocHelper.AcquireByteBuffer(64, out _);
+            byte[] buffer = ZeroAllocHelper.AcquireByteBuffer(64, out _, out int epoch);
             buffer[0] = 0xCD;
             byte[]? grown = ZeroAllocHelper.TryGrowByteBuffer(128);
             firstByte = grown![0];
             newLength = grown.Length;
-            ZeroAllocHelper.ReleaseByteBuffer();
+            ZeroAllocHelper.ReleaseByteBuffer(epoch);
         }
 
         await Assert.That((int)firstByte).IsEqualTo(0xCD);
@@ -458,7 +475,7 @@ public sealed class ZeroAllocHelperTests
     [Test]
     public async Task GrowCharBuffer_UsedLengthPastBuffer_ThrowsArgumentOutOfRangeException()
     {
-        char[] buffer = ZeroAllocHelper.AcquireCharBuffer(64, out _);
+        char[] buffer = ZeroAllocHelper.AcquireCharBuffer(64, out _, out int epoch);
         try
         {
             await Assert.That(() => ZeroAllocHelper.GrowCharBuffer(128, buffer.Length + 1))
@@ -466,7 +483,7 @@ public sealed class ZeroAllocHelperTests
         }
         finally
         {
-            ZeroAllocHelper.ReleaseCharBuffer();
+            ZeroAllocHelper.ReleaseCharBuffer(epoch);
         }
     }
 
@@ -475,14 +492,14 @@ public sealed class ZeroAllocHelperTests
     public async Task TryGrowCharBuffer_UsedLengthPastBuffer_ReturnsNull()
     {
         char[]? result;
-        char[] buffer = ZeroAllocHelper.AcquireCharBuffer(64, out _);
+        char[] buffer = ZeroAllocHelper.AcquireCharBuffer(64, out _, out int epoch);
         try
         {
             result = ZeroAllocHelper.TryGrowCharBuffer(128, buffer.Length + 1);
         }
         finally
         {
-            ZeroAllocHelper.ReleaseCharBuffer();
+            ZeroAllocHelper.ReleaseCharBuffer(epoch);
         }
 
         await Assert.That(result).IsNull();
@@ -492,7 +509,7 @@ public sealed class ZeroAllocHelperTests
     [Test]
     public async Task GrowByteBuffer_UsedLengthPastBuffer_ThrowsArgumentOutOfRangeException()
     {
-        byte[] buffer = ZeroAllocHelper.AcquireByteBuffer(64, out _);
+        byte[] buffer = ZeroAllocHelper.AcquireByteBuffer(64, out _, out int epoch);
         try
         {
             await Assert.That(() => ZeroAllocHelper.GrowByteBuffer(128, buffer.Length + 1))
@@ -500,7 +517,7 @@ public sealed class ZeroAllocHelperTests
         }
         finally
         {
-            ZeroAllocHelper.ReleaseByteBuffer();
+            ZeroAllocHelper.ReleaseByteBuffer(epoch);
         }
     }
 
@@ -509,14 +526,14 @@ public sealed class ZeroAllocHelperTests
     public async Task TryGrowByteBuffer_UsedLengthPastBuffer_ReturnsNull()
     {
         byte[]? result;
-        byte[] buffer = ZeroAllocHelper.AcquireByteBuffer(64, out _);
+        byte[] buffer = ZeroAllocHelper.AcquireByteBuffer(64, out _, out int epoch);
         try
         {
             result = ZeroAllocHelper.TryGrowByteBuffer(128, buffer.Length + 1);
         }
         finally
         {
-            ZeroAllocHelper.ReleaseByteBuffer();
+            ZeroAllocHelper.ReleaseByteBuffer(epoch);
         }
 
         await Assert.That(result).IsNull();

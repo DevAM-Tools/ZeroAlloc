@@ -632,7 +632,8 @@ public sealed class ZeroAllocGenerator : IIncrementalGenerator
             type.AllInterfaces.Contains(utf8Size, SymbolEqualityComparer.Default);
 
         // Check for IBinarySerializable (for binary serialization)
-        INamedTypeSymbol? binarySerializable = compilation.GetTypeByMetadataName("ZeroAlloc.IBinarySerializable");
+        // Literal metadata name required: typeof unavailable (generator does not reference ZeroAlloc.dll).
+        INamedTypeSymbol? binarySerializable = compilation.GetTypeByMetadataName(BinaryGeneratorHelpers.IBinarySerializableMetadataName);
         if (binarySerializable is not null && type.AllInterfaces.Contains(binarySerializable, SymbolEqualityComparer.Default))
         {
             return new ArgumentTypeInfo(fullTypeName, shortName, TypeCategory.BinarySerializable, isRefStruct, isValueType,

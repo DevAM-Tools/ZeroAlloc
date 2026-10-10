@@ -392,18 +392,22 @@ public sealed class LazyStringTests
     public async Task TryGetString_FormatLazyThrows_ReturnsFalseWithEmpty()
     {
         LazyString s = LazyString.FormatLazy(0, static _ => throw new InvalidOperationException("boom"));
-        bool success = s.TryGetString(out string result);
+        bool success = s.TryGetString(out string result, out LazyStringError error);
         await Assert.That(success).IsFalse();
         await Assert.That(result).IsEqualTo(string.Empty);
+        await Assert.That(error.Code).IsEqualTo(LazyStringErrorCode.FactoryFaulted);
+        await Assert.That(error.Message).IsEqualTo("boom");
     }
     /// <summary>Verifies TryGetString LazyThrows ReturnsFalseWithEmpty.</summary>
     [Test]
     public async Task TryGetString_LazyThrows_ReturnsFalseWithEmpty()
     {
         LazyString s = LazyString.Lazy(() => throw new InvalidOperationException("boom"));
-        bool success = s.TryGetString(out string result);
+        bool success = s.TryGetString(out string result, out LazyStringError error);
         await Assert.That(success).IsFalse();
         await Assert.That(result).IsEqualTo(string.Empty);
+        await Assert.That(error.Code).IsEqualTo(LazyStringErrorCode.FactoryFaulted);
+        await Assert.That(error.Message).IsEqualTo("boom");
     }
     /// <summary>Verifies TryGetString LazyThrows CachesEmptyToPreventRetry.</summary>
     [Test]
@@ -417,14 +421,43 @@ public sealed class LazyStringTests
         });
 
         // First call — catches exception, caches empty
-        _ = s.TryGetString(out _);
+        _ = s.TryGetString(out _, out LazyStringError firstError);
         await Assert.That(callCount).IsEqualTo(1);
+        await Assert.That(firstError.Code).IsEqualTo(LazyStringErrorCode.FactoryFaulted);
 
         // Second call — should see cached empty string
-        bool success = s.TryGetString(out string result);
+        bool success = s.TryGetString(out string result, out LazyStringError secondError);
         await Assert.That(success).IsTrue();
         await Assert.That(result).IsEqualTo(string.Empty);
+        await Assert.That(secondError.Code).IsEqualTo(LazyStringErrorCode.None);
         await Assert.That(callCount).IsEqualTo(1);
+    }
+    /// <summary>
+    /// Concurrent first evaluation may run the factory more than once before CAS wins;
+    /// all readers must observe the same final string and a cached string afterward.
+    /// </summary>
+    [Test]
+    public async Task AsString_ConcurrentEvaluation_AllReadersSeeSameCachedString()
+    {
+        int calls = 0;
+        LazyString lazy = LazyString.Lazy(() =>
+        {
+            Interlocked.Increment(ref calls);
+            return "ok";
+        });
+
+        Task<string>[] tasks = new Task<string>[32];
+        for (int i = 0; i < tasks.Length; i++)
+        {
+            tasks[i] = Task.Run(() => lazy.AsString);
+        }
+
+        string[] results = await Task.WhenAll(tasks);
+
+        await Assert.That(calls).IsGreaterThanOrEqualTo(1);
+        await Assert.That(results.All(static r => r == "ok")).IsTrue();
+        await Assert.That(lazy.IsEvaluated).IsTrue();
+        await Assert.That(lazy.RawValue).IsTypeOf<string>();
     }
     /// <summary>Verifies Append MultipleParts.</summary>
     [Test]

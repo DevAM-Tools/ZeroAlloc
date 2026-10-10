@@ -964,4 +964,26 @@ public sealed class TempBytesBuilderTests
             _ => throw new ArgumentOutOfRangeException(nameof(method), method, "Unknown method."),
         };
     }
+
+    /// <summary>Verifies Append throws OverflowException when position + length wraps.</summary>
+    [Test]
+    public async Task Append_PositionNearIntMax_ThrowsOverflowException()
+    {
+        OverflowException? caught;
+        {
+            using TempBytesBuilder builder = TempBytesBuilder.Create();
+            builder.SetPositionForTests(int.MaxValue - 1);
+            try
+            {
+                builder.Append([1, 2]);
+                caught = null;
+            }
+            catch (OverflowException ex)
+            {
+                caught = ex;
+            }
+        }
+
+        await Assert.That(caught).IsNotNull();
+    }
 }

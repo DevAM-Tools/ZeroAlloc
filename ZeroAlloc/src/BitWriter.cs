@@ -8,6 +8,8 @@ namespace ZeroAlloc;
 /// High-performance bit-level writer for serializing non-byte-aligned data.
 /// Write counterpart to <see cref="BitReader"/> for automotive (CAN/FlexRay)
 /// and network protocols with sub-byte fields.
+/// Thread-safety: not thread-safe. A <see cref="BitWriter"/> is a stack-only <c>ref struct</c>;
+/// use one instance on a single thread and do not share it across threads.
 /// </summary>
 public ref struct BitWriter
 {
@@ -111,7 +113,7 @@ public ref struct BitWriter
     /// Optimized write for byte-aligned positions using direct integer writes.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void _WriteBitsAligned(int bytePos, ulong value, int bitCount)
+    private readonly void _WriteBitsAligned(int bytePos, ulong value, int bitCount)
     {
         switch (bitCount)
         {
@@ -137,7 +139,7 @@ public ref struct BitWriter
     /// General bit-level write for arbitrary alignment and bit counts.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void _WriteBitsGeneric(int bytePos, int bitPos, ulong value, int bitCount)
+    private readonly void _WriteBitsGeneric(int bytePos, int bitPos, ulong value, int bitCount)
     {
         int bitsRemaining = bitCount;
 
@@ -555,12 +557,7 @@ public ref struct BitWriter
             throw new ArgumentOutOfRangeException(nameof(bitCount), "BitCount must be non-negative");
         }
 
-        if ((long)bitCount > _TotalBits - _BitOffset || !_TryAdvanceBits(bitCount))
-        {
-            return false;
-        }
-
-        return true;
+        return (long)bitCount <= _TotalBits - _BitOffset && _TryAdvanceBits(bitCount);
     }
 
     /// <summary>

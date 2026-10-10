@@ -50,9 +50,7 @@ namespace ZeroAlloc;
 /// </remarks>
 public readonly ref struct TempString : IDisposable
 {
-    // ========================================================================
-    // PRIVATE FIELDS
-    // ========================================================================
+    #region Fields
 
     /// <summary>
     /// The buffer containing the formatted characters.
@@ -77,9 +75,9 @@ public readonly ref struct TempString : IDisposable
     /// </summary>
     private readonly int _Epoch;
 
-    // ========================================================================
-    // CONSTRUCTOR
-    // ========================================================================
+    #endregion
+
+    #region Lifecycle
 
     /// <summary>
     /// Initializes a new <see cref="TempString"/> with the given buffer, length, and ownership info.
@@ -116,9 +114,9 @@ public readonly ref struct TempString : IDisposable
         _Epoch = epoch;
     }
 
-    // ========================================================================
-    // PROPERTIES
-    // ========================================================================
+    #endregion
+
+    #region Public API
 
     /// <summary>
     /// Gets the length of the string content in characters.
@@ -152,10 +150,6 @@ public readonly ref struct TempString : IDisposable
         get => !_IsThreadStatic;
     }
 
-    // ========================================================================
-    // METHODS
-    // ========================================================================
-
     /// <summary>
     /// Returns a <see cref="ReadOnlySpan{Char}"/> view of the string content.
     /// </summary>
@@ -165,7 +159,7 @@ public readonly ref struct TempString : IDisposable
     /// The span is valid until <see cref="Dispose"/> is called.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ReadOnlySpan<char> AsSpan() => new ReadOnlySpan<char>(_Buffer, 0, _Length);
+    public ReadOnlySpan<char> AsSpan() => new(_Buffer, 0, _Length);
 
     /// <summary>
     /// Creates a heap-allocated string from the temporary content.
@@ -188,9 +182,9 @@ public readonly ref struct TempString : IDisposable
         return new string(_Buffer, 0, _Length);
     }
 
-    // ========================================================================
-    // IDISPOSABLE IMPLEMENTATION
-    // ========================================================================
+    #endregion
+
+    #region IDisposable
 
     /// <summary>
     /// Releases the ThreadStatic buffer if applicable, making it available for the next acquisition.
@@ -216,9 +210,9 @@ public readonly ref struct TempString : IDisposable
         ZeroAllocHelper.ReleaseCharBuffer(_Epoch);
     }
 
-    // ========================================================================
-    // OPERATORS
-    // ========================================================================
+    #endregion
+
+    #region Operators
 
     /// <summary>
     /// Implicitly converts a <see cref="TempString"/> to <see cref="ReadOnlySpan{Char}"/>.
@@ -256,4 +250,6 @@ public readonly ref struct TempString : IDisposable
         temp.Dispose();
         return result;
     }
+
+    #endregion
 }

@@ -96,6 +96,17 @@ public static class ZeroAllocHelper
         => AcquireCharBuffer(bufferSize, recursiveHeapFallback: true, out isThreadStatic, out _);
 
     /// <summary>
+    /// Acquires access to the ThreadStatic char buffer and returns the acquire generation.
+    /// </summary>
+    /// <param name="bufferSize">The required buffer size (from generated code).</param>
+    /// <param name="isThreadStatic">Output: true if ThreadStatic buffer was acquired, false if heap-allocated.</param>
+    /// <param name="epoch">Output: generation of this acquire when ThreadStatic; otherwise 0.</param>
+    /// <returns>The char buffer ready for writing.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static char[] AcquireCharBuffer(int bufferSize, out bool isThreadStatic, out int epoch)
+        => AcquireCharBuffer(bufferSize, recursiveHeapFallback: true, out isThreadStatic, out epoch);
+
+    /// <summary>
     /// Acquires access to the ThreadStatic char buffer with configurable fallback behavior.
     /// </summary>
     /// <param name="bufferSize">The required buffer size (from generated code).</param>
@@ -143,16 +154,6 @@ public static class ZeroAllocHelper
             "Nested ZeroAlloc call detected: ThreadStatic buffer is already in use. " +
             "Enable ZeroAlloc_RecursiveHeapFallback to allow heap allocation fallback, " +
             "or ensure TempString is disposed before the next formatting call.");
-
-    /// <summary>
-    /// Releases the ThreadStatic char buffer for the current acquire generation.
-    /// </summary>
-    /// <remarks>
-    /// Called automatically by <see cref="TempString.Dispose"/> when using the ThreadStatic buffer.
-    /// Prefer <see cref="ReleaseCharBuffer(int)"/> so a stale owner cannot unlock a later acquire.
-    /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ReleaseCharBuffer() => ReleaseCharBuffer(_CharBufferEpoch);
 
     /// <summary>
     /// Releases the ThreadStatic char buffer when <paramref name="epoch"/> matches the current acquire.
@@ -273,6 +274,17 @@ public static class ZeroAllocHelper
         => AcquireByteBuffer(bufferSize, recursiveHeapFallback: true, out isThreadStatic, out _);
 
     /// <summary>
+    /// Acquires access to the ThreadStatic byte buffer and returns the acquire generation.
+    /// </summary>
+    /// <param name="bufferSize">The required buffer size (from generated code).</param>
+    /// <param name="isThreadStatic">Output: true if ThreadStatic buffer was acquired, false if heap-allocated.</param>
+    /// <param name="epoch">Output: generation of this acquire when ThreadStatic; otherwise 0.</param>
+    /// <returns>The byte buffer ready for writing.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static byte[] AcquireByteBuffer(int bufferSize, out bool isThreadStatic, out int epoch)
+        => AcquireByteBuffer(bufferSize, recursiveHeapFallback: true, out isThreadStatic, out epoch);
+
+    /// <summary>
     /// Acquires access to the ThreadStatic byte buffer with configurable fallback behavior.
     /// </summary>
     /// <param name="bufferSize">The required buffer size (from generated code).</param>
@@ -320,15 +332,6 @@ public static class ZeroAllocHelper
             "Nested ZeroAlloc call detected: ThreadStatic buffer is already in use. " +
             "Enable ZeroAlloc_RecursiveHeapFallback to allow heap allocation fallback, " +
             "or ensure TempBytes is disposed before the next formatting call.");
-
-    /// <summary>
-    /// Releases the ThreadStatic byte buffer for the current acquire generation.
-    /// </summary>
-    /// <remarks>
-    /// Prefer <see cref="ReleaseByteBuffer(int)"/> so a stale owner cannot unlock a later acquire.
-    /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ReleaseByteBuffer() => ReleaseByteBuffer(_ByteBufferEpoch);
 
     /// <summary>
     /// Releases the ThreadStatic byte buffer when <paramref name="epoch"/> matches the current acquire.

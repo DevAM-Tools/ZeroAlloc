@@ -74,6 +74,13 @@ public ref struct TempBytesBuilder : IDisposable
     private readonly bool _IsThreadStatic;
     private readonly int _Epoch;
 
+    /// <summary>Adds two sizes with overflow checking (capacity / position math).</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int _CheckedSum(int left, int right) => checked(left + right);
+
+    /// <summary>Test hook: sets the write position without validating capacity (ZeroAlloc.Tests only).</summary>
+    internal void SetPositionForTests(int position) => _Position = position;
+
     // ========================================================================
     // CONSTRUCTORS
     // ========================================================================
@@ -290,7 +297,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(byte value)
     {
-        _EnsureCapacity(_Position + 1);
+        _EnsureCapacity(_CheckedSum(_Position, 1));
         _Span[_Position++] = value;
     }
 
@@ -319,9 +326,9 @@ public ref struct TempBytesBuilder : IDisposable
             return;
         }
 
-        _EnsureCapacity(_Position + value.Length);
+        _EnsureCapacity(_CheckedSum(_Position, value.Length));
         value.CopyTo(_Span.Slice(_Position));
-        _Position += value.Length;
+        _Position = _CheckedSum(_Position, value.Length);
     }
 
     // ========================================================================
@@ -335,7 +342,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppend(byte value)
     {
-        if (!_TryEnsureCapacity(_Position + 1))
+        if (!_TryEnsureCapacity(_CheckedSum(_Position, 1)))
         {
             return false;
         }
@@ -371,13 +378,13 @@ public ref struct TempBytesBuilder : IDisposable
             return true;
         }
 
-        if (!_TryEnsureCapacity(_Position + value.Length))
+        if (!_TryEnsureCapacity(_CheckedSum(_Position, value.Length)))
         {
             return false;
         }
 
         value.CopyTo(_Span.Slice(_Position));
-        _Position += value.Length;
+        _Position = _CheckedSum(_Position, value.Length);
         return true;
     }
 
@@ -389,72 +396,72 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendInt16BigEndian(short value)
     {
-        _EnsureCapacity(_Position + 2);
+        _EnsureCapacity(_CheckedSum(_Position, 2));
         BinaryPrimitives.WriteInt16BigEndian(_Span.Slice(_Position), value);
-        _Position += 2;
+        _Position = _CheckedSum(_Position, 2);
     }
 
     /// <summary>Appends a 32-bit signed integer in big-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendInt32BigEndian(int value)
     {
-        _EnsureCapacity(_Position + 4);
+        _EnsureCapacity(_CheckedSum(_Position, 4));
         BinaryPrimitives.WriteInt32BigEndian(_Span.Slice(_Position), value);
-        _Position += 4;
+        _Position = _CheckedSum(_Position, 4);
     }
 
     /// <summary>Appends a 64-bit signed integer in big-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendInt64BigEndian(long value)
     {
-        _EnsureCapacity(_Position + 8);
+        _EnsureCapacity(_CheckedSum(_Position, 8));
         BinaryPrimitives.WriteInt64BigEndian(_Span.Slice(_Position), value);
-        _Position += 8;
+        _Position = _CheckedSum(_Position, 8);
     }
 
     /// <summary>Appends a 128-bit signed integer in big-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendInt128BigEndian(Int128 value)
     {
-        _EnsureCapacity(_Position + 16);
+        _EnsureCapacity(_CheckedSum(_Position, 16));
         BinaryPrimitives.WriteInt128BigEndian(_Span.Slice(_Position), value);
-        _Position += 16;
+        _Position = _CheckedSum(_Position, 16);
     }
 
     /// <summary>Appends a 16-bit unsigned integer in big-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUInt16BigEndian(ushort value)
     {
-        _EnsureCapacity(_Position + 2);
+        _EnsureCapacity(_CheckedSum(_Position, 2));
         BinaryPrimitives.WriteUInt16BigEndian(_Span.Slice(_Position), value);
-        _Position += 2;
+        _Position = _CheckedSum(_Position, 2);
     }
 
     /// <summary>Appends a 32-bit unsigned integer in big-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUInt32BigEndian(uint value)
     {
-        _EnsureCapacity(_Position + 4);
+        _EnsureCapacity(_CheckedSum(_Position, 4));
         BinaryPrimitives.WriteUInt32BigEndian(_Span.Slice(_Position), value);
-        _Position += 4;
+        _Position = _CheckedSum(_Position, 4);
     }
 
     /// <summary>Appends a 64-bit unsigned integer in big-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUInt64BigEndian(ulong value)
     {
-        _EnsureCapacity(_Position + 8);
+        _EnsureCapacity(_CheckedSum(_Position, 8));
         BinaryPrimitives.WriteUInt64BigEndian(_Span.Slice(_Position), value);
-        _Position += 8;
+        _Position = _CheckedSum(_Position, 8);
     }
 
     /// <summary>Appends a 128-bit unsigned integer in big-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUInt128BigEndian(UInt128 value)
     {
-        _EnsureCapacity(_Position + 16);
+        _EnsureCapacity(_CheckedSum(_Position, 16));
         BinaryPrimitives.WriteUInt128BigEndian(_Span.Slice(_Position), value);
-        _Position += 16;
+        _Position = _CheckedSum(_Position, 16);
     }
 
     // ========================================================================
@@ -465,72 +472,72 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendInt16LittleEndian(short value)
     {
-        _EnsureCapacity(_Position + 2);
+        _EnsureCapacity(_CheckedSum(_Position, 2));
         BinaryPrimitives.WriteInt16LittleEndian(_Span.Slice(_Position), value);
-        _Position += 2;
+        _Position = _CheckedSum(_Position, 2);
     }
 
     /// <summary>Appends a 32-bit signed integer in little-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendInt32LittleEndian(int value)
     {
-        _EnsureCapacity(_Position + 4);
+        _EnsureCapacity(_CheckedSum(_Position, 4));
         BinaryPrimitives.WriteInt32LittleEndian(_Span.Slice(_Position), value);
-        _Position += 4;
+        _Position = _CheckedSum(_Position, 4);
     }
 
     /// <summary>Appends a 64-bit signed integer in little-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendInt64LittleEndian(long value)
     {
-        _EnsureCapacity(_Position + 8);
+        _EnsureCapacity(_CheckedSum(_Position, 8));
         BinaryPrimitives.WriteInt64LittleEndian(_Span.Slice(_Position), value);
-        _Position += 8;
+        _Position = _CheckedSum(_Position, 8);
     }
 
     /// <summary>Appends a 128-bit signed integer in little-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendInt128LittleEndian(Int128 value)
     {
-        _EnsureCapacity(_Position + 16);
+        _EnsureCapacity(_CheckedSum(_Position, 16));
         BinaryPrimitives.WriteInt128LittleEndian(_Span.Slice(_Position), value);
-        _Position += 16;
+        _Position = _CheckedSum(_Position, 16);
     }
 
     /// <summary>Appends a 16-bit unsigned integer in little-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUInt16LittleEndian(ushort value)
     {
-        _EnsureCapacity(_Position + 2);
+        _EnsureCapacity(_CheckedSum(_Position, 2));
         BinaryPrimitives.WriteUInt16LittleEndian(_Span.Slice(_Position), value);
-        _Position += 2;
+        _Position = _CheckedSum(_Position, 2);
     }
 
     /// <summary>Appends a 32-bit unsigned integer in little-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUInt32LittleEndian(uint value)
     {
-        _EnsureCapacity(_Position + 4);
+        _EnsureCapacity(_CheckedSum(_Position, 4));
         BinaryPrimitives.WriteUInt32LittleEndian(_Span.Slice(_Position), value);
-        _Position += 4;
+        _Position = _CheckedSum(_Position, 4);
     }
 
     /// <summary>Appends a 64-bit unsigned integer in little-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUInt64LittleEndian(ulong value)
     {
-        _EnsureCapacity(_Position + 8);
+        _EnsureCapacity(_CheckedSum(_Position, 8));
         BinaryPrimitives.WriteUInt64LittleEndian(_Span.Slice(_Position), value);
-        _Position += 8;
+        _Position = _CheckedSum(_Position, 8);
     }
 
     /// <summary>Appends a 128-bit unsigned integer in little-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendUInt128LittleEndian(UInt128 value)
     {
-        _EnsureCapacity(_Position + 16);
+        _EnsureCapacity(_CheckedSum(_Position, 16));
         BinaryPrimitives.WriteUInt128LittleEndian(_Span.Slice(_Position), value);
-        _Position += 16;
+        _Position = _CheckedSum(_Position, 16);
     }
 
     // ========================================================================
@@ -541,54 +548,54 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendHalfBigEndian(Half value)
     {
-        _EnsureCapacity(_Position + 2);
+        _EnsureCapacity(_CheckedSum(_Position, 2));
         BinaryPrimitives.WriteHalfBigEndian(_Span.Slice(_Position), value);
-        _Position += 2;
+        _Position = _CheckedSum(_Position, 2);
     }
 
     /// <summary>Appends a half-precision float in little-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendHalfLittleEndian(Half value)
     {
-        _EnsureCapacity(_Position + 2);
+        _EnsureCapacity(_CheckedSum(_Position, 2));
         BinaryPrimitives.WriteHalfLittleEndian(_Span.Slice(_Position), value);
-        _Position += 2;
+        _Position = _CheckedSum(_Position, 2);
     }
 
     /// <summary>Appends a single-precision float in big-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendSingleBigEndian(float value)
     {
-        _EnsureCapacity(_Position + 4);
+        _EnsureCapacity(_CheckedSum(_Position, 4));
         BinaryPrimitives.WriteSingleBigEndian(_Span.Slice(_Position), value);
-        _Position += 4;
+        _Position = _CheckedSum(_Position, 4);
     }
 
     /// <summary>Appends a single-precision float in little-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendSingleLittleEndian(float value)
     {
-        _EnsureCapacity(_Position + 4);
+        _EnsureCapacity(_CheckedSum(_Position, 4));
         BinaryPrimitives.WriteSingleLittleEndian(_Span.Slice(_Position), value);
-        _Position += 4;
+        _Position = _CheckedSum(_Position, 4);
     }
 
     /// <summary>Appends a double-precision float in big-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendDoubleBigEndian(double value)
     {
-        _EnsureCapacity(_Position + 8);
+        _EnsureCapacity(_CheckedSum(_Position, 8));
         BinaryPrimitives.WriteDoubleBigEndian(_Span.Slice(_Position), value);
-        _Position += 8;
+        _Position = _CheckedSum(_Position, 8);
     }
 
     /// <summary>Appends a double-precision float in little-endian format.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendDoubleLittleEndian(double value)
     {
-        _EnsureCapacity(_Position + 8);
+        _EnsureCapacity(_CheckedSum(_Position, 8));
         BinaryPrimitives.WriteDoubleLittleEndian(_Span.Slice(_Position), value);
-        _Position += 8;
+        _Position = _CheckedSum(_Position, 8);
     }
 
     // ========================================================================
@@ -600,7 +607,7 @@ public ref struct TempBytesBuilder : IDisposable
     public void AppendVarInt(ulong value)
     {
         // Max 10 bytes for 64-bit value
-        _EnsureCapacity(_Position + VarInt.MaxSize);
+        _EnsureCapacity(_CheckedSum(_Position, VarInt.MaxSize));
 
         while (value >= 0x80)
         {
@@ -642,10 +649,10 @@ public ref struct TempBytesBuilder : IDisposable
         }
 
         int maxBytes = Encoding.UTF8.GetMaxByteCount(value.Length);
-        _EnsureCapacity(_Position + maxBytes);
+        _EnsureCapacity(_CheckedSum(_Position, maxBytes));
 
         int written = Encoding.UTF8.GetBytes(value, _Span.Slice(_Position));
-        _Position += written;
+        _Position = _CheckedSum(_Position, written);
     }
 
     /// <summary>Appends a string as UTF-8 bytes followed by a null terminator.</summary>
@@ -669,9 +676,9 @@ public ref struct TempBytesBuilder : IDisposable
         int byteCount = Encoding.UTF8.GetByteCount(value);
         AppendVarInt((ulong)byteCount);
 
-        _EnsureCapacity(_Position + byteCount);
+        _EnsureCapacity(_CheckedSum(_Position, byteCount));
         int written = Encoding.UTF8.GetBytes(value, _Span.Slice(_Position));
-        _Position += written;
+        _Position = _CheckedSum(_Position, written);
     }
 
     /// <summary>Appends a string with a 4-byte big-endian length prefix followed by UTF-8 bytes.</summary>
@@ -687,9 +694,9 @@ public ref struct TempBytesBuilder : IDisposable
         int byteCount = Encoding.UTF8.GetByteCount(value);
         AppendUInt32BigEndian((uint)byteCount);
 
-        _EnsureCapacity(_Position + byteCount);
+        _EnsureCapacity(_CheckedSum(_Position, byteCount));
         int written = Encoding.UTF8.GetBytes(value, _Span.Slice(_Position));
-        _Position += written;
+        _Position = _CheckedSum(_Position, written);
     }
 
     /// <summary>Appends a string with a 4-byte little-endian length prefix followed by UTF-8 bytes.</summary>
@@ -705,9 +712,9 @@ public ref struct TempBytesBuilder : IDisposable
         int byteCount = Encoding.UTF8.GetByteCount(value);
         AppendUInt32LittleEndian((uint)byteCount);
 
-        _EnsureCapacity(_Position + byteCount);
+        _EnsureCapacity(_CheckedSum(_Position, byteCount));
         int written = Encoding.UTF8.GetBytes(value, _Span.Slice(_Position));
-        _Position += written;
+        _Position = _CheckedSum(_Position, written);
     }
 
     // ========================================================================
@@ -781,7 +788,7 @@ public ref struct TempBytesBuilder : IDisposable
         // Try to get the size hint for optimal pre-allocation
         if (value.TryGetWrittenSize(out int size))
         {
-            _EnsureCapacity(_Position + size);
+            _EnsureCapacity(_CheckedSum(_Position, size));
         }
 
         int bytesWritten;
@@ -801,7 +808,7 @@ public ref struct TempBytesBuilder : IDisposable
             }
         }
 
-        _Position += bytesWritten;
+        _Position = _CheckedSum(_Position, bytesWritten);
     }
 
     /// <summary>Tries to append any type implementing IBinarySerializable without throwing.</summary>
@@ -812,7 +819,7 @@ public ref struct TempBytesBuilder : IDisposable
         // Try to get the size hint for optimal pre-allocation
         if (value.TryGetWrittenSize(out int size))
         {
-            if (!_TryEnsureCapacity(_Position + size))
+            if (!_TryEnsureCapacity(_CheckedSum(_Position, size)))
             {
                 return false;
             }
@@ -840,7 +847,7 @@ public ref struct TempBytesBuilder : IDisposable
             }
         }
 
-        _Position += bytesWritten;
+        _Position = _CheckedSum(_Position, bytesWritten);
         return true;
     }
 
@@ -869,7 +876,7 @@ public ref struct TempBytesBuilder : IDisposable
             }
         }
 
-        _Position += bytesWritten;
+        _Position = _CheckedSum(_Position, bytesWritten);
     }
 
     /// <summary>Tries to append any IUtf8SpanFormattable value without throwing.</summary>
@@ -899,7 +906,7 @@ public ref struct TempBytesBuilder : IDisposable
             }
         }
 
-        _Position += bytesWritten;
+        _Position = _CheckedSum(_Position, bytesWritten);
         return true;
     }
 
@@ -913,7 +920,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendHex2(byte value)
     {
-        _EnsureCapacity(_Position + 2);
+        _EnsureCapacity(_CheckedSum(_Position, 2));
         _Span[_Position++] = _HexCharsBytes[value >> 4];
         _Span[_Position++] = _HexCharsBytes[value & 0xF];
     }
@@ -922,7 +929,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendHex4(ushort value)
     {
-        _EnsureCapacity(_Position + 4);
+        _EnsureCapacity(_CheckedSum(_Position, 4));
         _Span[_Position++] = _HexCharsBytes[(value >> 12) & 0xF];
         _Span[_Position++] = _HexCharsBytes[(value >> 8) & 0xF];
         _Span[_Position++] = _HexCharsBytes[(value >> 4) & 0xF];
@@ -949,7 +956,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendBinary8(byte value)
     {
-        _EnsureCapacity(_Position + 8);
+        _EnsureCapacity(_CheckedSum(_Position, 8));
         for (int i = 7; i >= 0; i--)
         {
             _Span[_Position++] = (byte)('0' + ((value >> i) & 1));
@@ -960,7 +967,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendBinary16(ushort value)
     {
-        _EnsureCapacity(_Position + 16);
+        _EnsureCapacity(_CheckedSum(_Position, 16));
         for (int i = 15; i >= 0; i--)
         {
             _Span[_Position++] = (byte)('0' + ((value >> i) & 1));
@@ -971,7 +978,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendBinary32(uint value)
     {
-        _EnsureCapacity(_Position + 32);
+        _EnsureCapacity(_CheckedSum(_Position, 32));
         for (int i = 31; i >= 0; i--)
         {
             _Span[_Position++] = (byte)('0' + ((value >> i) & 1));
@@ -982,7 +989,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendBinary64(ulong value)
     {
-        _EnsureCapacity(_Position + 64);
+        _EnsureCapacity(_CheckedSum(_Position, 64));
         for (int i = 63; i >= 0; i--)
         {
             _Span[_Position++] = (byte)('0' + (int)((value >> i) & 1));
@@ -995,7 +1002,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendHex2(byte value)
     {
-        if (!_TryEnsureCapacity(_Position + 2))
+        if (!_TryEnsureCapacity(_CheckedSum(_Position, 2)))
         {
             return false;
         }
@@ -1011,7 +1018,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendHex4(ushort value)
     {
-        if (!_TryEnsureCapacity(_Position + 4))
+        if (!_TryEnsureCapacity(_CheckedSum(_Position, 4)))
         {
             return false;
         }
@@ -1029,7 +1036,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendHex8(uint value)
     {
-        if (!_TryEnsureCapacity(_Position + 8))
+        if (!_TryEnsureCapacity(_CheckedSum(_Position, 8)))
         {
             return false;
         }
@@ -1045,7 +1052,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendHex16(ulong value)
     {
-        if (!_TryEnsureCapacity(_Position + 16))
+        if (!_TryEnsureCapacity(_CheckedSum(_Position, 16)))
         {
             return false;
         }
@@ -1061,7 +1068,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendBinary8(byte value)
     {
-        if (!_TryEnsureCapacity(_Position + 8))
+        if (!_TryEnsureCapacity(_CheckedSum(_Position, 8)))
         {
             return false;
         }
@@ -1079,7 +1086,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendBinary16(ushort value)
     {
-        if (!_TryEnsureCapacity(_Position + 16))
+        if (!_TryEnsureCapacity(_CheckedSum(_Position, 16)))
         {
             return false;
         }
@@ -1097,7 +1104,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendBinary32(uint value)
     {
-        if (!_TryEnsureCapacity(_Position + 32))
+        if (!_TryEnsureCapacity(_CheckedSum(_Position, 32)))
         {
             return false;
         }
@@ -1115,7 +1122,7 @@ public ref struct TempBytesBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendBinary64(ulong value)
     {
-        if (!_TryEnsureCapacity(_Position + 64))
+        if (!_TryEnsureCapacity(_CheckedSum(_Position, 64)))
         {
             return false;
         }

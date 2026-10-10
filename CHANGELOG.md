@@ -7,6 +7,29 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2026-10-10
+
+ZeroAlloc 0.6.1 hardens buffer ownership and LazyString failure reporting, and ships the agent workflow surface (`/requirements`, `/illustrate`, `/commit-message`) used to develop the library.
+
+### Added
+
+- `LazyString.TryGetString(out string, out LazyStringError)` with `LazyStringError` / `LazyStringErrorCode` for factory faults.
+- `ZeroAllocHelper.AcquireCharBuffer` / `AcquireByteBuffer` overloads that return the acquire `epoch` alongside `isThreadStatic`.
+- Agent workflows: `/requirements` (`REQ-<AREA>-<TOPIC>`), `/illustrate` (HTML zip demo), `/commit-message` (paste-ready English message for a named scope). Cursor commands and skill pointers under `.cursor/` match `.github/` SSOT.
+
+### Changed
+
+- TempStringBuilder / TempBytesBuilder capacity and position math use checked addition (overflow throws `OverflowException`).
+- CSharpStyleChecker central version pinned to `1.0.1`.
+- README Quick Start leads with `dotnet add package ZeroAlloc`; Installation is TOC item 2.
+- BitReader / BitWriter XML summaries document single-thread / not-thread-safe use.
+- Packable `VersionPrefix` is `0.6.1`.
+- Plan, review, implement, council, and complex-task skills tightened (requirements-first planning, release verdict on `/review`, Closing Exam after `/implement`).
+
+### Breaking
+
+- Removed parameterless `ZeroAllocHelper.ReleaseCharBuffer()` and `ReleaseByteBuffer()`. Pass the `epoch` from the matching Acquire overload (same model as `TempString` / `TempBytes` Dispose).
+
 ## [0.6.0] - 2026-09-09
 
 ZeroAlloc 0.6.0 is a consumer-facing release: each consuming compilation gets `ZeroAlloc.ZA` without a handwritten subclass, generated overflow modes actually run, and binary string parse grows an explicit size cap.
@@ -117,8 +140,8 @@ dotnet tool run exitpointgaps --repo-root . --configuration Release
 dotnet pack ZeroAlloc/ZeroAlloc.csproj -c Release -p:ContinuousIntegrationBuild=true -o artifacts
 
 # 3. Publish to nuget.org (requires API key)
-dotnet nuget push artifacts/ZeroAlloc.0.6.0.nupkg --source https://api.nuget.org/v3/index.json --api-key <NUGET_API_KEY>
-dotnet nuget push artifacts/ZeroAlloc.0.6.0.snupkg --source https://api.nuget.org/v3/index.json --api-key <NUGET_API_KEY>
+dotnet nuget push artifacts/ZeroAlloc.0.6.1.nupkg --source https://api.nuget.org/v3/index.json --api-key <NUGET_API_KEY>
+dotnet nuget push artifacts/ZeroAlloc.0.6.1.snupkg --source https://api.nuget.org/v3/index.json --api-key <NUGET_API_KEY>
 ```
 
-After publish: create git tag `v0.6.0` and GitHub release with this changelog section.
+After publish: create git tag `v0.6.1` and GitHub release with this changelog section.

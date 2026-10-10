@@ -11,6 +11,9 @@ namespace ZeroAlloc;
 /// <see cref="Interlocked.CompareExchange{T}"/>. This eliminates the wrapper-class allocation
 /// that a separate cache object would require and reduces subsequent reads to a single
 /// pointer dereference.</para>
+/// <para><b>Thread-safety:</b> Concurrent first evaluation is safe. Multiple threads may run the
+/// factory before one CAS wins; losers discard their result. After caching, readers share the
+/// same <see cref="string"/> reference. Do not mutate captured factory state unsafely.</para>
 /// </summary>
 [StructLayout(LayoutKind.Auto)]
 public readonly struct LazyString : IEquatable<LazyString>, IComparable<LazyString>
@@ -102,27 +105,39 @@ public readonly struct LazyString : IEquatable<LazyString>, IComparable<LazyStri
 
     /// <summary>
     /// Tries to get the evaluated string value without throwing exceptions.
+    /// Forwards to <see cref="TryGetString(out string, out LazyStringError)"/>; use that overload
+    /// when you need the structured <see cref="LazyStringError"/> on failure.
+    /// </summary>
+    /// <param name="result">The evaluated string, or <see cref="string.Empty"/> on failure.</param>
+    /// <returns><c>true</c> if the string was obtained successfully; <c>false</c> if the factory threw.</returns>
+    public bool TryGetString(out string result) => TryGetString(out result, out _);
+
+    /// <summary>
+    /// Tries to get the evaluated string value without throwing exceptions.
     /// If the value is a direct string, sets <paramref name="result"/> and returns <c>true</c>.
     /// If the value is a lazy factory, evaluates it safely: on success sets <paramref name="result"/>
     /// and returns <c>true</c>; on factory exception caches an empty string to prevent
-    /// retry-forever behavior and returns <c>false</c>.
+    /// retry-forever behavior, sets <paramref name="error"/>, and returns <c>false</c>.
     /// If the value is absent (null/default), sets <paramref name="result"/> to <see cref="string.Empty"/>
     /// and returns <c>true</c>.
     /// </summary>
     /// <param name="result">The evaluated string, or <see cref="string.Empty"/> on failure.</param>
+    /// <param name="error">Structured failure info when this method returns <c>false</c>; otherwise default.</param>
     /// <returns><c>true</c> if the string was obtained successfully; <c>false</c> if the factory threw.</returns>
-    public bool TryGetString(out string result)
+    public bool TryGetString(out string result, out LazyStringError error)
     {
         switch (_Value)
         {
             case string s:
                 result = s;
+                error = default;
                 return true;
             case Func<string>:
             case IDeferredFormat:
-                return _TryEvaluateAndCache(out result);
+                return _TryEvaluateAndCache(out result, out error);
             default:
                 result = string.Empty;
+                error = default;
                 return true;
         }
     }
@@ -138,7 +153,7 @@ public readonly struct LazyString : IEquatable<LazyString>, IComparable<LazyStri
     /// <item>The write is a single reference-sized atomic operation.</item>
     /// <item><see cref="Interlocked.CompareExchange{T}"/> guarantees exactly one winner.</item>
     /// <item>Concurrent readers see either the original deferred object (and re-evaluate)
-    ///   or the cached <see cref="string"/>.</item>
+    ///   or the cached <see cref="string"/>. Duplicate factory runs before CAS are allowed.</item>
     /// </list>
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -163,7 +178,7 @@ public readonly struct LazyString : IEquatable<LazyString>, IComparable<LazyStri
     /// On exception, caches <see cref="string.Empty"/> to prevent retry-forever behavior.
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private bool _TryEvaluateAndCache(out string result)
+    private bool _TryEvaluateAndCache(out string result, out LazyStringError error)
     {
         object deferred = _Value!;
         try
@@ -175,14 +190,16 @@ public readonly struct LazyString : IEquatable<LazyString>, IComparable<LazyStri
                 _ => string.Empty,
             };
         }
-        catch
+        catch (Exception ex) when (ex is not (OutOfMemoryException or StackOverflowException))
         {
             result = string.Empty;
+            error = new LazyStringError(LazyStringErrorCode.FactoryFaulted, ex.Message);
             Interlocked.CompareExchange(ref Unsafe.AsRef(in _Value), result, deferred);
             return false;
         }
 
         Interlocked.CompareExchange(ref Unsafe.AsRef(in _Value), result, deferred);
+        error = default;
         return true;
     }
 
@@ -307,7 +324,7 @@ public readonly struct LazyString : IEquatable<LazyString>, IComparable<LazyStri
         {
             return 1;
         }
-        return string.Compare(AsString, other.AsString, StringComparison.Ordinal);
+        return string.CompareOrdinal(AsString, other.AsString);
     }
 
     /// <inheritdoc/>
@@ -343,3 +360,22 @@ public readonly struct LazyString : IEquatable<LazyString>, IComparable<LazyStri
 
     #endregion
 }
+
+/// <summary>
+/// Error codes for <see cref="LazyString.TryGetString(out string, out LazyStringError)"/>.
+/// </summary>
+public enum LazyStringErrorCode
+{
+    /// <summary>No error.</summary>
+    None = 0,
+
+    /// <summary>The deferred factory or deferred format object threw.</summary>
+    FactoryFaulted = 1,
+}
+
+/// <summary>
+/// Structured failure information for <see cref="LazyString.TryGetString(out string, out LazyStringError)"/>.
+/// </summary>
+/// <param name="Code">The error code.</param>
+/// <param name="Message">Exception message from the factory, or empty when <paramref name="Code"/> is <see cref="LazyStringErrorCode.None"/>.</param>
+public readonly record struct LazyStringError(LazyStringErrorCode Code, string Message);

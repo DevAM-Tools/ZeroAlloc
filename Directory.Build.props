@@ -23,7 +23,7 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(IsPackable)' != 'false'">
-    <VersionPrefix>0.6.0</VersionPrefix>
+    <VersionPrefix>0.6.1</VersionPrefix>
     <Authors>DevAM</Authors>
     <Company>DevAM</Company>
     <Copyright>Copyright © 2026 DevAM. All rights reserved.</Copyright>
@@ -39,12 +39,9 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <!-- CA1720: Identifiers should not contain type names (e.g. String, Int32).
-         Suppressed: public API methods intentionally mirror CLR type names (ZA.String, ZA.Utf8). -->
-    <!-- CA1304: Call behavior could vary by user locale; use CultureInfo overload instead.
-         Suppressed: ZA.String uses InvariantCulture by default; string args are copied without culture. -->
-    <!-- CA1707: Identifiers should not contain underscores.
-         Suppressed: test methods use Method_Scenario_Expected naming convention. -->
+    <!-- Id: CA1720. Why: public API methods intentionally mirror CLR type names (ZA.String, ZA.Utf8). Why global: every public String/Utf8/Bytes API; per-member SuppressMessage is not viable. User approved. -->
+    <!-- Id: CA1304. Why: ZA.String defaults to InvariantCulture; string args are copied without culture. Why global: analyzer fires across the library surface; per-call pragma is not viable. User approved. -->
+    <!-- Id: CA1707. Why: this repo's tests keep Method_Scenario_Expected. Why global: every test method; pragma per method is not viable. Conflicts with tech-tunit PascalCase-without-underscores — tech-tunit exception recorded (review E5 option B / implement 2026-10-10). User approved. -->
     <NoWarn>$(NoWarn);CA1720;CA1304;CA1707</NoWarn>
   </PropertyGroup>
 </Project>

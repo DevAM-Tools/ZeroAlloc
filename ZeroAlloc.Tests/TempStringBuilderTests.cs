@@ -1030,4 +1030,26 @@ public sealed class TempStringBuilderTests
             _ => throw new ArgumentOutOfRangeException(nameof(method), method, "Unknown method."),
         };
     }
+
+    /// <summary>Verifies Append throws OverflowException when position + length wraps.</summary>
+    [Test]
+    public async Task Append_PositionNearIntMax_ThrowsOverflowException()
+    {
+        OverflowException? caught;
+        {
+            using TempStringBuilder builder = TempStringBuilder.Create();
+            builder.SetPositionForTests(int.MaxValue - 1);
+            try
+            {
+                builder.Append("ab");
+                caught = null;
+            }
+            catch (OverflowException ex)
+            {
+                caught = ex;
+            }
+        }
+
+        await Assert.That(caught).IsNotNull();
+    }
 }

@@ -75,6 +75,13 @@ public ref struct TempStringBuilder : IDisposable
     private readonly bool _IsThreadStatic;
     private readonly int _Epoch;
 
+    /// <summary>Adds two sizes with overflow checking (capacity / position math).</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int _CheckedSum(int left, int right) => checked(left + right);
+
+    /// <summary>Test hook: sets the write position without validating capacity (ZeroAlloc.Tests only).</summary>
+    internal void SetPositionForTests(int position) => _Position = position;
+
     // ========================================================================
     // CONSTRUCTORS
     // ========================================================================
@@ -303,10 +310,10 @@ public ref struct TempStringBuilder : IDisposable
             return;
         }
 
-        int requiredCapacity = _Position + value.Length;
+        int requiredCapacity = _CheckedSum(_Position, value.Length);
         _EnsureCapacity(requiredCapacity);
         value.AsSpan().CopyTo(_Span.Slice(_Position));
-        _Position += value.Length;
+        _Position = _CheckedSum(_Position, value.Length);
     }
 
     /// <summary>
@@ -316,10 +323,10 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(ReadOnlySpan<char> value)
     {
-        int requiredCapacity = _Position + value.Length;
+        int requiredCapacity = _CheckedSum(_Position, value.Length);
         _EnsureCapacity(requiredCapacity);
         value.CopyTo(_Span.Slice(_Position));
-        _Position += value.Length;
+        _Position = _CheckedSum(_Position, value.Length);
     }
 
     /// <summary>
@@ -329,7 +336,7 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(char value)
     {
-        _EnsureCapacity(_Position + 1);
+        _EnsureCapacity(_CheckedSum(_Position, 1));
         _Span[_Position++] = value;
     }
 
@@ -375,15 +382,15 @@ public ref struct TempStringBuilder : IDisposable
     {
         if (value)
         {
-            _EnsureCapacity(_Position + 4);
+            _EnsureCapacity(_CheckedSum(_Position, 4));
             "True".AsSpan().CopyTo(_Span.Slice(_Position));
-            _Position += 4;
+            _Position = _CheckedSum(_Position, 4);
         }
         else
         {
-            _EnsureCapacity(_Position + 5);
+            _EnsureCapacity(_CheckedSum(_Position, 5));
             "False".AsSpan().CopyTo(_Span.Slice(_Position));
-            _Position += 5;
+            _Position = _CheckedSum(_Position, 5);
         }
     }
 
@@ -525,12 +532,12 @@ public ref struct TempStringBuilder : IDisposable
             if (_IsThreadStatic)
             {
                 // We own the ThreadStatic buffer — grow it through the helper.
-                _Array = ZeroAllocHelper.GrowCharBuffer(_Position + 64, _Position);
+                _Array = ZeroAllocHelper.GrowCharBuffer(_CheckedSum(_Position, 64), _Position);
             }
             else
             {
                 // Heap-fallback mode: grow our own private array; leave ThreadStatic untouched.
-                int newSize = ZeroAllocHelper.CalculateGrowth(_Array!.Length, _Position + 64);
+                int newSize = ZeroAllocHelper.CalculateGrowth(_Array!.Length, _CheckedSum(_Position, 64));
                 char[] grown = new char[newSize];
                 _Array.AsSpan(0, _Position).CopyTo(grown);
                 _Array = grown;
@@ -545,7 +552,7 @@ public ref struct TempStringBuilder : IDisposable
             }
         }
 
-        _Position += charsWritten;
+        _Position = _CheckedSum(_Position, charsWritten);
     }
 
     /// <summary>
@@ -566,7 +573,7 @@ public ref struct TempStringBuilder : IDisposable
             if (_IsThreadStatic)
             {
                 // Grow the ThreadStatic buffer. TryGrow returns null if the buffer is not acquired.
-                char[]? newBuffer = ZeroAllocHelper.TryGrowCharBuffer(_Position + 64, _Position);
+                char[]? newBuffer = ZeroAllocHelper.TryGrowCharBuffer(_CheckedSum(_Position, 64), _Position);
                 if (newBuffer is null)
                 {
                     return false;
@@ -577,7 +584,7 @@ public ref struct TempStringBuilder : IDisposable
             else
             {
                 // Heap-fallback mode: grow our own private array; leave ThreadStatic untouched.
-                int newSize = ZeroAllocHelper.CalculateGrowth(_Array!.Length, _Position + 64);
+                int newSize = ZeroAllocHelper.CalculateGrowth(_Array!.Length, _CheckedSum(_Position, 64));
                 char[] grown = new char[newSize];
                 _Array.AsSpan(0, _Position).CopyTo(grown);
                 _Array = grown;
@@ -592,7 +599,7 @@ public ref struct TempStringBuilder : IDisposable
             }
         }
 
-        _Position += charsWritten;
+        _Position = _CheckedSum(_Position, charsWritten);
         return true;
     }
 
@@ -629,14 +636,14 @@ public ref struct TempStringBuilder : IDisposable
             return true;
         }
 
-        int requiredCapacity = _Position + value.Length;
+        int requiredCapacity = _CheckedSum(_Position, value.Length);
         if (!_TryEnsureCapacity(requiredCapacity))
         {
             return false;
         }
 
         value.AsSpan().CopyTo(_Span.Slice(_Position));
-        _Position += value.Length;
+        _Position = _CheckedSum(_Position, value.Length);
         return true;
     }
 
@@ -648,14 +655,14 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppend(ReadOnlySpan<char> value)
     {
-        int requiredCapacity = _Position + value.Length;
+        int requiredCapacity = _CheckedSum(_Position, value.Length);
         if (!_TryEnsureCapacity(requiredCapacity))
         {
             return false;
         }
 
         value.CopyTo(_Span.Slice(_Position));
-        _Position += value.Length;
+        _Position = _CheckedSum(_Position, value.Length);
         return true;
     }
 
@@ -667,7 +674,7 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppend(char value)
     {
-        if (!_TryEnsureCapacity(_Position + 1))
+        if (!_TryEnsureCapacity(_CheckedSum(_Position, 1)))
         {
             return false;
         }
@@ -714,23 +721,23 @@ public ref struct TempStringBuilder : IDisposable
     {
         if (value)
         {
-            if (!_TryEnsureCapacity(_Position + 4))
+            if (!_TryEnsureCapacity(_CheckedSum(_Position, 4)))
             {
                 return false;
             }
 
             "True".AsSpan().CopyTo(_Span.Slice(_Position));
-            _Position += 4;
+            _Position = _CheckedSum(_Position, 4);
         }
         else
         {
-            if (!_TryEnsureCapacity(_Position + 5))
+            if (!_TryEnsureCapacity(_CheckedSum(_Position, 5)))
             {
                 return false;
             }
 
             "False".AsSpan().CopyTo(_Span.Slice(_Position));
-            _Position += 5;
+            _Position = _CheckedSum(_Position, 5);
         }
         return true;
     }
@@ -814,7 +821,7 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendHex2(byte value)
     {
-        _EnsureCapacity(_Position + 2);
+        _EnsureCapacity(_CheckedSum(_Position, 2));
         _Span[_Position++] = _HexChars[value >> 4];
         _Span[_Position++] = _HexChars[value & 0xF];
     }
@@ -823,7 +830,7 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendHex4(ushort value)
     {
-        _EnsureCapacity(_Position + 4);
+        _EnsureCapacity(_CheckedSum(_Position, 4));
         _Span[_Position++] = _HexChars[(value >> 12) & 0xF];
         _Span[_Position++] = _HexChars[(value >> 8) & 0xF];
         _Span[_Position++] = _HexChars[(value >> 4) & 0xF];
@@ -850,7 +857,7 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendBinary8(byte value)
     {
-        _EnsureCapacity(_Position + 8);
+        _EnsureCapacity(_CheckedSum(_Position, 8));
         for (int i = 7; i >= 0; i--)
         {
             _Span[_Position++] = (char)('0' + ((value >> i) & 1));
@@ -861,7 +868,7 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendBinary16(ushort value)
     {
-        _EnsureCapacity(_Position + 16);
+        _EnsureCapacity(_CheckedSum(_Position, 16));
         for (int i = 15; i >= 0; i--)
         {
             _Span[_Position++] = (char)('0' + ((value >> i) & 1));
@@ -872,7 +879,7 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendBinary32(uint value)
     {
-        _EnsureCapacity(_Position + 32);
+        _EnsureCapacity(_CheckedSum(_Position, 32));
         for (int i = 31; i >= 0; i--)
         {
             _Span[_Position++] = (char)('0' + ((value >> i) & 1));
@@ -883,7 +890,7 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendBinary64(ulong value)
     {
-        _EnsureCapacity(_Position + 64);
+        _EnsureCapacity(_CheckedSum(_Position, 64));
         for (int i = 63; i >= 0; i--)
         {
             _Span[_Position++] = (char)('0' + (int)((value >> i) & 1));
@@ -896,7 +903,7 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendHex2(byte value)
     {
-        if (!_TryEnsureCapacity(_Position + 2))
+        if (!_TryEnsureCapacity(_CheckedSum(_Position, 2)))
         {
             return false;
         }
@@ -912,7 +919,7 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendHex4(ushort value)
     {
-        if (!_TryEnsureCapacity(_Position + 4))
+        if (!_TryEnsureCapacity(_CheckedSum(_Position, 4)))
         {
             return false;
         }
@@ -930,7 +937,7 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendHex8(uint value)
     {
-        if (!_TryEnsureCapacity(_Position + 8))
+        if (!_TryEnsureCapacity(_CheckedSum(_Position, 8)))
         {
             return false;
         }
@@ -946,7 +953,7 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendHex16(ulong value)
     {
-        if (!_TryEnsureCapacity(_Position + 16))
+        if (!_TryEnsureCapacity(_CheckedSum(_Position, 16)))
         {
             return false;
         }
@@ -962,7 +969,7 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendBinary8(byte value)
     {
-        if (!_TryEnsureCapacity(_Position + 8))
+        if (!_TryEnsureCapacity(_CheckedSum(_Position, 8)))
         {
             return false;
         }
@@ -980,7 +987,7 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendBinary16(ushort value)
     {
-        if (!_TryEnsureCapacity(_Position + 16))
+        if (!_TryEnsureCapacity(_CheckedSum(_Position, 16)))
         {
             return false;
         }
@@ -998,7 +1005,7 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendBinary32(uint value)
     {
-        if (!_TryEnsureCapacity(_Position + 32))
+        if (!_TryEnsureCapacity(_CheckedSum(_Position, 32)))
         {
             return false;
         }
@@ -1016,7 +1023,7 @@ public ref struct TempStringBuilder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAppendBinary64(ulong value)
     {
-        if (!_TryEnsureCapacity(_Position + 64))
+        if (!_TryEnsureCapacity(_CheckedSum(_Position, 64)))
         {
             return false;
         }

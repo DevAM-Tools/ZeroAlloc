@@ -18,38 +18,42 @@ High-performance, zero-allocation serialization library for binary data and stri
 ## Table of Contents
 
 1. [Quick Start](#quick-start)
-2. [Core Concepts](#core-concepts)
-3. [String Formatting](#string-formatting)
+2. [Installation](#installation)
+3. [Core Concepts](#core-concepts)
+4. [String Formatting](#string-formatting)
    - [ZA.String()](#zastring---generated-string-concatenation)
    - [TempStringBuilder](#tempstringbuilder---manual-string-building)
    - [SpanStringBuilder](#spanstringbuilder---span-based-building)
-4. [Deferred / Lazy Strings](#deferred--lazy-strings)
+5. [Deferred / Lazy Strings](#deferred--lazy-strings)
    - [LazyString](#lazystring---deferred-string-evaluation)
    - [ZA.Lazy()](#zalazy---generated-deferred-formatting)
    - [ZA.LazyInterpolated()](#zalazyinterpolated---deferred-interpolation)
    - [LazyString.FormatLazy&lt;TState&gt;()](#lazystringformatlazytstate---manual-deferred-formatting)
-5. [UTF-8 Generation](#utf-8-generation)
+6. [UTF-8 Generation](#utf-8-generation)
    - [ZA.Utf8()](#zautf8---generated-utf-8-bytes)
-6. [Localized Formatting](#localized-formatting)
+7. [Localized Formatting](#localized-formatting)
    - [ZA.LocalizedString()](#zalocalizedstring---culture-sensitive-strings)
    - [ZA.LocalizedUtf8()](#zalocalizedutf8---culture-sensitive-utf-8)
-7. [Binary Serialization](#binary-serialization)
+8. [Binary Serialization](#binary-serialization)
    - [ZA.Bytes()](#zabytes---generated-binary-serialization)
    - [TempBytesBuilder](#tempbytesbuilder---manual-byte-building)
    - [SpanBytesBuilder](#spanbytesbuilder---span-based-building)
-8. [Binary Parsing](#binary-parsing)
+9. [Binary Parsing](#binary-parsing)
    - [ZA.ParseBytes()](#zaparsebytes---generated-parsing)
    - [[BinaryParsable] Attribute](#binaryparsable-attribute)
    - [BinaryParser](#binaryparser---manual-parsing)
    - [BitReader](#bitreader---bit-level-parsing)
-9. [Type Wrappers](#type-wrappers)
-10. [Custom Types](#custom-types)
-11. [Configuration](#configuration)
-12. [Installation](#installation)
+10. [Type Wrappers](#type-wrappers)
+11. [Custom Types](#custom-types)
+12. [Configuration](#configuration)
 
 ---
 
 ## Quick Start
+
+```bash
+dotnet add package ZeroAlloc
+```
 
 ```csharp
 using ZeroAlloc;

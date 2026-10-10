@@ -45,12 +45,46 @@ internal static class BinaryGeneratorHelpers
 
     #region Type Recognition
 
+    // Fixed metadata / display-name literals are required in this assembly:
+    // - typeof(BinaryIgnoreAttribute) etc. are unavailable (generator does not reference ZeroAlloc.dll).
+    // - INamedTypeSymbol.ToDisplayString() returns both keyword aliases ("int") and framework names
+    //   ("System.Int32"); nameof cannot express both forms for switch matching.
+    // - Endian wrapper names are consumer-library types matched by simple name after semantic analysis.
+
+    /// <summary>Metadata name for <c>ZeroAlloc.BinaryIgnoreAttribute</c> (literal required; see region note).</summary>
+    internal const string BinaryIgnoreMetadataName = "ZeroAlloc.BinaryIgnoreAttribute";
+
+    /// <summary>Metadata name for <c>ZeroAlloc.BinaryOrderAttribute</c> (literal required; see region note).</summary>
+    internal const string BinaryOrderMetadataName = "ZeroAlloc.BinaryOrderAttribute";
+
+    /// <summary>Metadata name for <c>ZeroAlloc.BinaryFixedLengthAttribute</c> (literal required; see region note).</summary>
+    internal const string BinaryFixedLengthMetadataName = "ZeroAlloc.BinaryFixedLengthAttribute";
+
+    /// <summary>Metadata name for <c>ZeroAlloc.BinaryFieldAttribute</c> (literal required; see region note).</summary>
+    internal const string BinaryFieldMetadataName = "ZeroAlloc.BinaryFieldAttribute";
+
+    /// <summary>Metadata name for <c>ZeroAlloc.BinaryParsableAttribute</c> (literal required; see region note).</summary>
+    internal const string BinaryParsableMetadataName = "ZeroAlloc.BinaryParsableAttribute";
+
+    /// <summary>Metadata name for <c>ZeroAlloc.BinaryWritableAttribute</c> (literal required; see region note).</summary>
+    internal const string BinaryWritableMetadataName = "ZeroAlloc.BinaryWritableAttribute";
+
+    /// <summary>Metadata name for <c>ZeroAlloc.StringMaxLengthAttribute</c> (literal required; see region note).</summary>
+    internal const string StringMaxLengthMetadataName = "ZeroAlloc.StringMaxLengthAttribute";
+
+    /// <summary>Metadata name for <c>ZeroAlloc.IBinarySerializable</c> (literal required; see region note).</summary>
+    internal const string IBinarySerializableMetadataName = "ZeroAlloc.IBinarySerializable";
+
+    /// <summary>Metadata name for <c>ZeroAlloc.IBinaryParsable&lt;T&gt;</c> (literal required; see region note).</summary>
+    internal const string IBinaryParsableMetadataName = "ZeroAlloc.IBinaryParsable<T>";
+
     /// <summary>
     /// Determines if a type name is an endian wrapper (U16BE, I32LE, etc.).
     /// </summary>
     /// <param name="typeName">The simple type name to check.</param>
     /// <returns><c>true</c> if the type is an endian wrapper.</returns>
     internal static bool IsEndianWrapper(string typeName) =>
+        // Literal simple names: consumer ZeroAlloc wrapper types; typeof unavailable here.
         typeName is "U16BE" or "U16LE" or "U32BE" or "U32LE" or
                    "U64BE" or "U64LE" or "U128BE" or "U128LE" or
                    "I16BE" or "I16LE" or "I32BE" or "I32LE" or
@@ -69,7 +103,13 @@ internal static class BinaryGeneratorHelpers
                            SpecialType.System_Int64 or SpecialType.System_UInt64 or
                            SpecialType.System_Single or SpecialType.System_Double or
                            SpecialType.System_IntPtr or SpecialType.System_UIntPtr ||
+        // Display-string literals: Int128/UInt128/Half lack SpecialType on older Roslyn hosts.
         type.ToDisplayString() is "System.Int128" or "System.UInt128" or "System.Half";
+
+    /// <summary>Returns true when <paramref name="attribute"/> is <see cref="BinaryIgnoreMetadataName"/>.</summary>
+    internal static bool IsBinaryIgnoreAttribute(AttributeData attribute) =>
+        attribute.AttributeClass?.Name == "BinaryIgnoreAttribute" ||
+        attribute.AttributeClass?.ToDisplayString() == BinaryIgnoreMetadataName;
 
     #endregion
 

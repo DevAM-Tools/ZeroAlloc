@@ -45,20 +45,13 @@ namespace ZeroAlloc;
 [method: MethodImpl(MethodImplOptions.AggressiveInlining)]
 public readonly ref struct TempBytes(byte[] buffer, int length, bool isThreadStatic, int epoch) : IDisposable
 {
-    // ========================================================================
-    // PRIVATE FIELDS
-    // ========================================================================
+    #region Fields
 
     /// <summary>
     /// The buffer containing the formatted bytes.
     /// Either ThreadStatic or heap-allocated depending on context.
     /// </summary>
     private readonly byte[] _Buffer = buffer;
-
-    /// <summary>
-    /// The number of valid bytes in the buffer.
-    /// </summary>
-    private readonly int _Length = length;
 
     /// <summary>
     /// True if using the ThreadStatic buffer (needs release on Dispose).
@@ -72,9 +65,9 @@ public readonly ref struct TempBytes(byte[] buffer, int length, bool isThreadSta
     /// </summary>
     private readonly int _Epoch = epoch;
 
-    // ========================================================================
-    // CONSTRUCTOR
-    // ========================================================================
+    #endregion
+
+    #region Lifecycle
 
     /// <summary>
     /// Initializes a new <see cref="TempBytes"/> with the given buffer, length, and ownership info.
@@ -88,18 +81,18 @@ public readonly ref struct TempBytes(byte[] buffer, int length, bool isThreadSta
     {
     }
 
-    // ========================================================================
-    // PROPERTIES
-    // ========================================================================
+    #endregion
+
+    #region Public API
 
     /// <summary>
     /// Gets the length of the content in bytes.
     /// </summary>
-    public int Length
-    {
+    public int Length {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _Length;
+        get;
     }
+= length;
 
     /// <summary>
     /// Gets a value indicating whether the content is empty.
@@ -107,7 +100,7 @@ public readonly ref struct TempBytes(byte[] buffer, int length, bool isThreadSta
     public bool IsEmpty
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _Length == 0;
+        get => Length == 0;
     }
 
     /// <summary>
@@ -124,16 +117,12 @@ public readonly ref struct TempBytes(byte[] buffer, int length, bool isThreadSta
         get => !_IsThreadStatic;
     }
 
-    // ========================================================================
-    // METHODS
-    // ========================================================================
-
     /// <summary>
     /// Returns a <see cref="ReadOnlySpan{Byte}"/> view of the content.
     /// </summary>
     /// <returns>A read-only span containing the formatted bytes.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ReadOnlySpan<byte> AsSpan() => new ReadOnlySpan<byte>(_Buffer, 0, _Length);
+    public ReadOnlySpan<byte> AsSpan() => new ReadOnlySpan<byte>(_Buffer, 0, Length);
 
     /// <summary>
     /// Creates a heap-allocated byte array from the temporary content.
@@ -146,13 +135,13 @@ public readonly ref struct TempBytes(byte[] buffer, int length, bool isThreadSta
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] ToArray()
     {
-        if (_Length == 0)
+        if (Length == 0)
         {
-            return Array.Empty<byte>();
+            return [];
         }
 
-        byte[] result = new byte[_Length];
-        Array.Copy(_Buffer, 0, result, 0, _Length);
+        byte[] result = new byte[Length];
+        Array.Copy(_Buffer, 0, result, 0, Length);
         return result;
     }
 
@@ -161,11 +150,11 @@ public readonly ref struct TempBytes(byte[] buffer, int length, bool isThreadSta
     /// </summary>
     /// <returns>A string showing the byte count.</returns>
     public override string ToString() =>
-        string.Create(CultureInfo.InvariantCulture, $"TempBytes[{_Length} bytes]");
+        string.Create(CultureInfo.InvariantCulture, $"TempBytes[{Length} bytes]");
 
-    // ========================================================================
-    // IDISPOSABLE IMPLEMENTATION
-    // ========================================================================
+    #endregion
+
+    #region IDisposable
 
     /// <summary>
     /// Releases the ThreadStatic buffer if applicable, making it available for the next acquisition.
@@ -188,9 +177,9 @@ public readonly ref struct TempBytes(byte[] buffer, int length, bool isThreadSta
         ZeroAllocHelper.ReleaseByteBuffer(_Epoch);
     }
 
-    // ========================================================================
-    // OPERATORS
-    // ========================================================================
+    #endregion
+
+    #region Operators
 
     /// <summary>
     /// Implicitly converts a <see cref="TempBytes"/> to <see cref="ReadOnlySpan{Byte}"/>.
@@ -227,4 +216,6 @@ public readonly ref struct TempBytes(byte[] buffer, int length, bool isThreadSta
         temp.Dispose();
         return result;
     }
+
+    #endregion
 }

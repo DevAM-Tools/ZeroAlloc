@@ -7,6 +7,8 @@ namespace ZeroAlloc;
 /// <summary>
 /// High-performance bit-level reader for parsing non-byte-aligned data.
 /// Optimized for automotive (CAN/FlexRay) and network protocols with sub-byte fields.
+/// Thread-safety: not thread-safe. A <see cref="BitReader"/> is a stack-only <c>ref struct</c>;
+/// use one instance on a single thread and do not share it across threads.
 /// </summary>
 public ref struct BitReader
 {
@@ -819,12 +821,7 @@ public ref struct BitReader
             throw new ArgumentOutOfRangeException(nameof(bitCount), "BitCount must be non-negative");
         }
 
-        if ((long)bitCount > _TotalBits - _BitOffset || !_TryAdvanceBits(bitCount))
-        {
-            return false;
-        }
-
-        return true;
+        return (long)bitCount <= _TotalBits - _BitOffset && _TryAdvanceBits(bitCount);
     }
 
     /// <summary>

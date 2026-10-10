@@ -217,7 +217,8 @@ public sealed class BinaryWritableGenerator : IIncrementalGenerator
         // Find all structs with [BinaryWritable] attribute
         IncrementalValuesProvider<ParsableTypeInfo?> writableTypes = context.SyntaxProvider
             .ForAttributeWithMetadataName(
-                fullyQualifiedMetadataName: "ZeroAlloc.BinaryWritableAttribute",
+                // Literal metadata name required: typeof unavailable (generator does not reference ZeroAlloc.dll).
+                fullyQualifiedMetadataName: BinaryGeneratorHelpers.BinaryWritableMetadataName,
                 predicate: static (node, _) => node is StructDeclarationSyntax or RecordDeclarationSyntax,
                 transform: static (ctx, _) => _GetWritableTypeInfo(ctx))
             .Where(static info => info is not null);
@@ -271,7 +272,7 @@ public sealed class BinaryWritableGenerator : IIncrementalGenerator
         }
 
         string typeName = typeSymbol.Name;
-        string? ns = typeSymbol.ContainingNamespace?.IsGlobalNamespace == true
+        string? ns = typeSymbol.ContainingNamespace?.IsGlobalNamespace is true
             ? null
             : typeSymbol.ContainingNamespace?.ToDisplayString();
         string fullTypeName = typeSymbol.ToDisplayString();
@@ -327,13 +328,13 @@ public sealed class BinaryWritableGenerator : IIncrementalGenerator
 
             bool isIgnored = member.GetAttributes().Any(a =>
                 a.AttributeClass?.Name == "BinaryIgnoreAttribute" ||
-                a.AttributeClass?.ToDisplayString() == "ZeroAlloc.BinaryIgnoreAttribute");
+                a.AttributeClass?.ToDisplayString() == BinaryGeneratorHelpers.BinaryIgnoreMetadataName);
 
             int? explicitOrder = null;
             AttributeData? orderAttr = member.GetAttributes().FirstOrDefault(a =>
                 a.AttributeClass?.Name == "BinaryOrderAttribute" ||
-                a.AttributeClass?.ToDisplayString() == "ZeroAlloc.BinaryOrderAttribute");
-            if (orderAttr is not null && orderAttr.ConstructorArguments.Length > 0)
+                a.AttributeClass?.ToDisplayString() == BinaryGeneratorHelpers.BinaryOrderMetadataName);
+            if (orderAttr?.ConstructorArguments.Length > 0)
             {
                 explicitOrder = orderAttr.ConstructorArguments[0].Value as int?;
             }
@@ -357,8 +358,8 @@ public sealed class BinaryWritableGenerator : IIncrementalGenerator
             int? fixedLength = null;
             AttributeData? lengthAttr = member.GetAttributes().FirstOrDefault(a =>
                 a.AttributeClass?.Name == "BinaryFixedLengthAttribute" ||
-                a.AttributeClass?.ToDisplayString() == "ZeroAlloc.BinaryFixedLengthAttribute");
-            if (lengthAttr is not null && lengthAttr.ConstructorArguments.Length > 0)
+                a.AttributeClass?.ToDisplayString() == BinaryGeneratorHelpers.BinaryFixedLengthMetadataName);
+            if (lengthAttr?.ConstructorArguments.Length > 0)
             {
                 fixedLength = lengthAttr.ConstructorArguments[0].Value as int?;
             }
@@ -368,7 +369,7 @@ public sealed class BinaryWritableGenerator : IIncrementalGenerator
             Endianness? explicitEndianness = null;
             AttributeData? fieldAttr = member.GetAttributes().FirstOrDefault(a =>
                 a.AttributeClass?.Name == "BinaryFieldAttribute" ||
-                a.AttributeClass?.ToDisplayString() == "ZeroAlloc.BinaryFieldAttribute");
+                a.AttributeClass?.ToDisplayString() == BinaryGeneratorHelpers.BinaryFieldMetadataName);
             if (fieldAttr is not null)
             {
                 foreach (KeyValuePair<string, TypedConstant> arg in fieldAttr.NamedArguments)
@@ -487,7 +488,7 @@ public sealed class BinaryWritableGenerator : IIncrementalGenerator
 
             string? combinedLengthFromField = lengthFromField ?? bytesLengthFromField;
 
-            ParsableMemberKind kind = bitCount.HasValue && bitCount.Value > 0
+            ParsableMemberKind kind = bitCount > 0
                 ? ParsableMemberKind.BitField
                 : _AnalyzeMemberKind(memberType, stringEncoding.HasValue, bytesEncoding.HasValue);
 
@@ -567,14 +568,14 @@ public sealed class BinaryWritableGenerator : IIncrementalGenerator
         // to the nested type so it can be serialized.
         if (type.GetAttributes().Any(a =>
             a.AttributeClass?.Name == "BinaryWritableAttribute" ||
-            a.AttributeClass?.ToDisplayString() == "ZeroAlloc.BinaryWritableAttribute"))
+            a.AttributeClass?.ToDisplayString() == BinaryGeneratorHelpers.BinaryWritableMetadataName))
         {
             return ParsableMemberKind.NestedParsable;
         }
 
         // Check for types implementing IBinarySerializable
         if (type.AllInterfaces.Any(i =>
-            i.ToDisplayString() == "ZeroAlloc.IBinarySerializable" ||
+            i.ToDisplayString() == BinaryGeneratorHelpers.IBinarySerializableMetadataName ||
             i.Name == "IBinarySerializable"))
         {
             return ParsableMemberKind.NestedParsable;
@@ -1393,6 +1394,8 @@ public sealed class BinaryWritableGenerator : IIncrementalGenerator
     {
         string endianSuffix = endianness == Endianness.BigEndian ? "BigEndian" : "LittleEndian";
 
+        // Fixed display-string literals: ToDisplayString() yields keyword aliases and framework names;
+        // nameof/typeof cannot cover both forms (see BinaryGeneratorHelpers type-recognition note).
         (string writeCall, int size) = member.FullTypeName switch
         {
             "sbyte" or "System.SByte" => ($"destination[offset] = (byte){member.Name}", 1),
