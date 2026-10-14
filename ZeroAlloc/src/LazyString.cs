@@ -11,9 +11,17 @@ namespace ZeroAlloc;
 /// <see cref="Interlocked.CompareExchange{T}"/>. This eliminates the wrapper-class allocation
 /// that a separate cache object would require and reduces subsequent reads to a single
 /// pointer dereference.</para>
-/// <para><b>Thread-safety:</b> Concurrent first evaluation is safe. Multiple threads may run the
-/// factory before one CAS wins; losers discard their result. After caching, readers share the
-/// same <see cref="string"/> reference. Do not mutate captured factory state unsafely.</para>
+/// <para><b>Thread-safety:</b> Concurrent first evaluation is safe. Every public member reads the wrapped
+/// value exactly once per call and evaluates only the deferred object it observed. Several threads may run
+/// the factory before one compare-exchange wins; the winner's string is cached and every concurrent first
+/// reader (<see cref="AsString"/>, <see cref="TryGetString(out string, out LazyStringError)"/> and everything built on them)
+/// returns that same <see cref="string"/> reference, so a loser discards its own result. The factory
+/// may therefore run more than once and must be safe to call concurrently. Do not mutate captured factory
+/// state unsafely.</para>
+/// <para><b>Storage:</b> Caching persists only in the storage location that is evaluated. This is a
+/// <see langword="readonly"/> struct, so a copy holds its own reference: evaluating a copy does not update the
+/// original. To keep the cached result, evaluate the instance in place (for example through a
+/// <see langword="ref"/> to an array element or field) before copying it.</para>
 /// </summary>
 [StructLayout(LayoutKind.Auto)]
 public readonly struct LazyString : IEquatable<LazyString>, IComparable<LazyString>
@@ -52,7 +60,10 @@ public readonly struct LazyString : IEquatable<LazyString>, IComparable<LazyStri
 
     #region Public API
 
-    /// <summary>Creates a lazily-evaluated string. The factory is called at most once per storage location.</summary>
+    /// <summary>
+    /// Creates a lazily-evaluated string. One result is cached per storage location; under concurrent first
+    /// evaluation the factory may run more than once, and all concurrent first readers get the cached string.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static LazyString Lazy(Func<string> factory) => new(factory);
 
@@ -90,17 +101,26 @@ public readonly struct LazyString : IEquatable<LazyString>, IComparable<LazyStri
         get => _Value;
     }
 
-    /// <summary>The evaluated string value. Returns <see cref="string.Empty"/> if absent.</summary>
+    /// <summary>
+    /// The evaluated string value. Returns <see cref="string.Empty"/> if absent.
+    /// Concurrent first readers of the same storage location all return the one cached string reference.
+    /// </summary>
     public string AsString
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _Value switch
+        get
         {
-            string s => s,
-            Func<string> => _EvaluateAndCache(),
-            IDeferredFormat => _EvaluateAndCache(),
-            _ => string.Empty,
-        };
+            // Single read of the field: a second read could see a string that another thread cached in between
+            // and must never be mistaken for "unknown type". Cached path stays one read plus one type check.
+            object? observed = _ReadValue();
+            return observed switch
+            {
+                string s => s,
+                Func<string> => _EvaluateAndCache(observed),
+                IDeferredFormat => _EvaluateAndCache(observed),
+                _ => string.Empty,
+            };
+        }
     }
 
     /// <summary>
@@ -108,25 +128,32 @@ public readonly struct LazyString : IEquatable<LazyString>, IComparable<LazyStri
     /// Forwards to <see cref="TryGetString(out string, out LazyStringError)"/>; use that overload
     /// when you need the structured <see cref="LazyStringError"/> on failure.
     /// </summary>
-    /// <param name="result">The evaluated string, or <see cref="string.Empty"/> on failure.</param>
-    /// <returns><c>true</c> if the string was obtained successfully; <c>false</c> if the factory threw.</returns>
+    /// <param name="result">The cached string afterwards; <see cref="string.Empty"/> if absent or if this call's factory faulted and won.</param>
+    /// <returns><c>true</c> if this call obtained the string without a factory fault; <c>false</c> if its own factory run threw.</returns>
     public bool TryGetString(out string result) => TryGetString(out result, out _);
 
     /// <summary>
     /// Tries to get the evaluated string value without throwing exceptions.
     /// If the value is a direct string, sets <paramref name="result"/> and returns <c>true</c>.
-    /// If the value is a lazy factory, evaluates it safely: on success sets <paramref name="result"/>
-    /// and returns <c>true</c>; on factory exception caches an empty string to prevent
+    /// If the value is a lazy factory, evaluates it safely: on success caches the result, sets
+    /// <paramref name="result"/> and returns <c>true</c>; on factory exception caches an empty string to prevent
     /// retry-forever behavior, sets <paramref name="error"/>, and returns <c>false</c>.
     /// If the value is absent (null/default), sets <paramref name="result"/> to <see cref="string.Empty"/>
     /// and returns <c>true</c>.
+    /// <para><paramref name="result"/> is always the string that is cached afterwards. When another thread cached
+    /// first, that is the other thread's string, not the result of this call's own factory run.
+    /// The return value and <paramref name="error"/> describe only this call's own factory run: after losing
+    /// the race with a faulting factory, this call still returns <c>false</c> and the error, while
+    /// <paramref name="result"/> holds the winner's string (which may be non-empty).</para>
     /// </summary>
-    /// <param name="result">The evaluated string, or <see cref="string.Empty"/> on failure.</param>
-    /// <param name="error">Structured failure info when this method returns <c>false</c>; otherwise default.</param>
-    /// <returns><c>true</c> if the string was obtained successfully; <c>false</c> if the factory threw.</returns>
+    /// <param name="result">The cached string (see remarks); <see cref="string.Empty"/> if absent or if this call's factory faulted and won.</param>
+    /// <param name="error">Structured failure info when this call's own factory run threw; otherwise default.</param>
+    /// <returns><c>true</c> if this call obtained the string without a factory fault; <c>false</c> if its own factory run threw.</returns>
     public bool TryGetString(out string result, out LazyStringError error)
     {
-        switch (_Value)
+        // Single read of the field; the helper evaluates only this observed object (see AsString).
+        object? observed = _ReadValue();
+        switch (observed)
         {
             case string s:
                 result = s;
@@ -134,7 +161,7 @@ public readonly struct LazyString : IEquatable<LazyString>, IComparable<LazyStri
                 return true;
             case Func<string>:
             case IDeferredFormat:
-                return _TryEvaluateAndCache(out result, out error);
+                return _TryEvaluateAndCache(observed, out result, out error);
             default:
                 result = string.Empty;
                 error = default;
@@ -147,60 +174,87 @@ public readonly struct LazyString : IEquatable<LazyString>, IComparable<LazyStri
     #region Private helpers
 
     /// <summary>
-    /// Evaluates the factory and atomically replaces <c>_Value</c> with the result.
+    /// Reads the wrapped value once with acquire semantics. Every public member that can evaluate calls this
+    /// exactly once per call and hands the observed object to the helpers; the helpers never read the field.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private object? _ReadValue() => Volatile.Read(ref Unsafe.AsRef(in _Value));
+
+    /// <summary>
+    /// Runs the deferred object that the caller observed. Callers guarantee that it is a
+    /// <see cref="Func{String}"/> or an <see cref="IDeferredFormat"/>; anything else is a broken invariant.
+    /// </summary>
+    private static string _Run(object deferred) => deferred switch
+    {
+        Func<string> factory => factory(),
+        IDeferredFormat fmt => fmt.Evaluate(),
+        _ => throw new System.Diagnostics.UnreachableException("LazyString evaluation requires a deferred object."),
+    };
+
+    /// <summary>
+    /// Publishes <paramref name="evaluated"/> in place of <paramref name="deferred"/> and returns the string that is
+    /// cached afterwards. Winner takes all: if this call's compare-exchange wins, its own result is cached and returned;
+    /// otherwise the string that another thread cached first is returned and the own result is discarded.
     /// Uses <c>Unsafe.AsRef</c> to mutate the readonly field — this is safe because:
     /// <list type="bullet">
     /// <item>The write is a single reference-sized atomic operation.</item>
-    /// <item><see cref="Interlocked.CompareExchange{T}"/> guarantees exactly one winner.</item>
-    /// <item>Concurrent readers see either the original deferred object (and re-evaluate)
-    ///   or the cached <see cref="string"/>. Duplicate factory runs before CAS are allowed.</item>
+    /// <item><see cref="Interlocked.CompareExchange{T}"/> compares against the object this call observed, so it can
+    ///   only replace that exact deferred object and never overwrites a string that was cached in the meantime.</item>
+    /// <item>If the location holds neither <paramref name="deferred"/> nor a string (the storage was reassigned),
+    ///   the own result is returned and nothing is persisted.</item>
     /// </list>
     /// </summary>
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private string _EvaluateAndCache()
+    private string _Publish(object deferred, string evaluated)
     {
-        object deferred = _Value!;
-        string result = deferred switch
+        object? prior = Interlocked.CompareExchange(ref Unsafe.AsRef(in _Value), evaluated, deferred);
+        if (ReferenceEquals(prior, deferred))
         {
-            Func<string> factory => factory(),
-            IDeferredFormat fmt => fmt.Evaluate(),
-            _ => string.Empty,
-        };
+            return evaluated;
+        }
 
-        // Atomically replace the deferred object with the evaluated string.
-        // If another thread already swapped, the CAS is a no-op.
-        Interlocked.CompareExchange(ref Unsafe.AsRef(in _Value), result, deferred);
-        return result;
+        // Lost the race: hand out the string that is cached, not the own result.
+        string? cached = prior as string;
+        return cached
+            ?? evaluated;
     }
 
     /// <summary>
-    /// Tries to evaluate the lazy factory and cache the result.
-    /// On exception, caches <see cref="string.Empty"/> to prevent retry-forever behavior.
+    /// Evaluates the <paramref name="deferred"/> object the caller observed and caches the result (see <see cref="_Publish"/>).
+    /// Never reads <c>_Value</c>. The factory may run on several threads at once; all of them return the same cached string.
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private bool _TryEvaluateAndCache(out string result, out LazyStringError error)
+    private string _EvaluateAndCache(object deferred) => _Publish(deferred, _Run(deferred));
+
+    /// <summary>
+    /// Tries to evaluate the <paramref name="deferred"/> object the caller observed and cache the result.
+    /// On exception, caches <see cref="string.Empty"/> to prevent retry-forever behavior.
+    /// Never reads <c>_Value</c>. <paramref name="result"/> is always the string cached afterwards (possibly another
+    /// thread's); the return value and <paramref name="error"/> describe only this call's own factory run.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private bool _TryEvaluateAndCache(object deferred, out string result, out LazyStringError error)
     {
-        object deferred = _Value!;
+        // Run the factory first; a fault is recorded for this call and turned into an empty string to cache.
+        string evaluated;
+        bool succeeded;
+        LazyStringError ownError;
         try
         {
-            result = deferred switch
-            {
-                Func<string> factory => factory(),
-                IDeferredFormat fmt => fmt.Evaluate(),
-                _ => string.Empty,
-            };
+            evaluated = _Run(deferred);
+            succeeded = true;
+            ownError = default;
         }
         catch (Exception ex) when (ex is not (OutOfMemoryException or StackOverflowException))
         {
-            result = string.Empty;
-            error = new LazyStringError(LazyStringErrorCode.FactoryFaulted, ex.Message);
-            Interlocked.CompareExchange(ref Unsafe.AsRef(in _Value), result, deferred);
-            return false;
+            evaluated = string.Empty;
+            succeeded = false;
+            ownError = new LazyStringError(LazyStringErrorCode.FactoryFaulted, ex.Message);
         }
 
-        Interlocked.CompareExchange(ref Unsafe.AsRef(in _Value), result, deferred);
-        error = default;
-        return true;
+        // Publish after the try block so the compare-exchange itself is never covered by the catch.
+        result = _Publish(deferred, evaluated);
+        error = ownError;
+        return succeeded;
     }
 
     #endregion

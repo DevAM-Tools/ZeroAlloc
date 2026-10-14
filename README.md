@@ -485,7 +485,11 @@ int order  = a.CompareTo(b);       // 0
 
 #### Thread Safety
 
-`LazyString` uses `Interlocked.CompareExchange` for lock-free atomic caching. Multiple threads can safely read the same `LazyString`. If two threads race to evaluate, the factory may run twice but only one result is stored—the other is discarded. Subsequent reads on all threads see the cached string.
+`LazyString` uses `Interlocked.CompareExchange` for lock-free atomic caching. Multiple threads can safely read the same `LazyString`. If several threads race to evaluate, the factory may run more than once (so it must be safe to call concurrently), but only one result is stored. All concurrent first readers (`AsString`, `TryGetString`) return that same cached string reference; a losing thread discards its own result. Subsequent reads on all threads see the cached string.
+
+Caching persists only in the storage location that is evaluated. `LazyString` is a `readonly struct`, so evaluating a *copy* does not update the original. Evaluate in place (for example via a `ref` to an array element or field) when the cached result must be kept.
+
+`TryGetString(out string, out LazyStringError)` always returns the string that is cached afterwards. The `bool` result and the `error` describe only the caller's own factory run: a caller whose factory threw and lost the race still gets `false` plus the error, while `result` holds the winner's string.
 
 #### Advanced: RawValue / FromRawValue
 

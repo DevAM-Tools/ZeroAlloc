@@ -4,6 +4,7 @@
 global using System.Buffers.Binary;
 global using System.Globalization;
 global using System.Reflection;
+global using System.Runtime.CompilerServices;
 global using System.Text;
 
 // Third-party

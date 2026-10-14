@@ -550,4 +550,233 @@ public sealed class LazyStringTests
         string second = s.AsString;
         await Assert.That(second).IsSameReferenceAs(first);
     }
+
+    // ========================================================================
+    // Winner-takes-all caching on real storage (array slot, evaluated per ref)
+    // ========================================================================
+
+    /// <summary>
+    /// The factory re-enters the same slot on its first call, so the inner evaluation caches its string before the
+    /// outer call reaches its compare-exchange. The outer call must return that cached string, not its own result,
+    /// and the slot must never end up empty. Deterministic: no threads, no sleeps.
+    /// </summary>
+    [Test]
+    [Arguments(false, false)]
+    [Arguments(false, true)]
+    [Arguments(true, false)]
+    [Arguments(true, true)]
+    public async Task Evaluate_ReentrantFirstCall_OuterCallReturnsCachedString(bool useFormatLazy, bool useTry)
+    {
+        LazyString[] slots = new LazyString[1];
+        int[] entered = new int[1];
+        string?[] innerResult = new string?[1];
+
+        // First factory run re-evaluates the same slot (guarded against endless recursion) and caches "inner";
+        // the outer run then finishes with "outer" and loses the compare-exchange.
+        string Evaluate()
+        {
+            if (Interlocked.Exchange(ref entered[0], 1) != 0)
+            {
+                return "inner";
+            }
+            innerResult[0] = _Read(ref slots[0], useTry);
+            return "outer";
+        }
+
+        slots[0] = useFormatLazy
+            ? LazyString.FormatLazy(0, _ => Evaluate())
+            : LazyString.Lazy(Evaluate);
+
+        string outer = _Read(ref slots[0], useTry);
+
+        await Assert.That(innerResult[0]).IsEqualTo("inner");
+        await Assert.That(outer).IsSameReferenceAs(innerResult[0]!);
+        await Assert.That(slots[0].RawValue).IsSameReferenceAs(innerResult[0]!);
+        await Assert.That(slots[0].AsString).IsSameReferenceAs(innerResult[0]!);
+    }
+
+    /// <summary>
+    /// The re-entrant factory run that loses the race throws. <c>TryGetString</c> must report the failure of its own
+    /// factory run but still return the string that is cached afterwards.
+    /// </summary>
+    [Test]
+    public async Task TryGetString_ReentrantFirstCallThatThrows_ReportsOwnFaultButReturnsCachedString()
+    {
+        LazyString[] slots = new LazyString[1];
+        int[] entered = new int[1];
+        string?[] innerResult = new string?[1];
+
+        string Evaluate()
+        {
+            if (Interlocked.Exchange(ref entered[0], 1) != 0)
+            {
+                return "inner";
+            }
+            innerResult[0] = slots[0].AsString;
+            throw new InvalidOperationException("outer faulted");
+        }
+
+        slots[0] = LazyString.Lazy(Evaluate);
+
+        bool success = slots[0].TryGetString(out string result, out LazyStringError error);
+
+        await Assert.That(success).IsFalse();
+        await Assert.That(error.Code).IsEqualTo(LazyStringErrorCode.FactoryFaulted);
+        await Assert.That(error.Message).IsEqualTo("outer faulted");
+        await Assert.That(result).IsSameReferenceAs(innerResult[0]!);
+        await Assert.That(slots[0].RawValue).IsSameReferenceAs(innerResult[0]!);
+    }
+
+    /// <summary>
+    /// Many slots, several threads released together per slot by a barrier. Every reader of a slot must get the
+    /// same non-empty reference, and that reference must be what the slot holds afterwards. The factories return a
+    /// fresh string on every run, so a loser that returns its own result is detected by reference comparison.
+    /// </summary>
+    [Test]
+    public async Task ConcurrentFirstReaders_OnSharedSlots_AllSeeSameNonEmptyCachedReference()
+    {
+        const int slotCount = 2000;
+        const int threadCount = 4;
+
+        LazyString[] slots = new LazyString[slotCount];
+        for (int i = 0; i < slotCount; i++)
+        {
+            int id = i;
+            slots[i] = i % 2 == 0
+                ? LazyString.Lazy(() => string.Concat("v", id.ToString(CultureInfo.InvariantCulture)))
+                : LazyString.FormatLazy(id, static n => string.Concat("v", n.ToString(CultureInfo.InvariantCulture)));
+        }
+
+        string[][] seen = new string[threadCount][];
+        Exception?[] failures = new Exception?[threadCount];
+        Thread[] threads = new Thread[threadCount];
+        using Barrier barrier = new(threadCount);
+        for (int t = 0; t < threadCount; t++)
+        {
+            int index = t;
+            seen[t] = new string[slotCount];
+            threads[t] = new Thread(() => _ReadAllSlots(slots, seen[index], index, barrier, failures))
+            {
+                Name = $"LazyStringReader{index}",
+                IsBackground = true,
+            };
+        }
+
+        foreach (Thread thread in threads)
+        {
+            thread.Start();
+        }
+        bool allJoined = true;
+        foreach (Thread thread in threads)
+        {
+            allJoined &= thread.Join(TimeSpan.FromSeconds(30));
+        }
+
+        // Count each violation class separately so a failure names what broke.
+        int emptyResults = 0;
+        int divergentReferences = 0;
+        int slotNotHoldingResult = 0;
+        for (int i = 0; i < slotCount; i++)
+        {
+            string first = seen[0][i];
+            if (string.IsNullOrEmpty(first))
+            {
+                emptyResults++;
+            }
+            for (int t = 1; t < threadCount; t++)
+            {
+                if (!ReferenceEquals(seen[t][i], first))
+                {
+                    divergentReferences++;
+                }
+            }
+            if (!ReferenceEquals(slots[i].RawValue, first))
+            {
+                slotNotHoldingResult++;
+            }
+        }
+
+        await Assert.That(allJoined).IsTrue();
+        await Assert.That(failures.All(static f => f is null)).IsTrue();
+        await Assert.That(emptyResults).IsEqualTo(0);
+        await Assert.That(divergentReferences).IsEqualTo(0);
+        await Assert.That(slotNotHoldingResult).IsEqualTo(0);
+    }
+
+    /// <summary>Private evaluation helper, reachable only for the white-box test below.</summary>
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "_EvaluateAndCache")]
+    private static extern string _EvaluateAndCacheAccessor(ref LazyString self, object deferred);
+
+    /// <summary>Private evaluation helper, reachable only for the white-box test below.</summary>
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "_TryEvaluateAndCache")]
+    private static extern bool _TryEvaluateAndCacheAccessor(ref LazyString self, object deferred, out string result, out LazyStringError error);
+
+    /// <summary>
+    /// White-box: the state "the slot already holds another thread's string while this call starts evaluating a stale
+    /// deferred object". The helper must return the cached string and leave the slot untouched, never replace it with
+    /// an empty string.
+    /// </summary>
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task Evaluate_SlotAlreadyHoldsString_ReturnsItAndKeepsSlot(bool useTry)
+    {
+        string cached = new('c', 3);
+        LazyString[] slots = [new LazyString(cached)];
+        Func<string> stale = static () => string.Empty;
+
+        string result;
+        bool succeeded = true;
+        LazyStringError error;
+        if (useTry)
+        {
+            succeeded = _TryEvaluateAndCacheAccessor(ref slots[0], stale, out result, out error);
+        }
+        else
+        {
+            result = _EvaluateAndCacheAccessor(ref slots[0], stale);
+            error = default;
+        }
+
+        await Assert.That(succeeded).IsTrue();
+        await Assert.That(error.Code).IsEqualTo(LazyStringErrorCode.None);
+        await Assert.That(result).IsSameReferenceAs(cached);
+        await Assert.That(slots[0].RawValue).IsSameReferenceAs(cached);
+    }
+
+    /// <summary>Evaluates the slot in place through <c>AsString</c> or <c>TryGetString</c>.</summary>
+    private static string _Read(ref LazyString slot, bool useTry)
+    {
+        if (!useTry)
+        {
+            return slot.AsString;
+        }
+        _ = slot.TryGetString(out string text);
+        return text;
+    }
+
+    /// <summary>
+    /// Thread body: waits at the barrier before each slot so all threads race on its first evaluation,
+    /// alternating between <c>AsString</c> and <c>TryGetString</c> across threads and slots.
+    /// </summary>
+    private static void _ReadAllSlots(LazyString[] slots, string[] seen, int threadIndex, Barrier barrier, Exception?[] failures)
+    {
+        try
+        {
+            for (int i = 0; i < slots.Length; i++)
+            {
+                if (!barrier.SignalAndWait(TimeSpan.FromSeconds(10)))
+                {
+                    throw new TimeoutException("Barrier participants did not arrive.");
+                }
+                seen[i] = _Read(ref slots[i], (threadIndex + i) % 2 != 0);
+            }
+        }
+        catch (Exception ex)
+        {
+            // A dead participant would leave the others waiting; release them and report on the test thread.
+            failures[threadIndex] = ex;
+            barrier.RemoveParticipant();
+        }
+    }
 }

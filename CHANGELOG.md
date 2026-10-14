@@ -7,6 +7,20 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.2] - 2026-10-14
+
+ZeroAlloc 0.6.2 fixes a thread-safety defect in `LazyString` that affects 0.6.0 and 0.6.1.
+
+### Fixed
+
+- `LazyString.AsString` / `TryGetString` could return `""` and cache `""` permanently when several threads evaluated the same storage location for the first time. Cause: the wrapped value was read twice (once to pick the evaluation path, once inside the helper); if another thread cached its string in between, the helper treated that string as an unknown type, evaluated to `""`, and its compare-exchange against the just-cached string succeeded. The value is now read once per call, the observed deferred object is passed to the helpers, and the compare-exchange runs only for a `Func<string>` or `IDeferredFormat`.
+- A thread that lost the compare-exchange returned its own result instead of the cached string, contradicting the documented "readers share the same string reference". All concurrent first readers now return the same cached reference. `TryGetString` always returns the string cached afterwards; its `bool` and `error` describe only the caller's own factory run.
+
+### Changed
+
+- `LazyString` XML docs and README now state that the factory may run more than once under concurrent first evaluation, and that evaluating a copy of the struct does not update the original (unchanged behavior, now documented).
+- Packable `VersionPrefix` is `0.6.2`.
+
 ## [0.6.1] - 2026-10-10
 
 ZeroAlloc 0.6.1 hardens buffer ownership and LazyString failure reporting, and ships the agent workflow surface (`/requirements`, `/illustrate`, `/commit-message`) used to develop the library.
